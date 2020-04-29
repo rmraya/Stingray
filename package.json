@@ -1,0 +1,26 @@
+{
+    "name": "stingray",
+    "productName": "Stingray",
+    "version": "2.0.0",
+    "description": "Stingray Document Aligner",
+    "main": "js/app.js",
+    "scripts": {
+        "build": "tsc",
+        "start": "npm run build && electron ."
+    },
+    "author": {
+        "name": "Rodolfo M. Raya",
+        "email": "rmraya@maxprograms.com",
+        "url": "https://www.maxprograms.com"
+    },
+    "license": "SEE LICENSE IN LICENSE",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/rmraya/TMXEditor.git"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "electron": "8.2.3",
+        "typescript": "^3.8.3"
+    }
+}
