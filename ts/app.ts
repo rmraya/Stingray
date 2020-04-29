@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2008-2020 - Maxprograms,  http://www.maxprograms.com/
+Copyright (c) 2008-2020 - Maxprograms,  http://www.maxprograms.com\\
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to compile,
@@ -43,7 +43,7 @@ class Stingray {
         this.loadPreferences();
         app.on('ready', () => {
             this.createWindow();
-            this.mainWindow.loadURL('file://' + app.getAppPath() + '/index.html');
+            this.mainWindow.loadURL('file://' + app.getAppPath() + '\\index.html');
             this.mainWindow.on('resize', () => {
                 this.saveDefaults();
             });
@@ -73,7 +73,7 @@ class Stingray {
                 nodeIntegration: true
             },
             show: false,
-            icon: 'icons/icon.png'
+            icon: 'icons\\icon.png'
         });
         Stingray.contents = this.mainWindow.webContents;
         var fileMenu: Menu = Menu.buildFromTemplate([
@@ -129,26 +129,26 @@ class Stingray {
             }));
             template.push(help);
         }
-        if (process.platform == 'win32') {
+        if (process.platform === 'win32') {
             template[0].submenu.append(new MenuItem({ type: 'separator' }));
             template[0].submenu.append(new MenuItem({ label: 'Exit', accelerator: 'Alt+F4', role: 'quit', click: function () { app.quit(); } }));
-            template[7].submenu.append(new MenuItem({ type: 'separator' }));
-            template[7].submenu.append(new MenuItem({ label: 'About...', click: function () { Stingray.showAbout(); } }));
+            template[2].submenu.append(new MenuItem({ type: 'separator' }));
+            template[2].submenu.append(new MenuItem({ label: 'About...', click: function () { Stingray.showAbout(); } }));
         }
         if (process.platform === 'linux') {
             template[0].submenu.append(new MenuItem({ type: 'separator' }));
             template[0].submenu.append(new MenuItem({ label: 'Quit', accelerator: 'Ctrl+Q', role: 'quit', click: function () { app.quit(); } }));
-            template[7].submenu.append(new MenuItem({ type: 'separator' }));
-            template[7].submenu.append(new MenuItem({ label: 'About...', click: function () { Stingray.showAbout(); } }));
+            template[2].submenu.append(new MenuItem({ type: 'separator' }));
+            template[2].submenu.append(new MenuItem({ label: 'About...', click: function () { Stingray.showAbout(); } }));
         }
         Menu.setApplicationMenu(Menu.buildFromTemplate(template));
     }
 
     loadDefaults(): void {
         this.currentDefaults = { width: 900, height: 700, x: 0, y: 0 };
-        if (existsSync(app.getAppPath() + '/defaults.json')) {
+        if (existsSync(app.getAppPath() + '\\defaults.json')) {
             try {
-                var data: Buffer = readFileSync(app.getAppPath() + '/defaults.json');
+                var data: Buffer = readFileSync(app.getAppPath() + '\\defaults.json');
                 this.currentDefaults = JSON.parse(data.toString());
             } catch (err) {
                 console.log(err);
