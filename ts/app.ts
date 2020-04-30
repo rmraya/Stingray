@@ -19,10 +19,12 @@ SOFTWARE.
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem, shell, webContents, nativeTheme, Rectangle, IpcMainEvent } from "electron";
 import { existsSync, mkdirSync, readFile, readFileSync, writeFile, writeFileSync } from "fs";
+import { ClientRequest, request, IncomingMessage } from "http";
 
 class Stingray {
 
     static path = require('path');
+    static https = require('https');
 
     static mainWindow: BrowserWindow;
     static aboutWindow: BrowserWindow;
@@ -48,7 +50,7 @@ class Stingray {
         this.loadPreferences();
         app.on('ready', () => {
             this.createWindow();
-            Stingray.mainWindow.loadURL('file://' + app.getAppPath() + '/index.html');
+            Stingray.mainWindow.loadURL(Stingray.path.join('file://', app.getAppPath(), 'index.html'));
             Stingray.mainWindow.on('resize', () => {
                 this.saveDefaults();
             });
@@ -182,7 +184,43 @@ class Stingray {
     }
 
     static checkUpdates(silent: boolean): void {
-        // TODO
+        this.https.get('https://raw.githubusercontent.com/rmraya/Stingray/master/package.json', (res: IncomingMessage) => {
+            if (res.statusCode === 200) {
+                let rawData = '';
+                res.on('data', (chunk: string) => {
+                    rawData += chunk;
+                });
+                res.on('end', () => {
+                    try {
+                        const parsedData: any = JSON.parse(rawData);
+                        if (app.getVersion() !== parsedData.version) {
+                            dialog.showMessageBox(Stingray.mainWindow, {
+                                type: 'info',
+                                title: 'Updates Available',
+                                message: 'Version ' + parsedData.version + ' is available'
+                            });
+                        } else {
+                            if (!silent) {
+                                dialog.showMessageBox(Stingray.mainWindow, {
+                                    type: 'info',
+                                    message: 'There are currently no updates available'
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        dialog.showErrorBox('Error', e.message);
+                    }
+                });
+            } else {
+                if (!silent) {
+                    dialog.showErrorBox('Error', 'Updates Request Failed.\nStatus code: ' + res.statusCode);
+                }
+            }
+        }).on('error', (e: any) => {
+            if (!silent) {
+                dialog.showErrorBox('Error', e.message);
+            }
+        });
     }
 
     replaceText(): void {
@@ -190,7 +228,6 @@ class Stingray {
     }
 
     static showAbout(): void {
-        // TODO
         Stingray.aboutWindow = new BrowserWindow({
             parent: Stingray.mainWindow,
             width: Stingray.getWidth('aboutWindow'),
@@ -199,13 +236,13 @@ class Stingray {
             resizable: false,
             useContentSize: true,
             show: false,
-            icon: './icons/icon.png',
+            icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true
             }
         });
         Stingray.aboutWindow.setMenu(null);
-        Stingray.aboutWindow.loadURL('file://' + app.getAppPath() + '/html/about.html');
+        Stingray.aboutWindow.loadURL(Stingray.path.join('file://', app.getAppPath(), 'html', 'about.html'));
         Stingray.aboutWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
             Stingray.aboutWindow.show();
@@ -217,7 +254,7 @@ class Stingray {
     }
 
     static showHelp(): void {
-        shell.openExternal(Stingray.path.join(app.getAppPath(), 'stingray.pdf'));
+        shell.openExternal(Stingray.path.join('file://', app.getAppPath(), 'stingray.pdf'));
     }
 
     static showLicenses(): void {
@@ -232,7 +269,7 @@ class Stingray {
         shell.openExternal('https://groups.io/g/maxprograms/');
     }
 
-    static getWidth(window: string): number{
+    static getWidth(window: string): number {
         switch (window) {
             case 'aboutWindow': { return 436; }
             case 'licensesWindow': { return 430; }
@@ -242,8 +279,3 @@ class Stingray {
 }
 
 new Stingray();
-
-
-
-
-
