@@ -10,3 +10,4 @@ package-lock.json
 /out/
 /release
 /Stingray-darwin-x64/
+/Stingray-win32-x64/
