@@ -19,6 +19,7 @@ SOFTWARE.
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem, shell, webContents, nativeTheme, Rectangle, IpcMainEvent } from "electron";
 import { existsSync, mkdirSync, readFile, readFileSync, writeFile, writeFileSync } from "fs";
+const path = require('path');
 
 class Stingray {
 
@@ -43,7 +44,7 @@ class Stingray {
         this.loadPreferences();
         app.on('ready', () => {
             this.createWindow();
-            this.mainWindow.loadURL('file://' + app.getAppPath() + '\\index.html');
+            this.mainWindow.loadURL('file://' + app.getAppPath() + '/index.html');
             this.mainWindow.on('resize', () => {
                 this.saveDefaults();
             });
@@ -73,7 +74,7 @@ class Stingray {
                 nodeIntegration: true
             },
             show: false,
-            icon: 'icons\\icon.png'
+            icon: path.join(app.getAppPath(), 'icons', 'icon.png')
         });
         Stingray.contents = this.mainWindow.webContents;
         var fileMenu: Menu = Menu.buildFromTemplate([
@@ -145,10 +146,11 @@ class Stingray {
     }
 
     loadDefaults(): void {
+        let defaultsFile: string = path.join(app.getPath('appData'), 'defaults.json');
         this.currentDefaults = { width: 900, height: 700, x: 0, y: 0 };
-        if (existsSync(app.getAppPath() + '\\defaults.json')) {
+        if (existsSync(defaultsFile)) {
             try {
-                var data: Buffer = readFileSync(app.getAppPath() + '\\defaults.json');
+                var data: Buffer = readFileSync(defaultsFile);
                 this.currentDefaults = JSON.parse(data.toString());
             } catch (err) {
                 console.log(err);
@@ -161,7 +163,8 @@ class Stingray {
     }
 
     saveDefaults(): void {
-        // TODO
+        let defaultsFile: string = path.join(app.getPath('appData'), 'defaults.json');
+        writeFileSync(defaultsFile, JSON.stringify(this.mainWindow.getBounds()));
     }
 
     setTheme(): void {
