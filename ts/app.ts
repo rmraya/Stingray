@@ -19,51 +19,61 @@ SOFTWARE.
 
 import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem, shell, webContents, nativeTheme, Rectangle, IpcMainEvent } from "electron";
 import { existsSync, mkdirSync, readFile, readFileSync, writeFile, writeFileSync } from "fs";
-const path = require('path');
 
 class Stingray {
 
-    mainWindow: BrowserWindow;
+    static path = require('path');
+
+    static mainWindow: BrowserWindow;
+    static aboutWindow: BrowserWindow;
     static contents: webContents;
     currentDefaults: Rectangle;
+
+    verticalPadding: number = 46;
 
     constructor() {
         app.allowRendererProcessReuse = true;
         if (!app.requestSingleInstanceLock()) {
             app.quit();
         } else {
-            if (this.mainWindow) {
+            if (Stingray.mainWindow) {
                 // Someone tried to run a second instance, we should focus our window.
-                if (this.mainWindow.isMinimized()) {
-                    this.mainWindow.restore();
+                if (Stingray.mainWindow.isMinimized()) {
+                    Stingray.mainWindow.restore();
                 }
-                this.mainWindow.focus();
+                Stingray.mainWindow.focus();
             }
         }
         this.loadDefaults();
         this.loadPreferences();
         app.on('ready', () => {
             this.createWindow();
-            this.mainWindow.loadURL('file://' + app.getAppPath() + '/index.html');
-            this.mainWindow.on('resize', () => {
+            Stingray.mainWindow.loadURL('file://' + app.getAppPath() + '/index.html');
+            Stingray.mainWindow.on('resize', () => {
                 this.saveDefaults();
             });
-            this.mainWindow.on('move', () => {
+            Stingray.mainWindow.on('move', () => {
                 this.saveDefaults();
             });
-            this.mainWindow.once('ready-to-show', () => {
+            Stingray.mainWindow.once('ready-to-show', () => {
                 this.setTheme();
-                if (this.currentDefaults) {
-                    this.mainWindow.setBounds(this.currentDefaults);
-                }
-                this.mainWindow.show();
+                Stingray.mainWindow.setBounds(this.currentDefaults);
+                Stingray.mainWindow.show();
             });
             Stingray.checkUpdates(true);
+        });
+        ipcMain.on('about-height', (event, arg) => {
+            let rect: Rectangle = Stingray.aboutWindow.getBounds();
+            rect.height = arg.height + this.verticalPadding;
+            Stingray.aboutWindow.setBounds(rect);
+        });
+        ipcMain.on('licenses-clicked', () => {
+            Stingray.showLicenses();
         });
     }
 
     createWindow(): void {
-        this.mainWindow = new BrowserWindow({
+        Stingray.mainWindow = new BrowserWindow({
             title: app.name,
             width: this.currentDefaults.width,
             height: this.currentDefaults.height,
@@ -74,29 +84,29 @@ class Stingray {
                 nodeIntegration: true
             },
             show: false,
-            icon: path.join(app.getAppPath(), 'icons', 'icon.png')
+            icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png')
         });
-        Stingray.contents = this.mainWindow.webContents;
+        Stingray.contents = Stingray.mainWindow.webContents;
         var fileMenu: Menu = Menu.buildFromTemplate([
         ]);
         var editMenu: Menu = Menu.buildFromTemplate([
-            { label: 'Undo', accelerator: 'CmdOrCtrl+Z', click: function () { Stingray.contents.undo(); } },
+            { label: 'Undo', accelerator: 'CmdOrCtrl+Z', click: () => { Stingray.contents.undo(); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Cut', accelerator: 'CmdOrCtrl+X', click: function () { Stingray.contents.cut(); } },
-            { label: 'Copy', accelerator: 'CmdOrCtrl+C', click: function () { Stingray.contents.copy(); } },
-            { label: 'Paste', accelerator: 'CmdOrCtrl+V', click: function () { Stingray.contents.paste(); } },
-            { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: function () { Stingray.contents.selectAll(); } },
+            { label: 'Cut', accelerator: 'CmdOrCtrl+X', click: () => { Stingray.contents.cut(); } },
+            { label: 'Copy', accelerator: 'CmdOrCtrl+C', click: () => { Stingray.contents.copy(); } },
+            { label: 'Paste', accelerator: 'CmdOrCtrl+V', click: () => { Stingray.contents.paste(); } },
+            { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: () => { Stingray.contents.selectAll(); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Replace Text...', accelerator: 'CmdOrCtrl+F', click: function () { this.replaceText(); } }
+            { label: 'Replace Text...', accelerator: 'CmdOrCtrl+F', click: () => { this.replaceText(); } }
         ]);
         var helpMenu: Menu = Menu.buildFromTemplate([
-            { label: 'Stingray User Guide', accelerator: 'F1', click: function () { Stingray.showHelp(); } },
+            { label: 'Stingray User Guide', accelerator: 'F1', click: () => { Stingray.showHelp(); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Check for Updates...', click: function () { Stingray.checkUpdates(false); } },
-            { label: 'View Licenses', click: function () { this.showLicenses(); } },
+            { label: 'Check for Updates...', click: () => { Stingray.checkUpdates(false); } },
+            { label: 'View Licenses', click: () => { Stingray.showLicenses(); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Release History', click: function () { this.showReleaseHistory(); } },
-            { label: 'Support Group', click: function () { this.showSupportGroup(); } }
+            { label: 'Release History', click: () => { Stingray.showReleaseHistory(); } },
+            { label: 'Support Group', click: () => { Stingray.showSupportGroup(); } }
         ]);
         var template: MenuItem[] = [
             new MenuItem({ label: '&File', role: 'fileMenu', submenu: fileMenu }),
@@ -105,10 +115,10 @@ class Stingray {
         ];
         if (process.platform === 'darwin') {
             var appleMenu: Menu = Menu.buildFromTemplate([
-                new MenuItem({ label: 'About...', click: function () { Stingray.showAbout(); } }),
+                new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }),
                 new MenuItem({
                     label: 'Preferences...', submenu: [
-                        { label: 'Settings', accelerator: 'Cmd+,', click: function () { Stingray.showSettings(); } }
+                        { label: 'Settings', accelerator: 'Cmd+,', click: () => { Stingray.showSettings(); } }
                     ]
                 }),
                 new MenuItem({ type: 'separator' }),
@@ -118,35 +128,35 @@ class Stingray {
                     ]
                 }),
                 new MenuItem({ type: 'separator' }),
-                new MenuItem({ label: 'Quit Stingray', accelerator: 'Cmd+Q', role: 'quit', click: function () { app.quit(); } })
+                new MenuItem({ label: 'Quit Stingray', accelerator: 'Cmd+Q', role: 'quit', click: () => { app.quit(); } })
             ]);
             template.unshift(new MenuItem({ label: 'Stingray', role: 'appMenu', submenu: appleMenu }));
         } else {
             var help: MenuItem = template.pop();
             template.push(new MenuItem({
                 label: '&Settings', submenu: [
-                    { label: 'Preferences', click: function () { Stingray.showSettings(); } }
+                    { label: 'Preferences', click: () => { Stingray.showSettings(); } }
                 ]
             }));
             template.push(help);
         }
         if (process.platform === 'win32') {
             template[0].submenu.append(new MenuItem({ type: 'separator' }));
-            template[0].submenu.append(new MenuItem({ label: 'Exit', accelerator: 'Alt+F4', role: 'quit', click: function () { app.quit(); } }));
-            template[2].submenu.append(new MenuItem({ type: 'separator' }));
-            template[2].submenu.append(new MenuItem({ label: 'About...', click: function () { Stingray.showAbout(); } }));
+            template[0].submenu.append(new MenuItem({ label: 'Exit', accelerator: 'Alt+F4', role: 'quit', click: () => { app.quit(); } }));
+            template[3].submenu.append(new MenuItem({ type: 'separator' }));
+            template[3].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
         }
         if (process.platform === 'linux') {
             template[0].submenu.append(new MenuItem({ type: 'separator' }));
-            template[0].submenu.append(new MenuItem({ label: 'Quit', accelerator: 'Ctrl+Q', role: 'quit', click: function () { app.quit(); } }));
-            template[2].submenu.append(new MenuItem({ type: 'separator' }));
-            template[2].submenu.append(new MenuItem({ label: 'About...', click: function () { Stingray.showAbout(); } }));
+            template[0].submenu.append(new MenuItem({ label: 'Quit', accelerator: 'Ctrl+Q', role: 'quit', click: () => { app.quit(); } }));
+            template[3].submenu.append(new MenuItem({ type: 'separator' }));
+            template[3].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
         }
         Menu.setApplicationMenu(Menu.buildFromTemplate(template));
     }
 
     loadDefaults(): void {
-        let defaultsFile: string = path.join(app.getPath('appData'), 'defaults.json');
+        let defaultsFile: string = Stingray.path.join(app.getPath('appData'), app.name, 'defaults.json');
         this.currentDefaults = { width: 900, height: 700, x: 0, y: 0 };
         if (existsSync(defaultsFile)) {
             try {
@@ -163,8 +173,8 @@ class Stingray {
     }
 
     saveDefaults(): void {
-        let defaultsFile: string = path.join(app.getPath('appData'), 'defaults.json');
-        writeFileSync(defaultsFile, JSON.stringify(this.mainWindow.getBounds()));
+        let defaultsFile: string = Stingray.path.join(app.getPath('appData'), app.name, 'defaults.json');
+        writeFileSync(defaultsFile, JSON.stringify(Stingray.mainWindow.getBounds()));
     }
 
     setTheme(): void {
@@ -181,6 +191,25 @@ class Stingray {
 
     static showAbout(): void {
         // TODO
+        Stingray.aboutWindow = new BrowserWindow({
+            parent: Stingray.mainWindow,
+            width: Stingray.getWidth('aboutWindow'),
+            minimizable: false,
+            maximizable: false,
+            resizable: false,
+            useContentSize: true,
+            show: false,
+            icon: './icons/icon.png',
+            webPreferences: {
+                nodeIntegration: true
+            }
+        });
+        Stingray.aboutWindow.setMenu(null);
+        Stingray.aboutWindow.loadURL('file://' + app.getAppPath() + '/html/about.html');
+        Stingray.aboutWindow.once('ready-to-show', (event: IpcMainEvent) => {
+            event.sender.send('get-height');
+            Stingray.aboutWindow.show();
+        });
     }
 
     static showSettings(): void {
@@ -188,19 +217,27 @@ class Stingray {
     }
 
     static showHelp(): void {
+        shell.openExternal(Stingray.path.join(app.getAppPath(), 'stingray.pdf'));
+    }
+
+    static showLicenses(): void {
         // TODO
     }
 
-    showLicenses(): void {
-        // TODO
+    static showReleaseHistory(): void {
+        shell.openExternal('https://www.maxprograms.com/products/stgraylog.html');
     }
 
-    showReleaseHistory(): void {
-        // TODO
+    static showSupportGroup(): void {
+        shell.openExternal('https://groups.io/g/maxprograms/');
     }
 
-    showSupportGroup(): void {
-        // TODO
+    static getWidth(window: string): number{
+        switch (window) {
+            case 'aboutWindow': { return 436; }
+            case 'licensesWindow': { return 430; }
+            case 'settingsWindow': { return 600; }
+        }
     }
 }
 
