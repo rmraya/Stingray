@@ -28,6 +28,7 @@ class Stingray {
 
     static mainWindow: BrowserWindow;
     static aboutWindow: BrowserWindow;
+    static licensesWindow: BrowserWindow;
     static contents: webContents;
     currentDefaults: Rectangle;
 
@@ -69,9 +70,17 @@ class Stingray {
             rect.height = arg.height + this.verticalPadding;
             Stingray.aboutWindow.setBounds(rect);
         });
+        ipcMain.on('licenses-height', (event, arg) => {
+            let rect: Rectangle = Stingray.licensesWindow.getBounds();
+            rect.height = arg.height + this.verticalPadding;
+            Stingray.licensesWindow.setBounds(rect);
+        })
         ipcMain.on('licenses-clicked', () => {
             Stingray.showLicenses();
         });
+        ipcMain.on('open-license', (event,arg) => {
+            Stingray.openLicense(arg.type);
+        })
     }
 
     createWindow(): void {
@@ -194,14 +203,14 @@ class Stingray {
                     try {
                         const parsedData: any = JSON.parse(rawData);
                         if (app.getVersion() !== parsedData.version) {
-                            dialog.showMessageBox(Stingray.mainWindow, {
+                            dialog.showMessageBox(this.mainWindow, {
                                 type: 'info',
                                 title: 'Updates Available',
                                 message: 'Version ' + parsedData.version + ' is available'
                             });
                         } else {
                             if (!silent) {
-                                dialog.showMessageBox(Stingray.mainWindow, {
+                                dialog.showMessageBox(this.mainWindow, {
                                     type: 'info',
                                     message: 'There are currently no updates available'
                                 });
@@ -228,24 +237,24 @@ class Stingray {
     }
 
     static showAbout(): void {
-        Stingray.aboutWindow = new BrowserWindow({
-            parent: Stingray.mainWindow,
-            width: Stingray.getWidth('aboutWindow'),
+        this.aboutWindow = new BrowserWindow({
+            parent: this.mainWindow,
+            width: this.getWidth('aboutWindow'),
             minimizable: false,
             maximizable: false,
             resizable: false,
             useContentSize: true,
             show: false,
-            icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true
             }
         });
-        Stingray.aboutWindow.setMenu(null);
-        Stingray.aboutWindow.loadURL(Stingray.path.join('file://', app.getAppPath(), 'html', 'about.html'));
-        Stingray.aboutWindow.once('ready-to-show', (event: IpcMainEvent) => {
+        this.aboutWindow.setMenu(null);
+        this.aboutWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'about.html'));
+        this.aboutWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
-            Stingray.aboutWindow.show();
+            this.aboutWindow.show();
         });
     }
 
@@ -254,13 +263,87 @@ class Stingray {
     }
 
     static showHelp(): void {
-        shell.openExternal(Stingray.path.join('file://', app.getAppPath(), 'stingray.pdf'));
+        shell.openExternal(this.path.join('file://', app.getAppPath(), 'stingray.pdf'));
     }
 
     static showLicenses(): void {
-        // TODO
+        this.licensesWindow = new BrowserWindow({
+            parent: this.mainWindow,
+            width: this.getWidth('licensesWindow'),
+            useContentSize: true,
+            minimizable: false,
+            maximizable: false,
+            resizable: false,
+            show: false,
+            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            webPreferences: {
+                nodeIntegration: true
+            }
+        });
+        this.licensesWindow.setMenu(null);
+        this.licensesWindow.loadURL('file://' + app.getAppPath() + '/html/licenses.html');
+        this.licensesWindow.once('ready-to-show', (event: IpcMainEvent) => {
+            event.sender.send('get-height');
+            this.licensesWindow.show();
+        });
     }
 
+    static openLicense(type: string) {
+        var licenseFile = '';
+        var title = '';
+        switch (type) {
+            case 'Stingray':
+                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/license.txt'
+                title = 'Stingray License';
+                break;
+            case "electron":
+                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/electron.txt'
+                title = 'MIT License';
+                break;
+            case "TypeScript":
+            case "MapDB":
+                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/Apache2.0.html'
+                title = 'Apache 2.0';
+                break;
+            case "Java":
+                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/java.html'
+                title = 'GPL2 with Classpath Exception';
+                break;
+            case "OpenXLIFF":
+                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/EclipsePublicLicense1.0.html';
+                title = 'Eclipse Public License 1.0';
+                break;
+            case "JSON":
+                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/json.txt'
+                title = 'JSON.org License';
+                break;
+            case "jsoup":
+                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/jsoup.txt'
+                title = 'MIT License';
+                break;
+            case "DTDParser":
+                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/LGPL2.1.txt'
+                title = 'LGPL 2.1';
+                break;
+            default:
+                dialog.showErrorBox('Error', 'Unknow license');
+                return;
+        }
+        var licenseWindow = new BrowserWindow({
+            parent: this.mainWindow,
+            width: 680,
+            height: 400,
+            show: false,
+            title: title,
+            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            webPreferences: {
+                nodeIntegration: true
+            }
+        });
+        licenseWindow.setMenu(null);
+        licenseWindow.loadURL(licenseFile);
+        licenseWindow.show();
+    }
     static showReleaseHistory(): void {
         shell.openExternal('https://www.maxprograms.com/products/stgraylog.html');
     }
