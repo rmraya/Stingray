@@ -29,8 +29,12 @@ class Stingray {
     static mainWindow: BrowserWindow;
     static aboutWindow: BrowserWindow;
     static licensesWindow: BrowserWindow;
+    static settingsWindow: BrowserWindow;
     static contents: webContents;
     currentDefaults: Rectangle;
+
+    static currentPreferences: any = { theme: 'system', srcLang: 'none', tgtLang: 'none' }
+    static currentTheme: string = 'system';
 
     verticalPadding: number = 46;
 
@@ -48,7 +52,7 @@ class Stingray {
             }
         }
         this.loadDefaults();
-        this.loadPreferences();
+        Stingray.loadPreferences();
         app.on('ready', () => {
             this.createWindow();
             Stingray.mainWindow.loadURL(Stingray.path.join('file://', app.getAppPath(), 'index.html'));
@@ -59,11 +63,14 @@ class Stingray {
                 this.saveDefaults();
             });
             Stingray.mainWindow.once('ready-to-show', () => {
-                this.setTheme();
+                Stingray.setTheme();
                 Stingray.mainWindow.setBounds(this.currentDefaults);
                 Stingray.mainWindow.show();
             });
             Stingray.checkUpdates(true);
+        });
+        ipcMain.on('get-theme', (event, arg) => {
+            event.sender.send('set-theme', Stingray.currentTheme);
         });
         ipcMain.on('about-height', (event, arg) => {
             let rect: Rectangle = Stingray.aboutWindow.getBounds();
@@ -75,12 +82,32 @@ class Stingray {
             rect.height = arg.height + this.verticalPadding;
             Stingray.licensesWindow.setBounds(rect);
         })
+        ipcMain.on('settings-height', (event, arg) => {
+            let rect: Rectangle = Stingray.settingsWindow.getBounds();
+            rect.height = arg.height + this.verticalPadding;
+            Stingray.settingsWindow.setBounds(rect);
+        });
+        ipcMain.on('save-preferences', (event, arg) => {
+            Stingray.settingsWindow.close();
+            Stingray.currentPreferences = arg;
+            Stingray.savePreferences();
+        });
+        ipcMain.on('get-preferences', (event, arg) => {
+            event.sender.send('set-preferences', Stingray.currentPreferences);
+        });
+        nativeTheme.on('updated', () => {
+            Stingray.loadPreferences();
+            Stingray.setTheme();
+        });
         ipcMain.on('licenses-clicked', () => {
             Stingray.showLicenses();
         });
-        ipcMain.on('open-license', (event,arg) => {
+        ipcMain.on('open-license', (event, arg) => {
             Stingray.openLicense(arg.type);
         })
+        ipcMain.on('show-help', () => {
+            Stingray.showHelp();
+        });
     }
 
     createWindow(): void {
@@ -179,8 +206,39 @@ class Stingray {
         }
     }
 
-    loadPreferences(): void {
-        // TODO
+    static loadPreferences(): void {
+        let preferencesFile = this.path.join(app.getPath('appData'), app.name, 'preferences.json');
+        if (existsSync(preferencesFile)) {
+            try {
+                var data: Buffer = readFileSync(preferencesFile);
+                this.currentPreferences = JSON.parse(data.toString());
+            } catch (err) {
+                console.log(err);
+            }
+        }
+        if (this.currentPreferences.theme === 'system') {
+            if (nativeTheme.shouldUseDarkColors) {
+                this.currentTheme = this.path.join(app.getAppPath(), 'css', 'dark.css');
+                nativeTheme.themeSource = 'dark';
+            } else {
+                this.currentTheme = this.path.join(app.getAppPath(), 'css', 'light.css');
+                nativeTheme.themeSource = 'light';
+            }
+        }
+        if (this.currentPreferences.theme === 'dark') {
+            this.currentTheme = this.path.join(app.getAppPath(), 'css', 'dark.css');
+            nativeTheme.themeSource = 'dark';
+        }
+        if (this.currentPreferences.theme === 'light') {
+            this.currentTheme = this.path.join(app.getAppPath(), 'css', 'light.css');
+            nativeTheme.themeSource = 'light';
+        }
+    }
+
+    static savePreferences(): void {
+        let preferencesFile = this.path.join(app.getPath('appData'), app.name, 'preferences.json');
+        writeFileSync(preferencesFile, JSON.stringify(this.currentPreferences));
+        nativeTheme.themeSource = this.currentPreferences.theme;
     }
 
     saveDefaults(): void {
@@ -188,8 +246,8 @@ class Stingray {
         writeFileSync(defaultsFile, JSON.stringify(Stingray.mainWindow.getBounds()));
     }
 
-    setTheme(): void {
-        // TODO
+    static setTheme(): void {
+        this.contents.send('set-theme', this.currentTheme);
     }
 
     static checkUpdates(silent: boolean): void {
@@ -259,7 +317,25 @@ class Stingray {
     }
 
     static showSettings(): void {
-        // TODO
+        this.settingsWindow = new BrowserWindow({
+            parent: this.mainWindow,
+            width: this.getWidth('settingsWindow'),
+            useContentSize: true,
+            minimizable: false,
+            maximizable: false,
+            resizable: false,
+            show: false,
+            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            webPreferences: {
+                nodeIntegration: true
+            }
+        });
+        this.settingsWindow.setMenu(null);
+        this.settingsWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'preferences.html'));
+        this.settingsWindow.once('ready-to-show', (event: IpcMainEvent) => {
+            event.sender.send('get-height');
+            this.settingsWindow.show();
+        });
     }
 
     static showHelp(): void {
@@ -293,36 +369,36 @@ class Stingray {
         var title = '';
         switch (type) {
             case 'Stingray':
-                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/license.txt'
+                licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'license.txt');
                 title = 'Stingray License';
                 break;
             case "electron":
-                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/electron.txt'
+                licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'electron.txt');
                 title = 'MIT License';
                 break;
             case "TypeScript":
             case "MapDB":
-                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/Apache2.0.html'
+                licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'Apache2.0.html');
                 title = 'Apache 2.0';
                 break;
             case "Java":
-                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/java.html'
+                licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'java.html');
                 title = 'GPL2 with Classpath Exception';
                 break;
             case "OpenXLIFF":
-                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/EclipsePublicLicense1.0.html';
+                licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'EclipsePublicLicense1.0.html');
                 title = 'Eclipse Public License 1.0';
                 break;
             case "JSON":
-                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/json.txt'
+                licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'json.txt');
                 title = 'JSON.org License';
                 break;
             case "jsoup":
-                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/jsoup.txt'
+                licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'jsoup.txt');
                 title = 'MIT License';
                 break;
             case "DTDParser":
-                licenseFile = 'file://' + app.getAppPath() + '/html/licenses/LGPL2.1.txt'
+                licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'LGPL2.1.txt');
                 title = 'LGPL 2.1';
                 break;
             default:
