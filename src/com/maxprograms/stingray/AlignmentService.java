@@ -26,6 +26,7 @@ import java.util.List;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import com.maxprograms.converters.FileFormats;
 import com.maxprograms.languages.Language;
 import com.maxprograms.languages.LanguageUtils;
 
@@ -36,10 +37,6 @@ import org.xml.sax.SAXException;
 public class AlignmentService {
 
 	private static Logger logger = System.getLogger(AlignmentService.class.getName());
-
-	public AlignmentService() {
-		// TODO
-	}
 
 	public JSONObject getLanguages() {
 		JSONObject result = new JSONObject();
@@ -58,6 +55,22 @@ public class AlignmentService {
 			logger.log(Level.ERROR, "Error getting languages", e);
 			result.put(Constants.REASON, e.getMessage());
 		}
+		return result;
+	}
+
+	public JSONObject getTypes() {
+		JSONObject result = new JSONObject();
+		JSONArray array = new JSONArray();
+		String[] formats = FileFormats.getFormats();
+		for (int i = 0; i < formats.length; i++) {
+			if (!FileFormats.isBilingual(formats[i])) {
+				JSONObject json = new JSONObject();
+				json.put("code", FileFormats.getShortName(formats[i]));
+				json.put("description", formats[i]);
+				array.put(json);
+			}
+		}
+		result.put("types", array);
 		return result;
 	}
 }

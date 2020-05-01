@@ -106,6 +106,9 @@ public class StingrayServer implements HttpHandler {
 				case "/getLanguages":
 					response = getLanguages();
 					break;
+					case "/getTypes":
+					response = getTypes();
+					break;
 				default:
 					JSONObject unknown = new JSONObject();
 					unknown.put(Constants.STATUS, Constants.ERROR);
@@ -164,5 +167,9 @@ public class StingrayServer implements HttpHandler {
 
 	private String getLanguages() {
 		return service.getLanguages().toString();
+	}
+
+	private String getTypes() {
+		return service.getTypes().toString();
 	}
 }

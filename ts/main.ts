@@ -26,6 +26,9 @@ class Main {
         this.electron.ipcRenderer.on('set-theme', (event, arg) => {
             (document.getElementById('theme') as HTMLLinkElement).href = arg;
         });
+        document.getElementById('newFile').addEventListener('click', () => {
+            this.electron.ipcRenderer.send('new-file');
+        });
         document.getElementById('openHelp').addEventListener('click', () => {
             this.electron.ipcRenderer.send('show-help');
         });

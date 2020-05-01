@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>New File</title>
+    <link id="theme" rel="stylesheet" type="text/css" href="../css/light.css">
+    <link rel="stylesheet" type="text/css" href="../css/fonts.css">
+</head>
+
+<body id="body">
+
+    <table class="panel">
+        <tr>
+            <td class="noWrap middle"><label for="projectInput">Project File</label></td>
+            <td class="fill_width middle"><input id="projectInput" class="fill_width" type="text"></td>
+            <td class="middle"><button id="browseProject">Browse...</button></td>
+        </tr>
+    </table>
+
+    <table class="fill_width">
+        <tr>
+            <td width="50%" style="padding: 0px;">
+                <div class="fill_width ">
+                    <table class="panel ">
+                        <tr>
+                            <td class="noWrap middle"><label for="sourceInput">Source File</label></td>
+                            <td class="fill_width middle"><input id="sourceInput" class="fill_width" type="text"></td>
+                            <td class="middle"><button id="browseSource">Browse...</button></td>
+                        </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="srcLangSelect">Language</label></td>
+                            <td class="fill_width middle" colspan="2"><select id="srcLangSelect"
+                                    class="fill_width"></select></td>
+                        </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="srcTypeSelect">File Type</label></td>
+                            <td class="fill_width middle" colspan="2"><select id="srcTypeSelect"
+                                    class="fill_width"></select></td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+            <td width="50%" style="padding: 0px;">
+                <div class="fill_width ">
+                    <table class="panel">
+                        <tr>
+                            <td class="noWrap middle"><label for="targetInput">Target File</label></td>
+                            <td class="fill_width middle"><input id="targetInput" class="fill_width" type="text"></td>
+                            <td class="middle"><button id="browseTarget">Browse...</button></td>
+                        </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="tgtLangSelect">Language</label></td>
+                            <td class="fill_width middle" colspan="2"><select id="tgtLangSelect"
+                                    class="fill_width"></select></td>
+                        </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="tgtTypeSelect">File Type</label></td>
+                            <td class="fill_width middle" colspan="2"><select id="tgtTypeSelect"
+                                    class="fill_width"></select></td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="buttonArea middle">
+        <input type="checkbox" id="paragraph" style="margin-top:6px;">
+        <label for="paragraph" class="noWrap">Paragraph Segmentation</label>
+        <span class="fill_width">&nbsp;</span>
+        <button id="create">Create File</button>
+    </div>
+
+    <script src="../js/newFile.js"></script>
+</body>
+
+</html>

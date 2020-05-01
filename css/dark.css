@@ -462,3 +462,7 @@ button.toolbar:hover {
 .bordered {
 	border: 1px solid var(--normal-color) !important;
 }
+
+.middle {
+	vertical-align: middle;
+}

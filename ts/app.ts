@@ -31,13 +31,14 @@ class Stingray {
     static aboutWindow: BrowserWindow;
     static licensesWindow: BrowserWindow;
     static settingsWindow: BrowserWindow;
+    static newFileWindow: BrowserWindow;
     static contents: webContents;
     currentDefaults: Rectangle;
 
     static currentPreferences: any = { theme: 'system', srcLang: 'none', tgtLang: 'none' }
     static currentTheme: string = 'system';
 
-    verticalPadding: number = 46;
+    verticalPadding: number = 50;
 
     javapath: string = Stingray.path.join(app.getAppPath(), 'bin', 'java');
     ls: ChildProcessWithoutNullStreams;
@@ -151,6 +152,17 @@ class Stingray {
         ipcMain.on('get-languages', (event, arg) => {
             this.getLanguages(event);
         })
+        ipcMain.on('get-types', (event, arg) => {
+            this.getTypes(event);
+        })
+        ipcMain.on('new-file', () => {
+            Stingray.newFile();
+        })
+        ipcMain.on('newFile-height', (event, arg) => {
+            let rect: Rectangle = Stingray.newFileWindow.getBounds();
+            rect.height = arg.height + this.verticalPadding;
+            Stingray.newFileWindow.setBounds(rect);
+        });
     }
 
     stopServer(): void {
@@ -176,6 +188,7 @@ class Stingray {
         });
         Stingray.contents = Stingray.mainWindow.webContents;
         var fileMenu: Menu = Menu.buildFromTemplate([
+            { label: 'New File', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } }
         ]);
         var editMenu: Menu = Menu.buildFromTemplate([
             { label: 'Undo', accelerator: 'CmdOrCtrl+Z', click: () => { Stingray.contents.undo(); } },
@@ -483,6 +496,7 @@ class Stingray {
             case 'aboutWindow': { return 436; }
             case 'licensesWindow': { return 430; }
             case 'settingsWindow': { return 600; }
+            case 'newFileWindow': { return 750; }
         }
     }
 
@@ -535,12 +549,12 @@ class Stingray {
         );
     }
 
-    getVersion(event: IpcMainEvent): void {
-        this.sendRequest('/version', {},
+    getTypes(event: IpcMainEvent): void {
+        this.sendRequest('/getTypes', {},
             function success(data: any) {
                 data.srcLang = Stingray.currentPreferences.srcLang;
                 data.tgtLang = Stingray.currentPreferences.tgtLang;
-                event.sender.send('set-version', app.name + ' ' + data.version );
+                event.sender.send('set-types', data);
             },
             function error(reason: string) {
                 dialog.showErrorBox('Error', reason);
@@ -548,6 +562,40 @@ class Stingray {
         );
     }
 
+    getVersion(event: IpcMainEvent): void {
+        this.sendRequest('/version', {},
+            function success(data: any) {
+                data.srcLang = Stingray.currentPreferences.srcLang;
+                data.tgtLang = Stingray.currentPreferences.tgtLang;
+                event.sender.send('set-version', app.name + ' ' + data.version);
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
+    }
+
+    static newFile(): void {
+        this.newFileWindow = new BrowserWindow({
+            parent: this.mainWindow,
+            width: this.getWidth('newFileWindow'),
+            useContentSize: true,
+            minimizable: false,
+            maximizable: false,
+            resizable: false,
+            show: false,
+            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            webPreferences: {
+                nodeIntegration: true
+            }
+        });
+        this.newFileWindow.setMenu(null);
+        this.newFileWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'newFile.html'));
+        this.newFileWindow.once('ready-to-show', (event: IpcMainEvent) => {
+            event.sender.send('get-height');
+            this.newFileWindow.show();
+        });
+    }
 }
 
 new Stingray();

@@ -17,22 +17,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 *****************************************************************************/
 
-class About {
+class NewFile {
 
     electron = require('electron');
 
     constructor() {
         this.electron.ipcRenderer.send('get-theme');
-        this.electron.ipcRenderer.send('get-version');
         this.electron.ipcRenderer.on('set-theme', (event, arg) => {
             (document.getElementById('theme') as HTMLLinkElement).href = arg;
         });
-        this.electron.ipcRenderer.on('set-version', (event, arg) => {
-            document.getElementById('version').innerHTML = arg;
+        this.electron.ipcRenderer.send('get-languages');
+        this.electron.ipcRenderer.on('set-languages', (event, arg) => {
+            this.setLanguages(arg);
         });
-        document.getElementById('licensesButton').addEventListener('click', () => {
-            this.electron.ipcRenderer.send('licenses-clicked');
-            document.getElementById('licensesButton').blur();
+        this.electron.ipcRenderer.send('get-types');
+        this.electron.ipcRenderer.on('set-types', (event, arg) => {
+            this.setTypes(arg);
         });
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
@@ -41,9 +41,32 @@ class About {
         });
         this.electron.ipcRenderer.on('get-height', () => {
             let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-            this.electron.ipcRenderer.send('about-height', { width: body.clientWidth, height: body.clientHeight });
+            this.electron.ipcRenderer.send('newFile-height', { width: body.clientWidth, height: body.clientHeight });
         });
     }
+
+    setLanguages(arg: any): void {
+        var array: any[] = arg.languages;
+        var languageOptions = '<option value="none">Select Language</option>';
+        for (let i = 0; i < array.length; i++) {
+            var lang = array[i];
+            languageOptions = languageOptions + '<option value="' + lang.code + '">' + lang.description + '</option>';
+        }
+        document.getElementById('srcLangSelect').innerHTML = languageOptions;
+        document.getElementById('tgtLangSelect').innerHTML = languageOptions;
+    }
+
+    setTypes(arg: any) : void {
+        var array: any[] = arg.types;
+        var typeOptions = '<option value="none">Select Type</option>';
+        for (let i = 0; i < array.length; i++) {
+            var type = array[i];
+            typeOptions = typeOptions + '<option value="' + type.code + '">' + type.description + '</option>';
+        }
+        document.getElementById('srcTypeSelect').innerHTML = typeOptions;
+        document.getElementById('tgtTypeSelect').innerHTML = typeOptions;
+    }
+
 }
 
-new About();
+new NewFile();
