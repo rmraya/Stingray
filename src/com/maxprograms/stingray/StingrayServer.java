@@ -1,3 +1,22 @@
+/*****************************************************************************
+Copyright (c) 2008-2020 - Maxprograms,  http://www.maxprograms.com/
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of 
+this software and associated documentation files (the "Software"), to compile, 
+modify and use the Software in its executable form without restrictions.
+
+Redistribution of this Software or parts of it in any form (source code or 
+executable binaries) requires prior written permission from Maxprograms.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+SOFTWARE.
+*****************************************************************************/
+
 package com.maxprograms.stingray;
 
 import java.io.BufferedReader;
@@ -9,6 +28,7 @@ import java.io.OutputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -54,7 +74,7 @@ public class StingrayServer implements HttpHandler {
     
     public StingrayServer(Integer port) throws IOException {
         server = HttpServer.create(new InetSocketAddress(port), 0);
-        server.createContext("/StingrayServer", this);
+        server.createContext("/", this);
         server.setExecutor(new ThreadPoolExecutor(3, 10, 20, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100)));
         service = new AlignmentService();
     }
@@ -63,39 +83,35 @@ public class StingrayServer implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         try {
 			String request = "";
+			String url = exchange.getRequestURI().toString();
 			try (InputStream is = exchange.getRequestBody()) {
 				request = readRequestBody(is);
-			}
-			if (request.isBlank()) {
-				throw new IOException("Empty request");
 			}
 			if (debug) {
 				logger.log(Level.INFO, request);
 			}
 			String response = "";
-			JSONObject json = new JSONObject(request);
-			String command = json.getString("command");
-			switch (command) {
-				case "version":
+			switch (url) {
+				case "/version":
 					JSONObject obj = new JSONObject();
 					obj.put("tool", "StingrayServer");
 					obj.put("version", Constants.VERSION);
 					obj.put("build", Constants.BUILD);
 					response = obj.toString();
 					break;
-				case "stop":
+				case "/stop":
 					if (debug) {
 						logger.log(Level.INFO, "Stopping server");
 						break;
 					}
-				case "getLanguages":
+				case "/getLanguages":
 					response = getLanguages();
 					break;
 				default:
 					JSONObject unknown = new JSONObject();
 					unknown.put(Constants.STATUS, Constants.ERROR);
-					unknown.put(Constants.REASON, "Unknown command");
-					unknown.put("received", json.toString());
+					unknown.put(Constants.REASON, "Unknown request");
+					unknown.put("received", url);
 					response = unknown.toString();
 			}
 			if (debug) {
@@ -113,7 +129,7 @@ public class StingrayServer implements HttpHandler {
 					}
 				}
 			}
-			if ("stop".equals(command)) {
+			if ("/stop".equals(url)) {
 				logger.log(Level.INFO, "Stopping server");
 				System.exit(0);
 			}

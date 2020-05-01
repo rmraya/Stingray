@@ -17,6 +17,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 *****************************************************************************/
 
+import { execFileSync, spawn, ChildProcessWithoutNullStreams } from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem, shell, webContents, nativeTheme, Rectangle, IpcMainEvent } from "electron";
 import { existsSync, mkdirSync, readFile, readFileSync, writeFile, writeFileSync } from "fs";
 import { ClientRequest, request, IncomingMessage } from "http";
@@ -38,6 +39,10 @@ class Stingray {
 
     verticalPadding: number = 46;
 
+    javapath: string = Stingray.path.join(app.getAppPath(), 'bin', 'java');
+    ls: ChildProcessWithoutNullStreams;
+    stopping: boolean = false;
+
     constructor() {
         app.allowRendererProcessReuse = true;
         if (!app.requestSingleInstanceLock()) {
@@ -51,6 +56,28 @@ class Stingray {
                 Stingray.mainWindow.focus();
             }
         }
+
+        if (process.platform == 'win32') {
+            this.javapath = Stingray.path.join(app.getAppPath(), 'bin', 'java.exe');
+        }
+
+        this.ls = spawn(this.javapath, ['--module-path', 'lib', '-m', 'stingray/com.maxprograms.stingray.StingrayServer', '-port', '8040'], { cwd: app.getAppPath() });
+
+        this.ls.stdout.on('data', (data) => {
+            console.log(`stdout: ${data}`);
+        });
+
+        this.ls.stderr.on('data', (data) => {
+            console.error(`stderr: ${data}`);
+        });
+
+        this.ls.on('close', (code) => {
+            console.log(`child process exited with code ${code}`);
+        });
+
+        var ck: Buffer = execFileSync(this.javapath, ['--module-path', 'lib', '-m', 'openxliff/com.maxprograms.server.CheckURL', 'http://localhost:8040/StingrayServer'], { cwd: app.getAppPath() });
+        console.log(ck.toString());
+
         this.loadDefaults();
         Stingray.loadPreferences();
         app.on('ready', () => {
@@ -69,6 +96,16 @@ class Stingray {
             });
             Stingray.checkUpdates(true);
         });
+
+        app.on('quit', () => {
+            this.stopServer();
+        });
+
+        app.on('window-all-closed', () => {
+            this.stopServer();
+            app.quit();
+        });
+
         ipcMain.on('get-theme', (event, arg) => {
             event.sender.send('set-theme', Stingray.currentTheme);
         });
@@ -108,6 +145,16 @@ class Stingray {
         ipcMain.on('show-help', () => {
             Stingray.showHelp();
         });
+        ipcMain.on('get-languages', (event, arg) => {
+            this.getLanguages(event);
+        })
+    }
+
+    stopServer(): void {
+        if (!this.stopping) {
+            this.stopping = true;
+            this.ls.kill();
+        }
     }
 
     createWindow(): void {
@@ -434,6 +481,55 @@ class Stingray {
             case 'licensesWindow': { return 430; }
             case 'settingsWindow': { return 600; }
         }
+    }
+
+    sendRequest(url: string, json: any, success: any, error: any) {
+        var postData: string = JSON.stringify(json);
+        var options = {
+            hostname: '127.0.0.1',
+            port: 8040,
+            path: url,
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+        // Make a request
+        var req: ClientRequest = request(options);
+        req.on('response',
+            function (res: any) {
+                res.setEncoding('utf-8');
+                if (res.statusCode != 200) {
+                    error('sendRequest() error: ' + res.statusMessage);
+                }
+                var rawData: string = '';
+                res.on('data', function (chunk: string) {
+                    rawData += chunk;
+                });
+                res.on('end', () => {
+                    try {
+                        success(JSON.parse(rawData));
+                    } catch (e) {
+                        error(e.message);
+                    }
+                });
+            }
+        );
+        req.write(postData);
+        req.end();
+    }
+
+    getLanguages(event: IpcMainEvent): void {
+        this.sendRequest('/getLanguages', {},
+            function success(data: any) {
+                data.srcLang = Stingray.currentPreferences.srcLang;
+                data.tgtLang = Stingray.currentPreferences.tgtLang;
+                event.sender.send('set-languages', data);
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
     }
 }
 
