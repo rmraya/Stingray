@@ -114,6 +114,9 @@ class Stingray {
             rect.height = arg.height + this.verticalPadding;
             Stingray.aboutWindow.setBounds(rect);
         });
+        ipcMain.on('get-version', (event, arg) => {
+            this.getVersion(event);
+        });
         ipcMain.on('licenses-height', (event, arg) => {
             let rect: Rectangle = Stingray.licensesWindow.getBounds();
             rect.height = arg.height + this.verticalPadding;
@@ -531,6 +534,20 @@ class Stingray {
             }
         );
     }
+
+    getVersion(event: IpcMainEvent): void {
+        this.sendRequest('/version', {},
+            function success(data: any) {
+                data.srcLang = Stingray.currentPreferences.srcLang;
+                data.tgtLang = Stingray.currentPreferences.tgtLang;
+                event.sender.send('set-version', app.name + ' ' + data.version );
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
+    }
+
 }
 
 new Stingray();

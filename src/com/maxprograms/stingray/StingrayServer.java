@@ -28,7 +28,6 @@ import java.io.OutputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -42,12 +41,12 @@ import org.json.JSONObject;
 
 public class StingrayServer implements HttpHandler {
 
-    private static Logger logger = System.getLogger(StingrayServer.class.getName());
-    private HttpServer server;
-    private AlignmentService service;
-    private boolean debug;
+	private static Logger logger = System.getLogger(StingrayServer.class.getName());
+	private HttpServer server;
+	private AlignmentService service;
+	private boolean debug;
 
-    public static void main(String[] args) {
+	public static void main(String[] args) {
 		String port = "8040";
 		boolean shouldDebug = false;
 		for (int i = 0; i < args.length; i++) {
@@ -70,18 +69,18 @@ public class StingrayServer implements HttpHandler {
 		} catch (Exception e) {
 			logger.log(Level.ERROR, "Server error", e);
 		}
-    }
-    
-    public StingrayServer(Integer port) throws IOException {
-        server = HttpServer.create(new InetSocketAddress(port), 0);
-        server.createContext("/", this);
-        server.setExecutor(new ThreadPoolExecutor(3, 10, 20, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100)));
-        service = new AlignmentService();
-    }
+	}
 
-    @Override
-    public void handle(HttpExchange exchange) throws IOException {
-        try {
+	public StingrayServer(Integer port) throws IOException {
+		server = HttpServer.create(new InetSocketAddress(port), 0);
+		server.createContext("/", this);
+		server.setExecutor(new ThreadPoolExecutor(3, 10, 20, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100)));
+		service = new AlignmentService();
+	}
+
+	@Override
+	public void handle(HttpExchange exchange) throws IOException {
+		try {
 			String request = "";
 			String url = exchange.getRequestURI().toString();
 			try (InputStream is = exchange.getRequestBody()) {
@@ -141,18 +140,18 @@ public class StingrayServer implements HttpHandler {
 				os.write(message.getBytes());
 			}
 		}
-    }
+	}
 
-    private void setDebug(boolean value) {
+	private void setDebug(boolean value) {
 		debug = value;
 	}
 
 	private void run() {
 		server.start();
 		logger.log(Level.INFO, "StingrayServer started");
-    }
-    
-    protected static String readRequestBody(InputStream is) throws IOException {
+	}
+
+	protected static String readRequestBody(InputStream is) throws IOException {
 		StringBuilder request = new StringBuilder();
 		try (BufferedReader rd = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
 			String line;
