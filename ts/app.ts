@@ -35,7 +35,7 @@ class Stingray {
     static contents: webContents;
     currentDefaults: Rectangle;
 
-    static currentPreferences: any = { theme: 'system', srcLang: 'none', tgtLang: 'none' }
+    static currentPreferences: any;
     static currentTheme: string = 'system';
 
     verticalPadding: number = 50;
@@ -80,6 +80,13 @@ class Stingray {
         console.log(ck.toString());
 
         this.loadDefaults();
+        Stingray.currentPreferences = {
+            theme: 'system',
+            srcLang: 'none',
+            tgtLang: 'none',
+            catalog: Stingray.path.join(app.getAppPath(), 'catalog', 'catalog.xml'),
+            srx: Stingray.path.join(app.getAppPath(), 'srx', 'default.srx')
+        }
         Stingray.loadPreferences();
         app.on('ready', () => {
             this.createWindow();
@@ -111,7 +118,7 @@ class Stingray {
             Stingray.loadPreferences();
             Stingray.setTheme();
         });
-                
+
         ipcMain.on('get-theme', (event, arg) => {
             event.sender.send('set-theme', Stingray.currentTheme);
         });
@@ -132,6 +139,21 @@ class Stingray {
             let rect: Rectangle = Stingray.settingsWindow.getBounds();
             rect.height = arg.height + this.verticalPadding;
             Stingray.settingsWindow.setBounds(rect);
+        });
+        ipcMain.on('browse-srx', (event, arg)=> {
+            this.browseSRX(event);
+        });
+        ipcMain.on('browse-catalog', (event, arg)=> {
+            this.browseCatalog(event);
+        });
+        ipcMain.on('browse-alignment', (event, arg)=> {
+            this.browseAlignment(event);
+        });
+        ipcMain.on('browse-source', (event, arg)=> {
+            this.browseSource(event);
+        });
+        ipcMain.on('browse-target', (event, arg)=> {
+            this.browseTarget(event);
         });
         ipcMain.on('save-preferences', (event, arg) => {
             Stingray.settingsWindow.close();
@@ -192,7 +214,7 @@ class Stingray {
         });
         Stingray.contents = Stingray.mainWindow.webContents;
         var fileMenu: Menu = Menu.buildFromTemplate([
-            { label: 'New File', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } }
+            { label: 'New Alignment File', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } }
         ]);
         var editMenu: Menu = Menu.buildFromTemplate([
             { label: 'Undo', accelerator: 'CmdOrCtrl+Z', click: () => { Stingray.contents.undo(); } },
@@ -203,6 +225,10 @@ class Stingray {
             { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: () => { Stingray.contents.selectAll(); } },
             new MenuItem({ type: 'separator' }),
             { label: 'Replace Text...', accelerator: 'CmdOrCtrl+F', click: () => { this.replaceText(); } }
+        ]);
+        var viewMenu: Menu = Menu.buildFromTemplate([
+            new MenuItem({ label: 'Toggle Full Screen', role: 'togglefullscreen' }),
+            new MenuItem({ label: 'Toggle Development Tools', accelerator: 'F12', role: 'toggleDevTools' })
         ]);
         var helpMenu: Menu = Menu.buildFromTemplate([
             { label: 'Stingray User Guide', accelerator: 'F1', click: () => { Stingray.showHelp(); } },
@@ -216,6 +242,7 @@ class Stingray {
         var template: MenuItem[] = [
             new MenuItem({ label: '&File', role: 'fileMenu', submenu: fileMenu }),
             new MenuItem({ label: '&Edit', role: 'editMenu', submenu: editMenu }),
+            new MenuItem({ label: '&View', role: 'viewMenu', submenu: viewMenu }),
             new MenuItem({ label: '&Help', role: 'help', submenu: helpMenu })
         ];
         if (process.platform === 'darwin') {
@@ -248,14 +275,14 @@ class Stingray {
         if (process.platform === 'win32') {
             template[0].submenu.append(new MenuItem({ type: 'separator' }));
             template[0].submenu.append(new MenuItem({ label: 'Exit', accelerator: 'Alt+F4', role: 'quit', click: () => { app.quit(); } }));
-            template[3].submenu.append(new MenuItem({ type: 'separator' }));
-            template[3].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
+            template[4].submenu.append(new MenuItem({ type: 'separator' }));
+            template[4].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
         }
         if (process.platform === 'linux') {
             template[0].submenu.append(new MenuItem({ type: 'separator' }));
             template[0].submenu.append(new MenuItem({ label: 'Quit', accelerator: 'Ctrl+Q', role: 'quit', click: () => { app.quit(); } }));
-            template[3].submenu.append(new MenuItem({ type: 'separator' }));
-            template[3].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
+            template[4].submenu.append(new MenuItem({ type: 'separator' }));
+            template[4].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
         }
         Menu.setApplicationMenu(Menu.buildFromTemplate(template));
     }
@@ -608,6 +635,139 @@ class Stingray {
             event.sender.send('get-height');
             this.newFileWindow.show();
         });
+    }
+
+    browseSRX(event: IpcMainEvent): void {
+        dialog.showOpenDialog({
+            title: 'Default SRX File',
+            defaultPath: Stingray.currentPreferences.srx,
+            properties: ['openFile'],
+            filters: [
+                { name: 'SRX File', extensions: ['srx'] },
+                { name: 'Any File', extensions: ['*'] }
+            ]
+        }).then((value) => {
+            if (!value.canceled) {
+                event.sender.send('set-srx', value.filePaths[0]);
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+    }
+
+    browseCatalog(event: IpcMainEvent): void {
+        dialog.showOpenDialog({
+            title: 'Default Catalog',
+            defaultPath: Stingray.currentPreferences.catalog,
+            properties: ['openFile'],
+            filters: [
+                { name: 'XML File', extensions: ['xml'] },
+                { name: 'Any File', extensions: ['*'] }
+            ]
+        }).then((value) => {
+            if (!value.canceled) {
+                event.sender.send('set-catalog', value.filePaths[0]);
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+    }
+
+    browseAlignment(event: IpcMainEvent): void {
+        dialog.showSaveDialog({
+            title: 'New Alignment File',
+            properties: ['createDirectory', 'showOverwriteConfirmation'],
+            filters: [
+                { name: 'Alignment File', extensions: ['algn'] },
+                { name: 'Any File', extensions: ['*'] }
+            ]
+        }).then((value) => {
+            if (!value.canceled) {
+                event.sender.send('set-alignment', value.filePath);
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+    }
+
+    browseSource(event: IpcMainEvent): void {
+        dialog.showOpenDialog({
+            title: 'Source File',
+            properties: ['openFile'],
+            filters: [
+                { name: 'Any File', extensions: ['*'] },
+                { name: 'Adobe InDesign Interchange', extensions: ['inx'] },
+                { name: 'Adobe InDesign IDML', extensions: ['idml'] },
+                { name: 'DITA Map', extensions: ['ditamap', 'dita', 'xml'] },
+                { name: 'HTML Page', extensions: ['html', 'htm'] },
+                { name: 'JavaScript', extensions: ['js'] },
+                { name: 'Java Properties', extensions: ['properties'] },
+                { name: 'MIF (Maker Interchange Format)', extensions: ['mif'] },
+                { name: 'Microsoft Office 2007 Document', extensions: ['docx', 'xlsx', 'pptx'] },
+                { name: 'OpenOffice 1.x Document', extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
+                { name: 'OpenOffice 2.x Document', extensions: ['odt', 'ods', 'odp', 'odg'] },
+                { name: 'Plain Text', extensions: ['txt'] },
+                { name: 'RC (Windows C/C++ Resources)', extensions: ['rc'] },
+                { name: 'ResX (Windows .NET Resources)', extensions: ['resx'] },
+                { name: 'SVG (Scalable Vector Graphics)', extensions: ['svg'] },
+                { name: 'Visio XML Drawing', extensions: ['vsdx'] },
+                { name: 'XML Document', extensions: ['xml'] }
+            ]
+        }).then((value) => {
+            if (!value.canceled) {
+                this.getFileType(event, value.filePaths[0], 'set-source');
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+    }
+
+    browseTarget(event: IpcMainEvent): void {
+        dialog.showOpenDialog({
+            title: 'Target File',
+            properties: ['openFile'],
+            filters: [
+                { name: 'Any File', extensions: ['*'] },
+                { name: 'Adobe InDesign Interchange', extensions: ['inx'] },
+                { name: 'Adobe InDesign IDML', extensions: ['idml'] },
+                { name: 'DITA Map', extensions: ['ditamap', 'dita', 'xml'] },
+                { name: 'HTML Page', extensions: ['html', 'htm'] },
+                { name: 'JavaScript', extensions: ['js'] },
+                { name: 'Java Properties', extensions: ['properties'] },
+                { name: 'MIF (Maker Interchange Format)', extensions: ['mif'] },
+                { name: 'Microsoft Office 2007 Document', extensions: ['docx', 'xlsx', 'pptx'] },
+                { name: 'OpenOffice 1.x Document', extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
+                { name: 'OpenOffice 2.x Document', extensions: ['odt', 'ods', 'odp', 'odg'] },
+                { name: 'Plain Text', extensions: ['txt'] },
+                { name: 'RC (Windows C/C++ Resources)', extensions: ['rc'] },
+                { name: 'ResX (Windows .NET Resources)', extensions: ['resx'] },
+                { name: 'SVG (Scalable Vector Graphics)', extensions: ['svg'] },
+                { name: 'Visio XML Drawing', extensions: ['vsdx'] },
+                { name: 'XML Document', extensions: ['xml'] }
+            ]
+        }).then((value) => {
+            if (!value.canceled) {
+                this.getFileType(event, value.filePaths[0], 'set-target');
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+    }
+
+    getFileType(event: IpcMainEvent, file: string, arg: string): void {
+
+        event.sender.send(arg, file);
+        /*
+        this.sendRequest('url', { command: 'getFileType', file: file },
+            function success(data: any) {
+                event.sender.send(arg, data);
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+                console.log(reason);
+            }
+        );
+        */
     }
 }
 

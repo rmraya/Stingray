@@ -10,7 +10,7 @@ header {
     left: 0px;
     top: 0px;
     right: 0px;
-    height: 29px;
+    height: 24px;
     width: 100%;
 }
 
@@ -31,7 +31,7 @@ footer {
 .divContentArea {
     position: absolute;
     left: 0px;
-    top: 31px;
+    top: 25px;
     right: 0px;
     bottom: 29px;
     width: 100%;

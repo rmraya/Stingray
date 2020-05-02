@@ -47,6 +47,24 @@ class NewFile {
             let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
             this.electron.ipcRenderer.send('newFile-height', { width: body.clientWidth, height: body.clientHeight });
         });
+        document.getElementById('browseAlignment').addEventListener('click', () => {
+            this.electron.ipcRenderer.send('browse-alignment');
+        });
+        this.electron.ipcRenderer.on('set-alignment', (event, arg) => {
+            (document.getElementById('alignmentInput') as HTMLInputElement).value = arg;
+        });        
+        document.getElementById('browseSource').addEventListener('click', () => {
+            this.electron.ipcRenderer.send('browse-source');
+        });
+        this.electron.ipcRenderer.on('set-source', (event, arg) => {
+            (document.getElementById('sourceInput') as HTMLInputElement).value = arg;
+        });
+        this.electron.ipcRenderer.on('set-target', (event, arg) => {
+            (document.getElementById('targetInput') as HTMLInputElement).value = arg;
+        });
+        document.getElementById('browseTarget').addEventListener('click', () => {
+            this.electron.ipcRenderer.send('browse-target');
+        });
     }
 
     setLanguages(arg: any): void {
