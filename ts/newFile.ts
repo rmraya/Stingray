@@ -49,21 +49,28 @@ class NewFile {
         });
         document.getElementById('browseAlignment').addEventListener('click', () => {
             this.electron.ipcRenderer.send('browse-alignment');
+            document.getElementById('browseAlignment').blur();
         });
         this.electron.ipcRenderer.on('set-alignment', (event, arg) => {
             (document.getElementById('alignmentInput') as HTMLInputElement).value = arg;
         });        
         document.getElementById('browseSource').addEventListener('click', () => {
             this.electron.ipcRenderer.send('browse-source');
+            document.getElementById('browseSource').blur();
         });
         this.electron.ipcRenderer.on('set-source', (event, arg) => {
-            (document.getElementById('sourceInput') as HTMLInputElement).value = arg;
+            this.setSource(arg);
         });
         this.electron.ipcRenderer.on('set-target', (event, arg) => {
-            (document.getElementById('targetInput') as HTMLInputElement).value = arg;
+           this.setTarget(arg);
         });
         document.getElementById('browseTarget').addEventListener('click', () => {
             this.electron.ipcRenderer.send('browse-target');
+            document.getElementById('browseTarget').blur();
+        });
+        document.getElementById('create').addEventListener('click', () => {
+            this.createAlignment();
+            document.getElementById('create').blur();
         });
     }
 
@@ -75,7 +82,13 @@ class NewFile {
             languageOptions = languageOptions + '<option value="' + lang.code + '">' + lang.description + '</option>';
         }
         document.getElementById('srcLangSelect').innerHTML = languageOptions;
+        if (arg.srcLang !== 'none') {
+            (document.getElementById('srcLangSelect') as HTMLSelectElement).value = arg.srcLang;
+        }
         document.getElementById('tgtLangSelect').innerHTML = languageOptions;
+        if (arg.tgtLang !== 'none') {
+            (document.getElementById('tgtLangSelect') as HTMLSelectElement).value = arg.tgtLang;
+        }
     }
 
     setTypes(arg: any) : void {
@@ -98,6 +111,90 @@ class NewFile {
         }
         document.getElementById('srcEncodingSelect').innerHTML = typeOptions;
         document.getElementById('tgtEncodingSelect').innerHTML = typeOptions;
+    }
+
+    setSource(arg: any): void {
+        (document.getElementById('sourceInput') as HTMLInputElement).value = arg.file;
+        if (arg.type) {
+            (document.getElementById('srcTypeSelect') as HTMLSelectElement).value = arg.type;
+        }
+        if (arg.charset) {
+            (document.getElementById('srcEncodingSelect') as HTMLSelectElement).value = arg.charset;
+        }
+
+    }
+
+    setTarget(arg: any): void {
+        (document.getElementById('targetInput') as HTMLInputElement).value = arg.file;
+        if (arg.type) {
+            (document.getElementById('tgtTypeSelect') as HTMLSelectElement).value = arg.type;
+        }
+        if (arg.charset) {
+            (document.getElementById('tgtEncodingSelect') as HTMLSelectElement).value = arg.charset;
+        }
+
+    }
+
+    createAlignment(): void {
+        let alignmentFile = (document.getElementById('alignmentInput') as HTMLInputElement).value;
+        if (alignmentFile === '') {
+            window.alert('Select alignment file');
+            return;
+        }
+        let sourceFile = (document.getElementById('sourceInput') as HTMLInputElement).value;
+        if (sourceFile === '') {
+            window.alert('Select source file');
+            return;
+        }
+        let srcLang = (document.getElementById('srcLangSelect') as HTMLSelectElement).value;
+        if (srcLang === 'none') {
+            window.alert('Select source language');
+            return;
+        }
+        let srcType = (document.getElementById('srcTypeSelect') as HTMLSelectElement).value;
+        if (srcType === 'none') {
+            window.alert('Select source file type');
+            return;
+        }
+        let srcEnc = (document.getElementById('srcEncodingSelect') as HTMLSelectElement).value;
+        if (srcEnc === 'none') {
+            window.alert('Select source character set');
+            return;
+        }
+        let targetFile = (document.getElementById('targetInput') as HTMLInputElement).value;
+        if (targetFile === '') {
+            window.alert('Select target file');
+            return;
+        }
+        let tgtLang = (document.getElementById('srcLangSelect') as HTMLSelectElement).value;
+        if (tgtLang === 'none') {
+            window.alert('Select target language');
+            return;
+        }
+        let tgtType = (document.getElementById('srcTypeSelect') as HTMLSelectElement).value;
+        if (tgtType === 'none') {
+            window.alert('Select target file type');
+            return;
+        }
+        let tgtEnc = (document.getElementById('srcEncodingSelect') as HTMLSelectElement).value;
+        if (tgtEnc === 'none') {
+            window.alert('Select target character set');
+            return;
+        }
+        let paragraph = (document.getElementById('paragraph') as HTMLInputElement).checked;
+        let params = {
+            alignmentFile: alignmentFile,
+            sourceFile: sourceFile,
+            srcLang: srcLang,
+            srcType: srcType,
+            srcEnc: srcEnc,
+            targetFile: targetFile,
+            tgtLang: tgtLang,
+            tgtType: tgtType,
+            tgtEnc: tgtEnc,
+            paragraph: paragraph
+        }
+        this.electron.ipcRenderer.send('create-alignment', params);
     }
 }
 

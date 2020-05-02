@@ -140,19 +140,19 @@ class Stingray {
             rect.height = arg.height + this.verticalPadding;
             Stingray.settingsWindow.setBounds(rect);
         });
-        ipcMain.on('browse-srx', (event, arg)=> {
+        ipcMain.on('browse-srx', (event, arg) => {
             this.browseSRX(event);
         });
-        ipcMain.on('browse-catalog', (event, arg)=> {
+        ipcMain.on('browse-catalog', (event, arg) => {
             this.browseCatalog(event);
         });
-        ipcMain.on('browse-alignment', (event, arg)=> {
+        ipcMain.on('browse-alignment', (event, arg) => {
             this.browseAlignment(event);
         });
-        ipcMain.on('browse-source', (event, arg)=> {
+        ipcMain.on('browse-source', (event, arg) => {
             this.browseSource(event);
         });
-        ipcMain.on('browse-target', (event, arg)=> {
+        ipcMain.on('browse-target', (event, arg) => {
             this.browseTarget(event);
         });
         ipcMain.on('save-preferences', (event, arg) => {
@@ -189,6 +189,9 @@ class Stingray {
             rect.height = arg.height + this.verticalPadding;
             Stingray.newFileWindow.setBounds(rect);
         });
+        ipcMain.on('create-alignment', (event, arg) => {
+            Stingray.createAlignment(arg);
+        });
     }
 
     stopServer(): void {
@@ -214,7 +217,7 @@ class Stingray {
         });
         Stingray.contents = Stingray.mainWindow.webContents;
         var fileMenu: Menu = Menu.buildFromTemplate([
-            { label: 'New Alignment File', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } }
+            { label: 'New Alignment', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } }
         ]);
         var editMenu: Menu = Menu.buildFromTemplate([
             { label: 'Undo', accelerator: 'CmdOrCtrl+Z', click: () => { Stingray.contents.undo(); } },
@@ -527,7 +530,7 @@ class Stingray {
             case 'aboutWindow': { return 436; }
             case 'licensesWindow': { return 430; }
             case 'settingsWindow': { return 600; }
-            case 'newFileWindow': { return 750; }
+            case 'newFileWindow': { return 850; }
         }
     }
 
@@ -755,10 +758,7 @@ class Stingray {
     }
 
     getFileType(event: IpcMainEvent, file: string, arg: string): void {
-
-        event.sender.send(arg, file);
-        /*
-        this.sendRequest('url', { command: 'getFileType', file: file },
+        this.sendRequest('/getFileType', { file: file },
             function success(data: any) {
                 event.sender.send(arg, data);
             },
@@ -767,7 +767,11 @@ class Stingray {
                 console.log(reason);
             }
         );
-        */
+    }
+
+    static createAlignment(params: any): void {
+        this.newFileWindow.close();
+        // TODO
     }
 }
 

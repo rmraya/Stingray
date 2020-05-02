@@ -30,6 +30,7 @@ import java.util.TreeMap;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import com.maxprograms.converters.EncodingResolver;
 import com.maxprograms.converters.FileFormats;
 import com.maxprograms.languages.Language;
 import com.maxprograms.languages.LanguageUtils;
@@ -92,6 +93,23 @@ public class AlignmentService {
 			array.put(json);
 		}
 		result.put("charsets", array);
+		return result;
+	}
+
+	public JSONObject getFileType(String file) {
+		JSONObject result = new JSONObject();
+		result.put("file", file);
+		String detected = FileFormats.detectFormat(file);
+		if (detected != null) {
+			String type = FileFormats.getShortName(detected);
+			if (type != null) {
+				Charset charset = EncodingResolver.getEncoding(file, detected);
+				if (charset != null) {
+					result.put("charset", charset.name());
+				}
+			}
+			result.put("type", type);
+		}
 		return result;
 	}
 }

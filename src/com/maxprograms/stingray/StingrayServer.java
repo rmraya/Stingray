@@ -112,6 +112,9 @@ public class StingrayServer implements HttpHandler {
 				case "/getCharsets":
 					response = getCharsets();
 					break;
+				case "/getFileType":
+				response = getFileType(new JSONObject(request));
+				break;
 				default:
 					JSONObject unknown = new JSONObject();
 					unknown.put(Constants.STATUS, Constants.ERROR);
@@ -146,6 +149,10 @@ public class StingrayServer implements HttpHandler {
 				os.write(message.getBytes());
 			}
 		}
+	}
+
+	private String getFileType(JSONObject json) {
+		return service.getFileType(json.getString("file")).toString();
 	}
 
 	private void setDebug(boolean value) {
