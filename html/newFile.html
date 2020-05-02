@@ -9,7 +9,7 @@
 
 <body id="body">
 
-    <table class="panel">
+    <table class="fill_width" style="margin-left: 4px; margin-right: 4px; margin-top: 0px;margin-bottom: 0px;">
         <tr>
             <td class="noWrap middle"><label for="projectInput">Project File</label></td>
             <td class="fill_width middle"><input id="projectInput" class="fill_width" type="text"></td>
@@ -21,7 +21,7 @@
         <tr>
             <td width="50%" style="padding: 0px;">
                 <div class="fill_width ">
-                    <table class="panel ">
+                    <table class="fill_width" style="margin-left: 4px; margin-right: 4px; margin-top: 0px;margin-bottom: 0px;">
                         <tr>
                             <td class="noWrap middle"><label for="sourceInput">Source File</label></td>
                             <td class="fill_width middle"><input id="sourceInput" class="fill_width" type="text"></td>
@@ -37,12 +37,17 @@
                             <td class="fill_width middle" colspan="2"><select id="srcTypeSelect"
                                     class="fill_width"></select></td>
                         </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="srcEncodingSelect">Character Set</label></td>
+                            <td class="fill_width middle" colspan="2"><select id="srcEncodingSelect"
+                                    class="fill_width"></select></td>
+                        </tr>
                     </table>
                 </div>
             </td>
             <td width="50%" style="padding: 0px;">
                 <div class="fill_width ">
-                    <table class="panel">
+                    <table class="fill_width" style="margin-left: 4px; margin-right: 4px; margin-top: 0px;margin-bottom: 0px;">
                         <tr>
                             <td class="noWrap middle"><label for="targetInput">Target File</label></td>
                             <td class="fill_width middle"><input id="targetInput" class="fill_width" type="text"></td>
@@ -56,6 +61,11 @@
                         <tr>
                             <td class="noWrap middle"><label for="tgtTypeSelect">File Type</label></td>
                             <td class="fill_width middle" colspan="2"><select id="tgtTypeSelect"
+                                    class="fill_width"></select></td>
+                        </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="tgtEncodingSelect">Character Set</label></td>
+                            <td class="fill_width middle" colspan="2"><select id="tgtEncodingSelect"
                                     class="fill_width"></select></td>
                         </tr>
                     </table>

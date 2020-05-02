@@ -22,7 +22,11 @@ package com.maxprograms.stingray;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.charset.Charset;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeMap;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -71,6 +75,23 @@ public class AlignmentService {
 			}
 		}
 		result.put("types", array);
+		return result;
+	}
+
+	public JSONObject getCharsets() {
+		JSONObject result = new JSONObject();
+		JSONArray array = new JSONArray();
+		TreeMap<String, Charset> charsets = new TreeMap<>(Charset.availableCharsets());
+		Set<String> keys = charsets.keySet();
+		Iterator<String> i = keys.iterator();
+		while (i.hasNext()) {
+			Charset cset = charsets.get(i.next());
+			JSONObject json = new JSONObject();
+			json.put("code", cset.name());
+			json.put("description", cset.displayName());
+			array.put(json);
+		}
+		result.put("charsets", array);
 		return result;
 	}
 }

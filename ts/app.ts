@@ -107,6 +107,11 @@ class Stingray {
             app.quit();
         });
 
+        nativeTheme.on('updated', () => {
+            Stingray.loadPreferences();
+            Stingray.setTheme();
+        });
+                
         ipcMain.on('get-theme', (event, arg) => {
             event.sender.send('set-theme', Stingray.currentTheme);
         });
@@ -136,10 +141,6 @@ class Stingray {
         ipcMain.on('get-preferences', (event, arg) => {
             event.sender.send('set-preferences', Stingray.currentPreferences);
         });
-        nativeTheme.on('updated', () => {
-            Stingray.loadPreferences();
-            Stingray.setTheme();
-        });
         ipcMain.on('licenses-clicked', () => {
             Stingray.showLicenses();
         });
@@ -151,13 +152,16 @@ class Stingray {
         });
         ipcMain.on('get-languages', (event, arg) => {
             this.getLanguages(event);
-        })
+        });
         ipcMain.on('get-types', (event, arg) => {
             this.getTypes(event);
-        })
+        });
+        ipcMain.on('get-charsets', (event, arg) => {
+            this.getCharsets(event);
+        });
         ipcMain.on('new-file', () => {
             Stingray.newFile();
-        })
+        });
         ipcMain.on('newFile-height', (event, arg) => {
             let rect: Rectangle = Stingray.newFileWindow.getBounds();
             rect.height = arg.height + this.verticalPadding;
@@ -552,9 +556,18 @@ class Stingray {
     getTypes(event: IpcMainEvent): void {
         this.sendRequest('/getTypes', {},
             function success(data: any) {
-                data.srcLang = Stingray.currentPreferences.srcLang;
-                data.tgtLang = Stingray.currentPreferences.tgtLang;
                 event.sender.send('set-types', data);
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
+    }
+
+    getCharsets(event: IpcMainEvent): void {
+        this.sendRequest('/getCharsets', {},
+            function success(data: any) {
+                event.sender.send('set-charsets', data);
             },
             function error(reason: string) {
                 dialog.showErrorBox('Error', reason);

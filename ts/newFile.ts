@@ -34,6 +34,10 @@ class NewFile {
         this.electron.ipcRenderer.on('set-types', (event, arg) => {
             this.setTypes(arg);
         });
+        this.electron.ipcRenderer.send('get-charsets');
+        this.electron.ipcRenderer.on('set-charsets', (event, arg) => {
+            this.setCharsets(arg);
+        });
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 window.close();
@@ -67,6 +71,16 @@ class NewFile {
         document.getElementById('tgtTypeSelect').innerHTML = typeOptions;
     }
 
+    setCharsets(arg: any) : void {
+        var array: any[] = arg.charsets;
+        var typeOptions = '<option value="none">Select Character Set</option>';
+        for (let i = 0; i < array.length; i++) {
+            var type = array[i];
+            typeOptions = typeOptions + '<option value="' + type.code + '">' + type.description + '</option>';
+        }
+        document.getElementById('srcEncodingSelect').innerHTML = typeOptions;
+        document.getElementById('tgtEncodingSelect').innerHTML = typeOptions;
+    }
 }
 
 new NewFile();
