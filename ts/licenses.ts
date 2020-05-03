@@ -58,10 +58,6 @@ class Licenses {
         document.getElementById('DTDParser').addEventListener('click', () => {
             this.openLicense('DTDParser');
         });
-        this.electron.ipcRenderer.on('get-height', () => {
-            let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-            this.electron.ipcRenderer.send('licenses-height', { width: body.clientWidth, height: body.clientHeight });
-        });
     }
 
     openLicense(type: string) {

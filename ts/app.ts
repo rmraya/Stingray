@@ -131,11 +131,6 @@ class Stingray {
         ipcMain.on('get-version', (event, arg) => {
             this.getVersion(event);
         });
-        ipcMain.on('licenses-height', (event, arg) => {
-            let rect: Rectangle = Stingray.licensesWindow.getBounds();
-            rect.height = arg.height + this.verticalPadding;
-            Stingray.licensesWindow.setBounds(rect);
-        })
         ipcMain.on('settings-height', (event, arg) => {
             let rect: Rectangle = Stingray.settingsWindow.getBounds();
             rect.height = arg.height + this.verticalPadding;
@@ -441,9 +436,11 @@ class Stingray {
     }
 
     static showLicenses(): void {
+        let height = 345;
         this.licensesWindow = new BrowserWindow({
             parent: this.mainWindow,
             width: this.getWidth('licensesWindow'),
+            height: height,
             useContentSize: true,
             minimizable: false,
             maximizable: false,
