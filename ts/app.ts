@@ -19,7 +19,7 @@ SOFTWARE.
 
 import { execFileSync, spawn, ChildProcessWithoutNullStreams } from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem, shell, webContents, nativeTheme, Rectangle, IpcMainEvent } from "electron";
-import { existsSync, mkdirSync, readFile, readFileSync, writeFile, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFile, readFileSync, writeFile, writeFileSync, lstat } from "fs";
 import { ClientRequest, request, IncomingMessage } from "http";
 
 class Stingray {
@@ -35,6 +35,7 @@ class Stingray {
     static contents: webContents;
     currentDefaults: Rectangle;
     static alignmentStatus: any = { aligning: false, alignError: '', status: '' };
+    static loadingStatus: any = { loading: false, loadError: '', status: '' };
 
     static currentPreferences: any;
     static currentTheme: string = 'system';
@@ -180,6 +181,9 @@ class Stingray {
         ipcMain.on('new-file', () => {
             Stingray.newFile();
         });
+        ipcMain.on('open-file', () => {
+            Stingray.openAlignmentFile();
+        });
         ipcMain.on('newFile-height', (event, arg) => {
             let rect: Rectangle = Stingray.newFileWindow.getBounds();
             rect.height = arg.height + this.verticalPadding;
@@ -213,7 +217,8 @@ class Stingray {
         });
         Stingray.contents = Stingray.mainWindow.webContents;
         var fileMenu: Menu = Menu.buildFromTemplate([
-            { label: 'New Alignment', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } }
+            { label: 'New Alignment', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } },
+            { label: 'Open Alignment', accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openAlignmentFile(); } }
         ]);
         var editMenu: Menu = Menu.buildFromTemplate([
             { label: 'Undo', accelerator: 'CmdOrCtrl+Z', click: () => { Stingray.contents.undo(); } },
@@ -768,6 +773,7 @@ class Stingray {
 
     static createAlignment(params: any): void {
         this.newFileWindow.close();
+        this.mainWindow.focus();
         this.contents.send('start-waiting');
         this.contents.send('set-status', 'Preparing files');
         params.catalog = Stingray.currentPreferences.catalog;
@@ -819,9 +825,75 @@ class Stingray {
         );
     }
 
+    static openAlignmentFile(): void {
+        dialog.showOpenDialog({
+            title: 'Alignment File',
+            properties: ['openFile'],
+            filters: [
+                { name: 'Alignment File', extensions: ['algn'] },
+                { name: 'Any File', extensions: ['*'] }
+            ]
+        }).then((value) => {
+            if (!value.canceled) {
+                this.openFile(value.filePaths[0]);
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+    }
+
     static openFile(file: string): void {
-        console.log('opening ' + file);
-        // TODO
+        this.contents.send('start-waiting');
+        this.contents.send('set-status', 'Loading file');
+        this.sendRequest('/openFile', { file: file },
+            function success(data: any) {
+                if (data.status === 'Success') {
+                    Stingray.loadingStatus.loading = true;
+                    Stingray.loadingStatus.status = 'Loading file';
+                    var intervalObject = setInterval(() => {
+                        if (Stingray.loadingStatus.loading) {
+                            // keep waiting
+                        } else {
+                            clearInterval(intervalObject);
+                            Stingray.contents.send('end-waiting');
+                            Stingray.contents.send('set-status', '');
+                            if (Stingray.loadingStatus.loadError !== '') {
+                                dialog.showErrorBox('Error', Stingray.loadingStatus.alignloadErrorError);
+                            } else {
+                                Stingray.getData();
+                            }
+                        }
+                        Stingray.getLoadingStatus();
+                    }, 500);
+                } else {
+                    this.contents.send('end-waiting');
+                    this.contents.send('set-status', '');
+                    dialog.showErrorBox('Error', data.reason);
+                }
+            },
+            function error(reason: string) {
+                this.contents.send('end-waiting');
+                this.contents.send('set-status', '');
+                dialog.showErrorBox('Error', reason);
+            }
+        );
+    }
+
+    static getLoadingStatus(): void {
+        this.sendRequest('/loadingStatus', {},
+            function success(data: any) {
+                Stingray.loadingStatus = data;
+            },
+            function error(reason: string) {
+                Stingray.loadingStatus.loading = false;
+                Stingray.loadingStatus.LoadError = reason;
+                Stingray.loadingStatus.status = '';
+            }
+        );
+    }
+
+    static getData(): void {
+        console.log('get data called');
     }
 }
 

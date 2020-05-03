@@ -42,11 +42,13 @@ import com.maxprograms.converters.EncodingResolver;
 import com.maxprograms.converters.FileFormats;
 import com.maxprograms.languages.Language;
 import com.maxprograms.languages.LanguageUtils;
+import com.maxprograms.stingray.models.Alignment;
 import com.maxprograms.xml.Document;
 import com.maxprograms.xml.Element;
 import com.maxprograms.xml.SAXBuilder;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.xml.sax.SAXException;
 
@@ -56,6 +58,10 @@ public class AlignmentService {
 	protected boolean aligning;
 	protected String alignError;
 	protected String status;
+
+	protected boolean loading;
+	protected String loadError;
+	protected Alignment alignment;
 
 	public AlignmentService() {
 
@@ -274,6 +280,49 @@ public class AlignmentService {
 		JSONObject result = new JSONObject();
 		result.put("aligning", aligning);
 		result.put("alignError", alignError);
+		result.put("status", status);
+		return result;
+	}
+
+	public JSONObject openFile(JSONObject json) {
+		JSONObject result = new JSONObject();
+		loading = true;
+		loadError = "";
+		status = "Loading file";
+		try {
+			new Thread() {
+
+				@Override
+				public void run() {
+					try {
+						alignment = new Alignment(json.getString("file"));
+						status = "";
+						loading = false;
+					} catch (JSONException | SAXException | IOException | ParserConfigurationException e) {
+						logger.log(Level.ERROR, e);
+						loadError = e.getMessage();
+						status = "";
+						loading = false;
+					}
+				}
+			}.start();
+			result.put(Constants.STATUS, Constants.SUCCESS);
+			return result;
+		} catch (IllegalThreadStateException e) {
+			logger.log(Level.ERROR, e);
+			loadError = e.getMessage();
+			status = "";
+			loading = false;
+			result.put(Constants.STATUS, Constants.ERROR);
+			result.put(Constants.REASON, e.getMessage());
+		}
+		return result;
+	}
+
+	public JSONObject loadingStatus() {
+		JSONObject result = new JSONObject();
+		result.put("loading", loading);
+		result.put("loadError", loadError);
 		result.put("status", status);
 		return result;
 	}

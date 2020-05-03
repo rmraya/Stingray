@@ -121,6 +121,12 @@ public class StingrayServer implements HttpHandler {
 				case "/alignmentStatus": 
 					response = alignmentStatus();
 					break;
+				case "/openFile":
+					response = openFile(new JSONObject(request));
+					break;
+				case "/loadingStatus": 
+				response = loadingStatus();
+				break;
 				default:
 					JSONObject unknown = new JSONObject();
 					unknown.put(Constants.STATUS, Constants.ERROR);
@@ -199,5 +205,13 @@ public class StingrayServer implements HttpHandler {
 
 	private String alignmentStatus() {
 		return service.alignmentStatus().toString();
+	}
+
+	private String openFile(JSONObject json) {
+		return service.openFile(json).toString();
+	}
+
+	private String loadingStatus() {
+		return service.loadingStatus().toString();
 	}
 }

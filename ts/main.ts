@@ -38,6 +38,9 @@ class Main {
         document.getElementById('newFile').addEventListener('click', () => {
             this.electron.ipcRenderer.send('new-file');
         });
+        document.getElementById('openFile').addEventListener('click', () => {
+            this.electron.ipcRenderer.send('open-file');
+        });
         document.getElementById('openHelp').addEventListener('click', () => {
             this.electron.ipcRenderer.send('show-help');
         });
