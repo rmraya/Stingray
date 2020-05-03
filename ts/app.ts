@@ -34,6 +34,7 @@ class Stingray {
     static newFileWindow: BrowserWindow;
     static contents: webContents;
     currentDefaults: Rectangle;
+    static alignmentStatus: any = { aligning: false, alignError: '', status: '' };
 
     static currentPreferences: any;
     static currentTheme: string = 'system';
@@ -534,7 +535,7 @@ class Stingray {
         }
     }
 
-    sendRequest(url: string, json: any, success: any, error: any) {
+    static sendRequest(url: string, json: any, success: any, error: any) {
         var postData: string = JSON.stringify(json);
         var options = {
             hostname: '127.0.0.1',
@@ -571,7 +572,7 @@ class Stingray {
     }
 
     getLanguages(event: IpcMainEvent): void {
-        this.sendRequest('/getLanguages', {},
+        Stingray.sendRequest('/getLanguages', {},
             function success(data: any) {
                 data.srcLang = Stingray.currentPreferences.srcLang;
                 data.tgtLang = Stingray.currentPreferences.tgtLang;
@@ -584,7 +585,7 @@ class Stingray {
     }
 
     getTypes(event: IpcMainEvent): void {
-        this.sendRequest('/getTypes', {},
+        Stingray.sendRequest('/getTypes', {},
             function success(data: any) {
                 event.sender.send('set-types', data);
             },
@@ -595,7 +596,7 @@ class Stingray {
     }
 
     getCharsets(event: IpcMainEvent): void {
-        this.sendRequest('/getCharsets', {},
+        Stingray.sendRequest('/getCharsets', {},
             function success(data: any) {
                 event.sender.send('set-charsets', data);
             },
@@ -606,7 +607,7 @@ class Stingray {
     }
 
     getVersion(event: IpcMainEvent): void {
-        this.sendRequest('/version', {},
+        Stingray.sendRequest('/version', {},
             function success(data: any) {
                 data.srcLang = Stingray.currentPreferences.srcLang;
                 data.tgtLang = Stingray.currentPreferences.tgtLang;
@@ -758,19 +759,71 @@ class Stingray {
     }
 
     getFileType(event: IpcMainEvent, file: string, arg: string): void {
-        this.sendRequest('/getFileType', { file: file },
+        Stingray.sendRequest('/getFileType', { file: file },
             function success(data: any) {
                 event.sender.send(arg, data);
             },
             function error(reason: string) {
                 dialog.showErrorBox('Error', reason);
-                console.log(reason);
             }
         );
     }
 
     static createAlignment(params: any): void {
         this.newFileWindow.close();
+        this.contents.send('start-waiting');
+        this.contents.send('set-status', 'Preparing files');
+        params.catalog = Stingray.currentPreferences.catalog;
+        params.srx = Stingray.currentPreferences.srx;
+        this.sendRequest('/alignFiles', params,
+            function success(data: any) {
+                if (data.status === 'Success') {
+                    Stingray.alignmentStatus.aligning = true;
+                    Stingray.alignmentStatus.status = 'Preparing files';
+                    var intervalObject = setInterval(() => {
+                        if (Stingray.alignmentStatus.aligning) {
+                            Stingray.contents.send('set-status', Stingray.alignmentStatus.status);
+                        } else {
+                            clearInterval(intervalObject);
+                            Stingray.contents.send('end-waiting');
+                            Stingray.contents.send('set-status', '');
+                            if (Stingray.alignmentStatus.alignError !== '') {
+                                dialog.showErrorBox('Error', Stingray.alignmentStatus.alignError);
+                            } else {
+                                Stingray.openFile(params.alignmentFile);
+                            }
+                        }
+                        Stingray.getAlignmentStatus();
+                    }, 500);
+                } else {
+                    this.contents.send('end-waiting');
+                    this.contents.send('set-status', '');
+                    dialog.showErrorBox('Error', data.reason);
+                }
+            },
+            function error(reason: string) {
+                this.contents.send('end-waiting');
+                this.contents.send('set-status', '');
+                dialog.showErrorBox('Error', reason);
+            }
+        );
+    }
+
+    static getAlignmentStatus(): void {
+        this.sendRequest('/alignmentStatus', {},
+            function success(data: any) {
+                Stingray.alignmentStatus = data;
+            },
+            function error(reason: string) {
+                Stingray.alignmentStatus.aligning = false;
+                Stingray.alignmentStatus.alignError = reason;
+                Stingray.alignmentStatus.status = '';
+            }
+        );
+    }
+
+    static openFile(file: string): void {
+        console.log('opening ' + file);
         // TODO
     }
 }

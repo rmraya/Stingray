@@ -26,12 +26,31 @@ class Main {
         this.electron.ipcRenderer.on('set-theme', (event, arg) => {
             (document.getElementById('theme') as HTMLLinkElement).href = arg;
         });
+        this.electron.ipcRenderer.on('start-waiting', () => {
+            document.getElementById('body').classList.add("wait");
+        });
+        this.electron.ipcRenderer.on('end-waiting', () => {
+            document.getElementById('body').classList.remove("wait");
+        });
+        this.electron.ipcRenderer.on('set-status', (event, arg) => {
+           this.setStatus(arg);
+        });
         document.getElementById('newFile').addEventListener('click', () => {
             this.electron.ipcRenderer.send('new-file');
         });
         document.getElementById('openHelp').addEventListener('click', () => {
             this.electron.ipcRenderer.send('show-help');
         });
+    }
+
+    setStatus(text: string): void{
+        var status: HTMLDivElement = document.getElementById('status') as HTMLDivElement;
+        status.innerHTML = text;
+        if (text.length > 0) {
+            status.style.display = 'block';
+        } else {
+            status.style.display = 'none';
+        }
     }
 }
 

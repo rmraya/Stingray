@@ -113,8 +113,14 @@ public class StingrayServer implements HttpHandler {
 					response = getCharsets();
 					break;
 				case "/getFileType":
-				response = getFileType(new JSONObject(request));
-				break;
+					response = getFileType(new JSONObject(request));
+					break;
+				case "/alignFiles":
+					response = alignFiles(new JSONObject(request));
+					break;
+				case "/alignmentStatus": 
+					response = alignmentStatus();
+					break;
 				default:
 					JSONObject unknown = new JSONObject();
 					unknown.put(Constants.STATUS, Constants.ERROR);
@@ -185,5 +191,13 @@ public class StingrayServer implements HttpHandler {
 
 	private String getCharsets() {
 		return service.getCharsets().toString();
+	}
+
+	private String alignFiles(JSONObject json) {
+		return service.alignFiles(json).toString();
+	}
+
+	private String alignmentStatus() {
+		return service.alignmentStatus().toString();
 	}
 }
