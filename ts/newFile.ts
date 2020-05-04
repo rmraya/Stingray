@@ -166,17 +166,17 @@ class NewFile {
             window.alert('Select target file');
             return;
         }
-        let tgtLang = (document.getElementById('srcLangSelect') as HTMLSelectElement).value;
+        let tgtLang = (document.getElementById('tgtLangSelect') as HTMLSelectElement).value;
         if (tgtLang === 'none') {
             window.alert('Select target language');
             return;
         }
-        let tgtType = (document.getElementById('srcTypeSelect') as HTMLSelectElement).value;
+        let tgtType = (document.getElementById('tgtTypeSelect') as HTMLSelectElement).value;
         if (tgtType === 'none') {
             window.alert('Select target file type');
             return;
         }
-        let tgtEnc = (document.getElementById('srcEncodingSelect') as HTMLSelectElement).value;
+        let tgtEnc = (document.getElementById('tgtEncodingSelect') as HTMLSelectElement).value;
         if (tgtEnc === 'none') {
             window.alert('Select target character set');
             return;

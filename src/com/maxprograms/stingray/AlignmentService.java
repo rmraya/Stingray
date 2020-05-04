@@ -220,7 +220,7 @@ public class AlignmentService {
 							doc = builder.build(tgtXlf);
 							recurse(sources, doc.getRootElement());
 
-							writeStr(out, "<targets xml:lang=\"" + json.getString("srcLang") + "\">\n");
+							writeStr(out, "<targets xml:lang=\"" + json.getString("tgtLang") + "\">\n");
 							it = sources.iterator();
 							while (it.hasNext()) {
 								writeStr(out, clean(it.next()) + "\n");

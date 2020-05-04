@@ -46,18 +46,18 @@ public class Alignment {
     private String file;
     private Document doc;
     private List<Element> sources;
-    private String srcLang;
+    private Language srcLang;
     private List<Element> targets;
-    private String tgtLang;
+    private Language tgtLang;
 
     public Alignment(String file) throws SAXException, IOException, ParserConfigurationException {
         this.file = file;
         SAXBuilder builder = new SAXBuilder();
         doc = builder.build(file);
         sources = doc.getRootElement().getChild("sources").getChildren();
-        srcLang = doc.getRootElement().getChild("sources").getAttributeValue("xml:lang");
+        srcLang = LanguageUtils.getLanguage(doc.getRootElement().getChild("sources").getAttributeValue("xml:lang"));
         targets = doc.getRootElement().getChild("targets").getChildren();
-        tgtLang = doc.getRootElement().getChild("targets").getAttributeValue("xml:lang");
+        tgtLang = LanguageUtils.getLanguage(doc.getRootElement().getChild("targets").getAttributeValue("xml:lang"));
     }
 
     public void save() throws IOException {
@@ -70,8 +70,8 @@ public class Alignment {
     public JSONObject getFileInfo() throws JSONException, IOException {
         JSONObject result = new JSONObject();
         result.put("file", file);
-        result.put("srcLang", jsonLang(LanguageUtils.getLanguage(srcLang)));
-        result.put("tgtLang", jsonLang(LanguageUtils.getLanguage(tgtLang)));
+        result.put("srcLang", jsonLang(srcLang));
+        result.put("tgtLang", jsonLang(tgtLang));
         result.put("srcRows", sources.size());
         result.put("tgtRows", targets.size());
         return result;
@@ -93,9 +93,21 @@ public class Alignment {
             StringBuilder row = new StringBuilder();
             row.append("<tr><td class='fixed'>");
             row.append(start + i);
-            row.append("</td><td>");
+            row.append("</td><td");
+            if (srcLang.isBiDi()) {
+                row.append(" dir=\"rtl\"");
+            }
+            row.append(" lang=\"");
+            row.append(srcLang.getCode());
+            row.append("\">");
             row.append(getContent(sources, start + i));
-            row.append("</td><td>");
+            row.append("</td><td");
+            if (tgtLang.isBiDi()) {
+                row.append(" dir=\"rtl\"");
+            }
+            row.append(" lang=\"");
+            row.append(tgtLang.getCode());
+            row.append("\">");
             row.append(getContent(targets, start + i));
             row.append("</td></tr>");
             result.put(row.toString());
@@ -144,11 +156,10 @@ public class Alignment {
             width = 28;
         }
         return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + (width + 1)
-                + "px\" height=\"17px\" version=\"1.1\">\n" + "   <g>\n" + "      <rect style=\"fill:#009688\" width=\""
-                + width + "px\" height=\"16px\" x=\"1\" y=\"1\" rx=\"3\" ry=\"3\" />\n"
-                + "      <text style=\"font-size:12px;font-style:normal;font-weight:normal;text-align:center;font-family:Sans;\"  x=\"6\" y=\"14\" fill=\"#ffffff\" fill-opacity=\"1\">\n"
-                + "         <tspan>" + tag + "</tspan>\n" + "      </text>\n" + "   </g>\n" + "</svg>";
-
+                + "px\" height=\"17px\" version=\"1.1\"><g><rect style=\"fill:#009688\" width=\"" + width
+                + "px\" height=\"16px\" x=\"1\" y=\"1\" rx=\"3\" ry=\"3\" />"
+                + "<text style=\"font-size:12px;font-style:normal;font-weight:normal;text-align:center;\""
+                + " x=\"6\" y=\"14\" fill=\"#ffffff\" fill-opacity=\"1\">" + tag + "</text></g></svg>";
     }
 
 }

@@ -109,6 +109,9 @@ class Main {
         this.sourceRows = data.srcRows;
         this.targetRows = data.tgtRows;
 
+        document.getElementById('sourceHeader').innerText = data.srcLang.code + ' - ' + data.srcLang.description;
+        document.getElementById('targetHeader').innerText = data.tgtLang.code + ' - ' + data.tgtLang.description;
+
         this.maxRows = this.sourceRows;
         if (this.targetRows > this.maxRows) {
             this.maxRows = this.targetRows;
