@@ -326,4 +326,34 @@ public class AlignmentService {
 		result.put("status", status);
 		return result;
 	}
+
+	public JSONObject getFileInfo() {
+		JSONObject result = new JSONObject();
+		if (alignment != null) {
+			try {
+				result = alignment.getFileInfo();
+				result.put(Constants.STATUS, Constants.SUCCESS);
+			} catch (JSONException | IOException e) {
+				logger.log(Level.ERROR, e);
+				result.put(Constants.STATUS, Constants.ERROR);
+				result.put(Constants.REASON, e.getMessage());
+			}
+			return result;
+		}
+		result.put(Constants.STATUS, Constants.ERROR);
+		result.put(Constants.REASON, "No alignment");
+		return result;
+	}
+
+	public JSONObject getRows(JSONObject json) {
+		JSONObject result = new JSONObject();
+		if (alignment != null) {
+			result.put("rows", alignment.getRows(json));
+			result.put(Constants.STATUS, Constants.SUCCESS);
+			return result;
+		}
+		result.put(Constants.STATUS, Constants.ERROR);
+		result.put(Constants.REASON, "No alignment");
+		return result;
+	}
 }

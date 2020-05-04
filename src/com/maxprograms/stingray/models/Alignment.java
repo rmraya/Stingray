@@ -21,15 +21,24 @@ package com.maxprograms.stingray.models;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import com.maxprograms.languages.Language;
+import com.maxprograms.languages.LanguageUtils;
 import com.maxprograms.xml.Document;
 import com.maxprograms.xml.Element;
 import com.maxprograms.xml.SAXBuilder;
+import com.maxprograms.xml.TextNode;
+import com.maxprograms.xml.XMLNode;
 import com.maxprograms.xml.XMLOutputter;
+import com.maxprograms.xml.XMLUtils;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.xml.sax.SAXException;
 
 public class Alignment {
@@ -57,4 +66,89 @@ public class Alignment {
             outputter.output(doc, out);
         }
     }
+
+    public JSONObject getFileInfo() throws JSONException, IOException {
+        JSONObject result = new JSONObject();
+        result.put("file", file);
+        result.put("srcLang", jsonLang(LanguageUtils.getLanguage(srcLang)));
+        result.put("tgtLang", jsonLang(LanguageUtils.getLanguage(tgtLang)));
+        result.put("srcRows", sources.size());
+        result.put("tgtRows", targets.size());
+        return result;
+    }
+
+    private JSONObject jsonLang(Language lang) {
+        JSONObject result = new JSONObject();
+        result.put("code", lang.getCode());
+        result.put("description", lang.getDescription());
+        result.put("bidi", lang.isBiDi());
+        return result;
+    }
+
+    public JSONArray getRows(JSONObject json) {
+        JSONArray result = new JSONArray();
+        int start = json.getInt("start");
+        int count = json.getInt("count");
+        for (int i = 0; i < count; i++) {
+            StringBuilder row = new StringBuilder();
+            row.append("<tr><td class='fixed'>");
+            row.append(start + i);
+            row.append("</td><td>");
+            row.append(getContent(sources, start + i));
+            row.append("</td><td>");
+            row.append(getContent(targets, start + i));
+            row.append("</td></tr>");
+            result.put(row.toString());
+        }
+        return result;
+    }
+
+    private Object getContent(List<Element> list, int row) {
+        if (row < list.size()) {
+            return pureText(list.get(row));
+        }
+        return "";
+    }
+
+    private String pureText(Element element) {
+        int tag = 1;
+        StringBuilder result = new StringBuilder();
+        List<XMLNode> content = element.getContent();
+        Iterator<XMLNode> it = content.iterator();
+        while (it.hasNext()) {
+            XMLNode node = it.next();
+            if (node.getNodeType() == XMLNode.TEXT_NODE) {
+                result.append(XMLUtils.cleanText(((TextNode) node).getText()));
+            } else if (node.getNodeType() == XMLNode.ELEMENT_NODE) {
+                Element e = (Element) node;
+                String type = e.getName();
+                if ("ph".equals(type)) {
+                    result.append(makeSVG(tag++));
+                }
+                if ("g".equals(type)) {
+                    result.append(makeSVG(tag++));
+                    result.append(pureText(e));
+                    result.append(makeSVG(tag++));
+                }
+            }
+        }
+        return result.toString();
+    }
+
+    private String makeSVG(int tag) {
+        int width = 16;
+        if (tag >= 10) {
+            width = 22;
+        }
+        if (tag >= 100) {
+            width = 28;
+        }
+        return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + (width + 1)
+                + "px\" height=\"17px\" version=\"1.1\">\n" + "   <g>\n" + "      <rect style=\"fill:#009688\" width=\""
+                + width + "px\" height=\"16px\" x=\"1\" y=\"1\" rx=\"3\" ry=\"3\" />\n"
+                + "      <text style=\"font-size:12px;font-style:normal;font-weight:normal;text-align:center;font-family:Sans;\"  x=\"6\" y=\"14\" fill=\"#ffffff\" fill-opacity=\"1\">\n"
+                + "         <tspan>" + tag + "</tspan>\n" + "      </text>\n" + "   </g>\n" + "</svg>";
+
+    }
+
 }

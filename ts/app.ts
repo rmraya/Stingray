@@ -192,6 +192,9 @@ class Stingray {
         ipcMain.on('create-alignment', (event, arg) => {
             Stingray.createAlignment(arg);
         });
+        ipcMain.on('get-rows', (event, arg) => {
+            Stingray.getRows(arg);
+        });
     }
 
     stopServer(): void {
@@ -231,8 +234,15 @@ class Stingray {
             { label: 'Replace Text...', accelerator: 'CmdOrCtrl+F', click: () => { this.replaceText(); } }
         ]);
         var viewMenu: Menu = Menu.buildFromTemplate([
+            { label: 'First Page', accelerator:'CmdOrCtrl+Home', click: () => { Stingray.firstPage(); } },
+            { label: 'Previous Page', accelerator: 'CmdOrCtrl+PageUp', click: () => { Stingray.previousPage(); } },
+            { label: 'Next Page', accelerator: 'CmdOrCtrl+PageDown', click: () => { Stingray.nextPage(); } },
+            { label: 'Last Page', accelerator:'CmdOrCtrl+End', click: () => { Stingray.lastPage(); } },
+            new MenuItem({ type: 'separator' }),
             new MenuItem({ label: 'Toggle Full Screen', role: 'togglefullscreen' }),
             new MenuItem({ label: 'Toggle Development Tools', accelerator: 'F12', role: 'toggleDevTools' })
+        ]);
+        var tasksMenu: Menu = Menu.buildFromTemplate([
         ]);
         var helpMenu: Menu = Menu.buildFromTemplate([
             { label: 'Stingray User Guide', accelerator: 'F1', click: () => { Stingray.showHelp(); } },
@@ -247,6 +257,7 @@ class Stingray {
             new MenuItem({ label: '&File', role: 'fileMenu', submenu: fileMenu }),
             new MenuItem({ label: '&Edit', role: 'editMenu', submenu: editMenu }),
             new MenuItem({ label: '&View', role: 'viewMenu', submenu: viewMenu }),
+            new MenuItem({ label: '&Tasks', submenu: tasksMenu }),
             new MenuItem({ label: '&Help', role: 'help', submenu: helpMenu })
         ];
         if (process.platform === 'darwin') {
@@ -279,14 +290,14 @@ class Stingray {
         if (process.platform === 'win32') {
             template[0].submenu.append(new MenuItem({ type: 'separator' }));
             template[0].submenu.append(new MenuItem({ label: 'Exit', accelerator: 'Alt+F4', role: 'quit', click: () => { app.quit(); } }));
-            template[4].submenu.append(new MenuItem({ type: 'separator' }));
-            template[4].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
+            template[5].submenu.append(new MenuItem({ type: 'separator' }));
+            template[5].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
         }
         if (process.platform === 'linux') {
             template[0].submenu.append(new MenuItem({ type: 'separator' }));
             template[0].submenu.append(new MenuItem({ label: 'Quit', accelerator: 'Ctrl+Q', role: 'quit', click: () => { app.quit(); } }));
-            template[4].submenu.append(new MenuItem({ type: 'separator' }));
-            template[4].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
+            template[5].submenu.append(new MenuItem({ type: 'separator' }));
+            template[5].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
         }
         Menu.setApplicationMenu(Menu.buildFromTemplate(template));
     }
@@ -860,7 +871,7 @@ class Stingray {
                             if (Stingray.loadingStatus.loadError !== '') {
                                 dialog.showErrorBox('Error', Stingray.loadingStatus.alignloadErrorError);
                             } else {
-                                Stingray.getData();
+                                Stingray.getFileInfo();
                             }
                         }
                         Stingray.getLoadingStatus();
@@ -892,8 +903,42 @@ class Stingray {
         );
     }
 
-    static getData(): void {
-        console.log('get data called');
+    static getFileInfo(): void {
+        this.sendRequest('/getFileInfo', {},
+            function success(data: any) {
+                Stingray.contents.send('file-info', data);
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
+    }
+
+    static getRows(params: any): void {
+        this.sendRequest('/getRows', params,
+        function success(data: any) {
+            Stingray.contents.send('set-rows', data);
+        },
+        function error(reason: string) {
+            dialog.showErrorBox('Error', reason);
+        }
+        );
+    }
+
+    static firstPage() : void {
+        this.contents.send('first-page');
+    }
+
+    static previousPage() : void {
+        this.contents.send('previous-page');
+    }
+
+    static nextPage() : void {
+        this.contents.send('next-page');
+    }
+
+    static lastPage() : void {
+        this.contents.send('last-page');
     }
 }
 

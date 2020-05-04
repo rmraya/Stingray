@@ -16,7 +16,7 @@ header {
 
 footer {
     position: absolute;
-    height: 29px;
+    height: 24px;
     left: 0px;
     bottom: 0px;
     right: 0px;
@@ -33,7 +33,7 @@ footer {
     left: 0px;
     top: 25px;
     right: 0px;
-    bottom: 29px;
+    bottom: 25px;
     width: 100%;
     overflow-y: scroll;
 }

@@ -50,13 +50,61 @@
         </div>
     </header>
 
-    <div id="main" style="height:100%;">
+    <div id="main" class="divContentArea">
+        <table id="mainTable" class="stripes fill_width">
+            <thead id='tableHeader'>
+                <tr class="dark_background">
+                    <th class="fixed dark_background">#</th>
+                    <th class="dark_background">Source</th>
+                    <th class="dark_background">Target</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
 
+            </tbody>
+        </table>
     </div>
 
     <footer id="footer">
-        <div style="padding-top:0px; display:flex;">
-            
+        <div style="display: flex; padding-left: 4px;">
+            <a id="first" class="tooltip">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M18.41 16.59L13.82 12l4.59-4.59L17 6l-6 6 6 6zM6 6h2v12H6z" />
+                    <path fill="none" d="M24 24H0V0h24v24z" /></svg>
+                <span class="tooltiptext topTooltip">First Page</span>
+            </a>
+            <a id="previous" class="tooltip">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+                    <path d="M0 0h24v24H0z" fill="none" /></svg>
+                <span class="tooltiptext topTooltip">Previous Page</span>
+            </a>
+            <span style="margin-left: 10px; ">Page</span>
+            <div class="tooltip">
+                <input id="page" type="number" style="margin-left: 10px; margin-top:2px; width: 50px;" value="0">
+                <span class="tooltiptext topTooltip">Enter page number and press ENTER</span>
+            </div>
+            <span style="margin-left: 10px; ">of </span>
+            <span id="pages" style="width: 40px; margin-left: 10px; ">0</span>
+            <a id="next" class="tooltip">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                    <path d="M0 0h24v24H0z" fill="none" /></svg>
+                <span class="tooltiptext topTooltip">Next Page</span>
+            </a>
+            <a id="last" class="tooltip">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M5.59 7.41L10.18 12l-4.59 4.59L7 18l6-6-6-6zM16 6h2v12h-2z" />
+                    <path fill="none" d="M0 0h24v24H0V0z" /></svg>
+                <span class="tooltiptext topTooltip">Last Page</span>
+            </a>
+            <span style="margin-left: 10px;">Rows/Page</span>
+            <div class="tooltip">
+                <input id="rows_page" type="number" style="margin-left: 10px; margin-top:2px; width: 50px;" value="200">
+                <span class="tooltiptext topTooltip">Enter number of rows/page and press ENTER</span>
+            </div>
+            <span style="margin-left: 10px; ">Rows: </span>
+            <span id="units" style="margin-left: 10px; margin-top:2px; min-width: 100px;"></span>
         </div>
     </footer>
 
