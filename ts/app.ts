@@ -226,8 +226,8 @@ class Stingray {
             { label: 'Save Alignment', accelerator: 'CmdOrCtrl+S', click: () => { Stingray.saveAlignmentFile(); } },
             { label: 'Save Alignment As...', accelerator: 'CmdOrCtrl+Shift+S', click: () => { Stingray.saveAlignmentFileAs(); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Export Aligment as TMX',  click: () => { Stingray.exportTMX(); } },
-            { label: 'Export Alignment as TAB Delimited',  click: () => { Stingray.exportCSV(); } }
+            { label: 'Export Aligment as TMX', click: () => { Stingray.exportTMX(); } },
+            { label: 'Export Alignment as TAB Delimited', click: () => { Stingray.exportCSV(); } }
         ]);
         var editMenu: Menu = Menu.buildFromTemplate([
             { label: 'Replace Text...', accelerator: 'CmdOrCtrl+F', click: () => { Stingray.replaceText(); } },
@@ -245,21 +245,21 @@ class Stingray {
             { label: 'Copy', accelerator: 'CmdOrCtrl+C', click: () => { Stingray.contents.copy(); } },
             { label: 'Paste', accelerator: 'CmdOrCtrl+V', click: () => { Stingray.contents.paste(); } },
             { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: () => { Stingray.contents.selectAll(); } }
-            
+
         ]);
         var viewMenu: Menu = Menu.buildFromTemplate([
-            { label: 'First Page', accelerator:'CmdOrCtrl+Home', click: () => { Stingray.firstPage(); } },
+            { label: 'First Page', accelerator: 'CmdOrCtrl+Home', click: () => { Stingray.firstPage(); } },
             { label: 'Previous Page', accelerator: 'CmdOrCtrl+PageUp', click: () => { Stingray.previousPage(); } },
             { label: 'Next Page', accelerator: 'CmdOrCtrl+PageDown', click: () => { Stingray.nextPage(); } },
-            { label: 'Last Page', accelerator:'CmdOrCtrl+End', click: () => { Stingray.lastPage(); } },
+            { label: 'Last Page', accelerator: 'CmdOrCtrl+End', click: () => { Stingray.lastPage(); } },
             new MenuItem({ type: 'separator' }),
             new MenuItem({ label: 'Toggle Full Screen', role: 'togglefullscreen' }),
             new MenuItem({ label: 'Toggle Development Tools', accelerator: 'F12', role: 'toggleDevTools' })
         ]);
         var tasksMenu: Menu = Menu.buildFromTemplate([
-            { label: 'Remove all Tags',  click: () => { Stingray.removeTags(); } },
-            { label: 'Remove Duplicate Entries',  click: () => { Stingray.removeDuplicates(); } },
-            { label: 'Change Language Codes',  click: () => { Stingray.changeLanguages(); } },
+            { label: 'Remove all Tags', click: () => { Stingray.removeTags(); } },
+            { label: 'Remove Duplicate Entries', click: () => { Stingray.removeDuplicates(); } },
+            { label: 'Change Language Codes', click: () => { Stingray.changeLanguages(); } },
         ]);
         var helpMenu: Menu = Menu.buildFromTemplate([
             { label: 'Stingray User Guide', accelerator: 'F1', click: () => { Stingray.showHelp(); } },
@@ -929,28 +929,28 @@ class Stingray {
 
     static getRows(params: any): void {
         this.sendRequest('/getRows', params,
-        function success(data: any) {
-            Stingray.contents.send('set-rows', data);
-        },
-        function error(reason: string) {
-            dialog.showErrorBox('Error', reason);
-        }
+            function success(data: any) {
+                Stingray.contents.send('set-rows', data);
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
         );
     }
 
-    static firstPage() : void {
+    static firstPage(): void {
         this.contents.send('first-page');
     }
 
-    static previousPage() : void {
+    static previousPage(): void {
         this.contents.send('previous-page');
     }
 
-    static nextPage() : void {
+    static nextPage(): void {
         this.contents.send('next-page');
     }
 
-    static lastPage() : void {
+    static lastPage(): void {
         this.contents.send('last-page');
     }
 
@@ -967,7 +967,27 @@ class Stingray {
     }
 
     static exportTMX(): void {
-        // TODO
+        dialog.showSaveDialog({
+            title: 'Export TMX',
+            properties: ['createDirectory', 'showOverwriteConfirmation'],
+            filters: [
+                { name: 'TMX File', extensions: ['tmx'] },
+                { name: 'Any File', extensions: ['*'] }
+            ]
+        }).then((value) => {
+            if (!value.canceled) {
+                this.sendRequest("/exportTMX", { file: value.filePath },
+                    function success(data: any) {
+                        dialog.showMessageBox(Stingray.mainWindow, { type: 'info', message: 'File exported' });
+                    },
+                    function error(reason: string) {
+                        dialog.showErrorBox('Error', reason);
+                    }
+                );
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
     }
 
     static exportCSV(): void {

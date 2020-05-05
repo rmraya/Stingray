@@ -133,6 +133,9 @@ public class StingrayServer implements HttpHandler {
 				case "/getRows":
 					response = getRows(new JSONObject(request));
 					break;
+				case "/exportTMX":
+					response = exportTMX(new JSONObject(request));
+					break;
 				default:
 					JSONObject unknown = new JSONObject();
 					unknown.put(Constants.STATUS, Constants.ERROR);
@@ -227,5 +230,9 @@ public class StingrayServer implements HttpHandler {
 
 	private String getRows(JSONObject json) {
 		return service.getRows(json).toString();
+	}
+
+	private String exportTMX(JSONObject json) {
+		return service.exportTMX(json).toString();
 	}
 }

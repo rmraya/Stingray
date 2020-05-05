@@ -333,4 +333,22 @@ public class AlignmentService {
 		result.put(Constants.REASON, "No alignment");
 		return result;
 	}
+
+	public JSONObject exportTMX(JSONObject json) {
+		JSONObject result = new JSONObject();
+		if (alignment != null) {
+			try {
+				alignment.exportTMX(json.getString("file"));
+				result.put(Constants.STATUS, Constants.SUCCESS);
+			} catch (JSONException | IOException e) {
+				logger.log(Level.ERROR, e);
+				result.put(Constants.STATUS, Constants.ERROR);
+				result.put(Constants.REASON, e.getMessage());
+			}
+			return result;
+		}
+		result.put(Constants.STATUS, Constants.ERROR);
+		result.put(Constants.REASON, "No alignment");
+		return result;
+	}
 }

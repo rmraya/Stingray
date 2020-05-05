@@ -232,13 +232,15 @@ public class Alignment {
         for (int i = 0; i < sources.size(); i++) {
             Element src = sources.get(i);
             String srcText = "<source>" + extractText(src).trim() + "</source>";
-            Element root1 = builder.build(new ByteArrayInputStream(srcText.getBytes(StandardCharsets.UTF_8))).getRootElement();
+            Element root1 = builder.build(new ByteArrayInputStream(srcText.getBytes(StandardCharsets.UTF_8)))
+                    .getRootElement();
             src.clone(root1);
         }
         for (int i = 0; i < targets.size(); i++) {
             Element tgt = targets.get(i);
             String srcText = "<source>" + extractText(tgt).trim() + "</source>";
-            Element root1 = builder.build(new ByteArrayInputStream(srcText.getBytes(StandardCharsets.UTF_8))).getRootElement();
+            Element root1 = builder.build(new ByteArrayInputStream(srcText.getBytes(StandardCharsets.UTF_8)))
+                    .getRootElement();
             tgt.clone(root1);
         }
     }
@@ -289,4 +291,78 @@ public class Alignment {
         }
         return result.toString();
     }
+
+    public void exportTMX(String tmxFile) throws IOException {
+
+        Document tmx = new Document(null, "tmx", "-//LISA OSCAR:1998//DTD for Translation Memory eXchange//EN",
+                "tmx14.dtd");
+        Element root = tmx.getRootElement();
+        Element header = new Element("header");
+        header.setAttribute("creationtool", "Stingray");
+        header.setAttribute("creationtoolversion", Constants.VERSION);
+        header.setAttribute("datatype", "unknown");
+        header.setAttribute("segtype", "block");
+        header.setAttribute("adminlang", "en");
+        header.setAttribute("srclang", "*all*");
+        header.setAttribute("o-tmf", "XLIFF");
+        root.addContent(header);
+        Element body = new Element("body");
+        root.addContent(body);
+
+        long tuid = System.currentTimeMillis();
+        int max = sources.size();
+        if (targets.size() < max) {
+            max = targets.size();
+        }
+        for (int i = 0; i < max; i++) {
+            Element tu = new Element("tu");
+            tu.setAttribute("tuid", "" + tuid++);
+            body.addContent(tu);
+
+            Element stuv = new Element("tuv");
+            stuv.setAttribute("xml:lang", srcLang.getCode());
+            Element sseg = new Element("seg");
+            sseg.setContent(getTmxContent(targets.get(i)));
+            stuv.addContent(sseg);
+            tu.addContent(stuv);
+
+            Element ttuv = new Element("tuv");
+            ttuv.setAttribute("xml:lang", tgtLang.getCode());
+            Element tseg = new Element("seg");
+            tseg.setContent(getTmxContent(targets.get(i)));
+            ttuv.addContent(tseg);
+            tu.addContent(ttuv);
+        }
+
+        XMLOutputter outputter = new XMLOutputter();
+        outputter.preserveSpace(true);
+        Indenter.indent(root, 2);
+        try (FileOutputStream output = new FileOutputStream(tmxFile)) {
+            outputter.output(tmx, output);
+        }
+    }
+
+    private List<XMLNode> getTmxContent(Element element) {
+        List<XMLNode> result = new ArrayList<>();
+        List<XMLNode> nodes = element.getContent();
+        Iterator<XMLNode> it = nodes.iterator();
+        while (it.hasNext()) {
+            XMLNode n = it.next();
+            if (n.getNodeType() == XMLNode.TEXT_NODE) {
+                result.add(n);
+            }
+            if (n.getNodeType() == XMLNode.ELEMENT_NODE) {
+                Element e = (Element) n;
+                if ("ph".equals(e.getName())) {
+                    e.setAttributes(new ArrayList<>());
+                    result.add(e);
+                }
+                if ("g".equals(e.getName())) {
+                    result.add(new TextNode(getPureText(e)));
+                }
+            }
+        }
+        return result;
+    }
+
 }
