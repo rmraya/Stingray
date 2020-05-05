@@ -49,6 +49,12 @@ class Main {
         document.getElementById('openFile').addEventListener('click', () => {
             this.electron.ipcRenderer.send('open-file');
         });
+        document.getElementById('saveFile').addEventListener('click', ()=>{
+            this.electron.ipcRenderer.send('save-file');
+        });
+        document.getElementById('export').addEventListener('click', ()=>{
+            this.electron.ipcRenderer.send('export-tmx');
+        });
         document.getElementById('openHelp').addEventListener('click', () => {
             this.electron.ipcRenderer.send('show-help');
         });

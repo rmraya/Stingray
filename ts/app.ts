@@ -33,18 +33,20 @@ class Stingray {
     static settingsWindow: BrowserWindow;
     static newFileWindow: BrowserWindow;
     static contents: webContents;
-    currentDefaults: Rectangle;
     static alignmentStatus: any = { aligning: false, alignError: '', status: '' };
     static loadingStatus: any = { loading: false, loadError: '', status: '' };
 
     static currentPreferences: any;
     static currentTheme: string = 'system';
 
+    currentDefaults: Rectangle;
     verticalPadding: number = 50;
 
     javapath: string = Stingray.path.join(app.getAppPath(), 'bin', 'java');
     ls: ChildProcessWithoutNullStreams;
     stopping: boolean = false;
+
+    static currentFile: string;
 
     constructor() {
         app.allowRendererProcessReuse = true;
@@ -91,6 +93,7 @@ class Stingray {
         }
         Stingray.loadPreferences();
         app.on('ready', () => {
+            Stingray.currentFile = '';
             this.createWindow();
             Stingray.mainWindow.loadURL(Stingray.path.join('file://', app.getAppPath(), 'index.html'));
             Stingray.mainWindow.on('resize', () => {
@@ -182,7 +185,13 @@ class Stingray {
             Stingray.newFile();
         });
         ipcMain.on('open-file', () => {
-            Stingray.openAlignmentFile();
+            Stingray.openFileDialog();
+        });
+        ipcMain.on('save-file', () => {
+            Stingray.saveFile();
+        });
+        ipcMain.on('export-tmx', () => {
+            Stingray.exportTMX();
         });
         ipcMain.on('newFile-height', (event, arg) => {
             let rect: Rectangle = Stingray.newFileWindow.getBounds();
@@ -221,14 +230,23 @@ class Stingray {
         Stingray.contents = Stingray.mainWindow.webContents;
         var fileMenu: Menu = Menu.buildFromTemplate([
             { label: 'New Alignment', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } },
-            { label: 'Open Alignment', accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openAlignmentFile(); } },
+            { label: 'Open Alignment', accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openFile(); } },
             { label: 'Close Alignment', accelerator: 'CmdOrCtrl+W', click: () => { Stingray.closeAlignmentFile(); } },
-            { label: 'Save Alignment', accelerator: 'CmdOrCtrl+S', click: () => { Stingray.saveAlignmentFile(); } },
+            { label: 'Save Alignment', accelerator: 'CmdOrCtrl+S', click: () => { Stingray.saveFile(); } },
             { label: 'Save Alignment As...', accelerator: 'CmdOrCtrl+Shift+S', click: () => { Stingray.saveAlignmentFileAs(); } },
             new MenuItem({ type: 'separator' }),
             { label: 'Export Aligment as TMX', click: () => { Stingray.exportTMX(); } },
             { label: 'Export Alignment as TAB Delimited', click: () => { Stingray.exportCSV(); } }
         ]);
+        let recentFiles: string[] = Stingray.loadRecents();
+        if (recentFiles.length > 0) {
+            fileMenu.append(new MenuItem({ type: 'separator' }));
+            let length: number = recentFiles.length;
+            for (let i = 0; i < length; i++) {
+                let file: string = recentFiles[i];
+                fileMenu.append(new MenuItem({ label: file, click: () => { Stingray.currentFile = file; Stingray.openFile() } }));
+            }
+        }
         var editMenu: Menu = Menu.buildFromTemplate([
             { label: 'Replace Text...', accelerator: 'CmdOrCtrl+F', click: () => { Stingray.replaceText(); } },
             new MenuItem({ type: 'separator' }),
@@ -270,6 +288,8 @@ class Stingray {
             { label: 'Release History', click: () => { Stingray.showReleaseHistory(); } },
             { label: 'Support Group', click: () => { Stingray.showSupportGroup(); } }
         ]);
+
+
         var template: MenuItem[] = [
             new MenuItem({ label: '&File', role: 'fileMenu', submenu: fileMenu }),
             new MenuItem({ label: '&Edit', role: 'editMenu', submenu: editMenu }),
@@ -817,7 +837,8 @@ class Stingray {
                             if (Stingray.alignmentStatus.alignError !== '') {
                                 dialog.showErrorBox('Error', Stingray.alignmentStatus.alignError);
                             } else {
-                                Stingray.openFile(params.alignmentFile);
+                                Stingray.currentFile = params.alignmentFile;
+                                Stingray.openFile();
                             }
                         }
                         Stingray.getAlignmentStatus();
@@ -849,7 +870,7 @@ class Stingray {
         );
     }
 
-    static openAlignmentFile(): void {
+    static openFileDialog(): void {
         dialog.showOpenDialog({
             title: 'Alignment File',
             properties: ['openFile'],
@@ -859,17 +880,18 @@ class Stingray {
             ]
         }).then((value) => {
             if (!value.canceled) {
-                this.openFile(value.filePaths[0]);
+                Stingray.currentFile = value.filePaths[0];
+                Stingray.openFile();
             }
         }).catch((error) => {
             console.log(error);
         });
     }
 
-    static openFile(file: string): void {
+    static openFile(): void {
         this.contents.send('start-waiting');
         this.contents.send('set-status', 'Loading file');
-        this.sendRequest('/openFile', { file: file },
+        this.sendRequest('/openFile', { file: this.currentFile },
             function success(data: any) {
                 if (data.status === 'Success') {
                     Stingray.loadingStatus.loading = true;
@@ -885,6 +907,7 @@ class Stingray {
                                 dialog.showErrorBox('Error', Stingray.loadingStatus.alignloadErrorError);
                             } else {
                                 Stingray.getFileInfo();
+                                Stingray.saveRecent(Stingray.currentFile);
                             }
                         }
                         Stingray.getLoadingStatus();
@@ -958,7 +981,11 @@ class Stingray {
         // TODO
     }
 
-    static saveAlignmentFile(): void {
+    static saveFile(): void {
+        if (this.currentFile === '') {
+            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
+            return;
+        }
         this.sendRequest("/saveFile", {},
             function success(data: any) {
                 dialog.showMessageBox(Stingray.mainWindow, { type: 'info', message: 'File saved' });
@@ -974,6 +1001,10 @@ class Stingray {
     }
 
     static exportTMX(): void {
+        if (this.currentFile === '') {
+            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
+            return;
+        }
         dialog.showSaveDialog({
             title: 'Export TMX',
             properties: ['createDirectory', 'showOverwriteConfirmation'],
@@ -1043,6 +1074,42 @@ class Stingray {
 
     static removeSegment(): void {
         // TODO
+    }
+
+    static loadRecents(): string[] {
+        let recentsFile = this.path.join(app.getPath('appData'), app.name, 'recent.json');
+        if (!existsSync(recentsFile)) {
+            return [];
+        }
+        try {
+            var data: Buffer = readFileSync(recentsFile);
+            let recents = JSON.parse(data.toString());
+            return recents.files;
+        } catch (err) {
+            console.log(err);
+            return [];
+        }
+    }
+
+    static saveRecent(file: string) {
+        let recentsFile = this.path.join(app.getPath('appData'), app.name, 'recent.json');
+        let files: string[] = this.loadRecents();
+        if (files != undefined) {
+            files = files.filter(function (f: string) {
+                return f != file;
+            });
+            files.unshift(file);
+            if (files.length > 5) {
+                files = files.slice(0, 5);
+            }
+            let jsonData: any = {files: files};
+            writeFile(recentsFile, JSON.stringify(jsonData), function (error) {
+                if (error) {
+                    dialog.showMessageBox({ type: 'error', message: error.message });
+                    return;
+                }
+            });
+        }
     }
 }
 
