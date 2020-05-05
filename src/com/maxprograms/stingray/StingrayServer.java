@@ -136,6 +136,9 @@ public class StingrayServer implements HttpHandler {
 				case "/exportTMX":
 					response = exportTMX(new JSONObject(request));
 					break;
+				case "/saveFile":
+					response = saveFile();
+					break;
 				default:
 					JSONObject unknown = new JSONObject();
 					unknown.put(Constants.STATUS, Constants.ERROR);
@@ -234,5 +237,9 @@ public class StingrayServer implements HttpHandler {
 
 	private String exportTMX(JSONObject json) {
 		return service.exportTMX(json).toString();
+	}
+	
+	private String saveFile() {
+		return service.saveFile().toString();
 	}
 }

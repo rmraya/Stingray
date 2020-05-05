@@ -959,7 +959,14 @@ class Stingray {
     }
 
     static saveAlignmentFile(): void {
-        // TODO
+        this.sendRequest("/saveFile", {},
+            function success(data: any) {
+                dialog.showMessageBox(Stingray.mainWindow, { type: 'info', message: 'File saved' });
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
     }
 
     static saveAlignmentFileAs(): void {

@@ -213,7 +213,6 @@ public class AlignmentService {
 						algn.setTargets(list);
 						Files.delete(tgtXlf.toPath());
 
-						algn.trimSpaces();
 						algn.save();
 
 						status = "";
@@ -341,6 +340,24 @@ public class AlignmentService {
 				alignment.exportTMX(json.getString("file"));
 				result.put(Constants.STATUS, Constants.SUCCESS);
 			} catch (JSONException | IOException e) {
+				logger.log(Level.ERROR, e);
+				result.put(Constants.STATUS, Constants.ERROR);
+				result.put(Constants.REASON, e.getMessage());
+			}
+			return result;
+		}
+		result.put(Constants.STATUS, Constants.ERROR);
+		result.put(Constants.REASON, "No alignment");
+		return result;
+	}
+
+	public Object saveFile() {
+		JSONObject result = new JSONObject();
+		if (alignment != null) {
+			try {
+				alignment.save();
+				result.put(Constants.STATUS, Constants.SUCCESS);
+			} catch (JSONException | IOException | SAXException | ParserConfigurationException e) {
 				logger.log(Level.ERROR, e);
 				result.put(Constants.STATUS, Constants.ERROR);
 				result.put(Constants.REASON, e.getMessage());

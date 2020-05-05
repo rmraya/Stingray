@@ -99,7 +99,8 @@ public class Alignment {
         doc.getRootElement().getChild("targets").setContent(content);
     }
 
-    public void save() throws IOException {
+    public void save() throws IOException, SAXException, ParserConfigurationException {
+        trimSpaces();
         XMLOutputter outputter = new XMLOutputter();
         outputter.preserveSpace(true);
         Indenter.indent(doc.getRootElement(), 2);
@@ -231,17 +232,17 @@ public class Alignment {
         SAXBuilder builder = new SAXBuilder();
         for (int i = 0; i < sources.size(); i++) {
             Element src = sources.get(i);
-            String srcText = "<source>" + extractText(src).trim() + "</source>";
-            Element root1 = builder.build(new ByteArrayInputStream(srcText.getBytes(StandardCharsets.UTF_8)))
+            String text = "<source>" + extractText(src).strip() + "</source>";
+            Element root1 = builder.build(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)))
                     .getRootElement();
-            src.clone(root1);
+            src.setContent(root1.getContent());
         }
         for (int i = 0; i < targets.size(); i++) {
             Element tgt = targets.get(i);
-            String srcText = "<source>" + extractText(tgt).trim() + "</source>";
-            Element root1 = builder.build(new ByteArrayInputStream(srcText.getBytes(StandardCharsets.UTF_8)))
+            String text = "<source>" + extractText(tgt).strip() + "</source>";
+            Element root1 = builder.build(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)))
                     .getRootElement();
-            tgt.clone(root1);
+            tgt.setContent(root1.getContent());
         }
     }
 
@@ -293,7 +294,6 @@ public class Alignment {
     }
 
     public void exportTMX(String tmxFile) throws IOException {
-
         Document tmx = new Document(null, "tmx", "-//LISA OSCAR:1998//DTD for Translation Memory eXchange//EN",
                 "tmx14.dtd");
         Element root = tmx.getRootElement();
