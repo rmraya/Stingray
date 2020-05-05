@@ -19,8 +19,12 @@ SOFTWARE.
 
 package com.maxprograms.stingray.models;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,8 +32,10 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import com.maxprograms.languages.Language;
 import com.maxprograms.languages.LanguageUtils;
+import com.maxprograms.stingray.Constants;
 import com.maxprograms.xml.Document;
 import com.maxprograms.xml.Element;
+import com.maxprograms.xml.Indenter;
 import com.maxprograms.xml.SAXBuilder;
 import com.maxprograms.xml.TextNode;
 import com.maxprograms.xml.XMLNode;
@@ -50,6 +56,23 @@ public class Alignment {
     private List<Element> targets;
     private Language tgtLang;
 
+    public Alignment(String source, String target) throws IOException {
+        doc = new Document(null, "algnproject", null, null);
+        srcLang = LanguageUtils.getLanguage(source);
+        tgtLang = LanguageUtils.getLanguage(target);
+        Element root = doc.getRootElement();
+        root.setAttribute("version", Constants.VERSION);
+        root.setAttribute("build", Constants.BUILD);
+        Element src = new Element("sources");
+        src.setAttribute("xml:lang", source);
+        root.addContent(src);
+        sources = src.getChildren();
+        Element tgt = new Element("targets");
+        tgt.setAttribute("xml:lang", target);
+        root.addContent(tgt);
+        targets = tgt.getChildren();
+    }
+
     public Alignment(String file) throws SAXException, IOException, ParserConfigurationException {
         this.file = file;
         SAXBuilder builder = new SAXBuilder();
@@ -60,8 +83,26 @@ public class Alignment {
         tgtLang = LanguageUtils.getLanguage(doc.getRootElement().getChild("targets").getAttributeValue("xml:lang"));
     }
 
+    public void setFile(String file) {
+        this.file = file;
+    }
+
+    public void setSources(List<Element> list) {
+        List<XMLNode> content = new ArrayList<>();
+        content.addAll(list);
+        doc.getRootElement().getChild("sources").setContent(content);
+    }
+
+    public void setTargets(List<Element> list) {
+        List<XMLNode> content = new ArrayList<>();
+        content.addAll(list);
+        doc.getRootElement().getChild("targets").setContent(content);
+    }
+
     public void save() throws IOException {
         XMLOutputter outputter = new XMLOutputter();
+        outputter.preserveSpace(true);
+        Indenter.indent(doc.getRootElement(), 2);
         try (FileOutputStream out = new FileOutputStream(file)) {
             outputter.output(doc, out);
         }
@@ -90,7 +131,7 @@ public class Alignment {
         int start = json.getInt("start");
         int count = json.getInt("count");
         for (int i = 0; i < count; i++) {
-            if (start + i > sources.size() && start + i > targets.size()) {
+            if (start + i >= sources.size() && start + i >= targets.size()) {
                 break;
             }
             StringBuilder row = new StringBuilder();
@@ -118,7 +159,7 @@ public class Alignment {
         return result;
     }
 
-    private Object getContent(List<Element> list, int row) {
+    private String getContent(List<Element> list, int row) {
         if (row < list.size()) {
             return pureText(list.get(row));
         }
@@ -165,4 +206,87 @@ public class Alignment {
                 + " x=\"6\" y=\"14\" fill=\"#ffffff\" fill-opacity=\"1\">" + tag + "</text></g></svg>";
     }
 
+    public int removeDuplicates() {
+        int removed = 0;
+        for (int i = 0; i < sources.size() - 1; i++) {
+            Element src = sources.get(i);
+            for (int h = i + 1; h < sources.size(); h++) {
+                Element next = sources.get(h);
+                if (src.equals(next) && h < targets.size()) {
+                    Element tgt = targets.get(i);
+                    Element tgtnext = targets.get(h);
+                    if (tgt.equals(tgtnext)) {
+                        sources.remove(h);
+                        targets.remove(h);
+                        removed++;
+                    }
+                }
+            }
+        }
+        return removed;
+    }
+
+    public void trimSpaces()
+            throws UnsupportedEncodingException, SAXException, IOException, ParserConfigurationException {
+        SAXBuilder builder = new SAXBuilder();
+        for (int i = 0; i < sources.size(); i++) {
+            Element src = sources.get(i);
+            String srcText = "<source>" + extractText(src).trim() + "</source>";
+            Element root1 = builder.build(new ByteArrayInputStream(srcText.getBytes(StandardCharsets.UTF_8))).getRootElement();
+            src.clone(root1);
+        }
+        for (int i = 0; i < targets.size(); i++) {
+            Element tgt = targets.get(i);
+            String srcText = "<source>" + extractText(tgt).trim() + "</source>";
+            Element root1 = builder.build(new ByteArrayInputStream(srcText.getBytes(StandardCharsets.UTF_8))).getRootElement();
+            tgt.clone(root1);
+        }
+    }
+
+    private static String extractText(Element e) {
+        StringBuilder result = new StringBuilder();
+        List<XMLNode> list = e.getContent();
+        Iterator<XMLNode> it = list.iterator();
+        while (it.hasNext()) {
+            XMLNode node = it.next();
+            if (node.getNodeType() == XMLNode.TEXT_NODE) {
+                result.append(node.toString());
+            }
+            if (node.getNodeType() == XMLNode.ELEMENT_NODE) {
+                result.append(((Element) node).toString());
+            }
+        }
+        return result.toString();
+    }
+
+    protected void removeTags() {
+        for (int i = 0; i < sources.size(); i++) {
+            Element src = sources.get(i);
+            src.setText(getPureText(src));
+        }
+        for (int i = 0; i < targets.size(); i++) {
+            Element tgt = targets.get(i);
+            tgt.setText(getPureText(tgt));
+        }
+    }
+
+    private static String getPureText(Element element) {
+        StringBuilder result = new StringBuilder();
+        List<XMLNode> nodes = element.getContent();
+        Iterator<XMLNode> it = nodes.iterator();
+        while (it.hasNext()) {
+            XMLNode node = it.next();
+            if (node.getNodeType() == XMLNode.TEXT_NODE) {
+                result.append(((TextNode) node).getText());
+            }
+            if (node.getNodeType() == XMLNode.ELEMENT_NODE) {
+                Element e = (Element) node;
+                String type = e.getName();
+                if ("g".equals(type)) {
+                    result.append(getPureText(e));
+                }
+            }
+        }
+        return result.toString();
+    }
 }

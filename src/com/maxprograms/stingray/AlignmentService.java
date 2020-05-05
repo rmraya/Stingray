@@ -20,12 +20,10 @@ SOFTWARE.
 package com.maxprograms.stingray;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -198,38 +196,26 @@ public class AlignmentService {
 
 						status = "Aligning Files";
 						logger.log(Level.INFO, status);
-						try (FileOutputStream out = new FileOutputStream(json.getString("alignmentFile"))) {
-							writeStr(out, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-							writeStr(out, "<algnproject version=\"" + Constants.VERSION + "\" build=\""
-									+ Constants.BUILD + "\">\n");
 
-							SAXBuilder builder = new SAXBuilder();
-							Document doc = builder.build(srcXlf);
-							List<Element> sources = new ArrayList<>();
-							recurse(sources, doc.getRootElement());
+						Alignment algn = new Alignment(json.getString("srcLang"), json.getString("tgtLang"));
+						algn.setFile(json.getString("alignmentFile"));
 
-							writeStr(out, "<sources xml:lang=\"" + json.getString("srcLang") + "\">\n");
-							Iterator<Element> it = sources.iterator();
-							while (it.hasNext()) {
-								writeStr(out, clean(it.next()) + "\n");
-							}
-							writeStr(out, "</sources>\n");
-							Files.delete(srcXlf.toPath());
+						SAXBuilder builder = new SAXBuilder();
+						Document doc = builder.build(srcXlf);
+						List<Element> list = new ArrayList<>();
+						recurse(list, doc.getRootElement());
+						algn.setSources(list);
+						Files.delete(srcXlf.toPath());
 
-							sources = new ArrayList<>();
-							doc = builder.build(tgtXlf);
-							recurse(sources, doc.getRootElement());
+						doc = builder.build(tgtXlf);
+						list.clear();
+						recurse(list, doc.getRootElement());
+						algn.setTargets(list);
+						Files.delete(tgtXlf.toPath());
 
-							writeStr(out, "<targets xml:lang=\"" + json.getString("tgtLang") + "\">\n");
-							it = sources.iterator();
-							while (it.hasNext()) {
-								writeStr(out, clean(it.next()) + "\n");
-							}
-							writeStr(out, "</targets>\n");
-							Files.delete(tgtXlf.toPath());
+						algn.trimSpaces();
+						algn.save();
 
-							writeStr(out, "</algnproject>");
-						}
 						status = "";
 						aligning = false;
 						logger.log(Level.INFO, "Alignment completed");
@@ -241,25 +227,16 @@ public class AlignmentService {
 					}
 				}
 
-				private void recurse(List<Element> sources, Element e) {
+				private void recurse(List<Element> list, Element e) {
 					if (e.getName().equals("trans-unit")) {
-						sources.add(e.getChild("source"));
+						list.add(e.getChild("source"));
 					} else {
-						List<Element> list = e.getChildren();
-						Iterator<Element> it = list.iterator();
+						List<Element> children = e.getChildren();
+						Iterator<Element> it = children.iterator();
 						while (it.hasNext()) {
-							recurse(sources, it.next());
+							recurse(list, it.next());
 						}
 					}
-				}
-
-				private void writeStr(FileOutputStream out, String string) throws IOException {
-					out.write(string.getBytes(StandardCharsets.UTF_8));
-				}
-
-				private String clean(Element e) {
-					e.setAttributes(new ArrayList<>());
-					return e.toString();
 				}
 
 			}.start();
