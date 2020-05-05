@@ -90,6 +90,9 @@ public class Alignment {
         int start = json.getInt("start");
         int count = json.getInt("count");
         for (int i = 0; i < count; i++) {
+            if (start + i > sources.size() && start + i > targets.size()) {
+                break;
+            }
             StringBuilder row = new StringBuilder();
             row.append("<tr><td class='fixed'>");
             row.append(start + i);

@@ -221,17 +221,31 @@ class Stingray {
         Stingray.contents = Stingray.mainWindow.webContents;
         var fileMenu: Menu = Menu.buildFromTemplate([
             { label: 'New Alignment', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } },
-            { label: 'Open Alignment', accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openAlignmentFile(); } }
+            { label: 'Open Alignment', accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openAlignmentFile(); } },
+            { label: 'Close Alignment', accelerator: 'CmdOrCtrl+W', click: () => { Stingray.closeAlignmentFile(); } },
+            { label: 'Save Alignment', accelerator: 'CmdOrCtrl+S', click: () => { Stingray.saveAlignmentFile(); } },
+            { label: 'Save Alignment As...', accelerator: 'CmdOrCtrl+Shift+S', click: () => { Stingray.saveAlignmentFileAs(); } },
+            new MenuItem({ type: 'separator' }),
+            { label: 'Export Aligment as TMX',  click: () => { Stingray.exportTMX(); } },
+            { label: 'Export Alignment as TAB Delimited',  click: () => { Stingray.exportCSV(); } }
         ]);
         var editMenu: Menu = Menu.buildFromTemplate([
-            { label: 'Undo', accelerator: 'CmdOrCtrl+Z', click: () => { Stingray.contents.undo(); } },
+            { label: 'Replace Text...', accelerator: 'CmdOrCtrl+F', click: () => { Stingray.replaceText(); } },
+            new MenuItem({ type: 'separator' }),
+            { label: 'Confirm Edit', accelerator: 'Alt+Enter', click: () => { Stingray.saveEdit(); } },
+            { label: 'Cancel Edit', accelerator: 'Esc', click: () => { Stingray.cancelEdit(); } },
+            new MenuItem({ type: 'separator' }),
+            { label: 'Move Segment Down', accelerator: 'CmdOrCtrl+Down', click: () => { Stingray.moveSegmentDown(); } },
+            { label: 'Move Segment Up', accelerator: 'CmdOrCtrl+Up', click: () => { Stingray.moveSegmentUp(); } },
+            { label: 'Split Segment', accelerator: 'CmdOrCtrl+L', click: () => { Stingray.splitSegment(); } },
+            { label: 'Merge With Next Segment', accelerator: 'CmdOrCtrl+M', click: () => { Stingray.mergeSegment(); } },
+            { label: 'Remove Segment', accelerator: 'CmdOrCtrl+D', click: () => { Stingray.removeSegment(); } },
             new MenuItem({ type: 'separator' }),
             { label: 'Cut', accelerator: 'CmdOrCtrl+X', click: () => { Stingray.contents.cut(); } },
             { label: 'Copy', accelerator: 'CmdOrCtrl+C', click: () => { Stingray.contents.copy(); } },
             { label: 'Paste', accelerator: 'CmdOrCtrl+V', click: () => { Stingray.contents.paste(); } },
-            { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: () => { Stingray.contents.selectAll(); } },
-            new MenuItem({ type: 'separator' }),
-            { label: 'Replace Text...', accelerator: 'CmdOrCtrl+F', click: () => { this.replaceText(); } }
+            { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: () => { Stingray.contents.selectAll(); } }
+            
         ]);
         var viewMenu: Menu = Menu.buildFromTemplate([
             { label: 'First Page', accelerator:'CmdOrCtrl+Home', click: () => { Stingray.firstPage(); } },
@@ -243,6 +257,9 @@ class Stingray {
             new MenuItem({ label: 'Toggle Development Tools', accelerator: 'F12', role: 'toggleDevTools' })
         ]);
         var tasksMenu: Menu = Menu.buildFromTemplate([
+            { label: 'Remove all Tags',  click: () => { Stingray.removeTags(); } },
+            { label: 'Remove Duplicate Entries',  click: () => { Stingray.removeDuplicates(); } },
+            { label: 'Change Language Codes',  click: () => { Stingray.changeLanguages(); } },
         ]);
         var helpMenu: Menu = Menu.buildFromTemplate([
             { label: 'Stingray User Guide', accelerator: 'F1', click: () => { Stingray.showHelp(); } },
@@ -397,10 +414,6 @@ class Stingray {
                 dialog.showErrorBox('Error', e.message);
             }
         });
-    }
-
-    replaceText(): void {
-        // TODO
     }
 
     static showAbout(): void {
@@ -939,6 +952,70 @@ class Stingray {
 
     static lastPage() : void {
         this.contents.send('last-page');
+    }
+
+    static closeAlignmentFile(): void {
+        // TODO
+    }
+
+    static saveAlignmentFile(): void {
+        // TODO
+    }
+
+    static saveAlignmentFileAs(): void {
+        // TODO
+    }
+
+    static exportTMX(): void {
+        // TODO
+    }
+
+    static exportCSV(): void {
+        // TODO
+    }
+
+    static removeTags(): void {
+        // TODO
+    }
+
+    static removeDuplicates(): void {
+        // TODO
+    }
+
+    static changeLanguages(): void {
+        // TODO
+    }
+
+    static replaceText(): void {
+        // TODO
+    }
+
+    static saveEdit(): void {
+        // TODO
+    }
+
+    static cancelEdit(): void {
+        // TODO
+    }
+
+    static moveSegmentDown(): void {
+        // TODO
+    }
+
+    static moveSegmentUp(): void {
+        // TODO
+    }
+
+    static splitSegment(): void {
+        // TODO
+    }
+
+    static mergeSegment(): void {
+        // TODO
+    }
+
+    static removeSegment(): void {
+        // TODO
     }
 }
 
