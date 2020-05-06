@@ -230,7 +230,7 @@ class Stingray {
         Stingray.contents = Stingray.mainWindow.webContents;
         var fileMenu: Menu = Menu.buildFromTemplate([
             { label: 'New Alignment', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } },
-            { label: 'Open Alignment', accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openFile(); } },
+            { label: 'Open Alignment', accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openFileDialog(); } },
             { label: 'Close Alignment', accelerator: 'CmdOrCtrl+W', click: () => { Stingray.closeAlignmentFile(); } },
             { label: 'Save Alignment', accelerator: 'CmdOrCtrl+S', click: () => { Stingray.saveFile(); } },
             { label: 'Save Alignment As...', accelerator: 'CmdOrCtrl+Shift+S', click: () => { Stingray.saveAlignmentFileAs(); } },
@@ -263,7 +263,6 @@ class Stingray {
             { label: 'Copy', accelerator: 'CmdOrCtrl+C', click: () => { Stingray.contents.copy(); } },
             { label: 'Paste', accelerator: 'CmdOrCtrl+V', click: () => { Stingray.contents.paste(); } },
             { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: () => { Stingray.contents.selectAll(); } }
-
         ]);
         var viewMenu: Menu = Menu.buildFromTemplate([
             { label: 'First Page', accelerator: 'CmdOrCtrl+Home', click: () => { Stingray.firstPage(); } },
@@ -1094,22 +1093,20 @@ class Stingray {
     static saveRecent(file: string) {
         let recentsFile = this.path.join(app.getPath('appData'), app.name, 'recent.json');
         let files: string[] = this.loadRecents();
-        if (files != undefined) {
-            files = files.filter(function (f: string) {
-                return f != file;
-            });
-            files.unshift(file);
-            if (files.length > 5) {
-                files = files.slice(0, 5);
-            }
-            let jsonData: any = {files: files};
-            writeFile(recentsFile, JSON.stringify(jsonData), function (error) {
-                if (error) {
-                    dialog.showMessageBox({ type: 'error', message: error.message });
-                    return;
-                }
-            });
+        files = files.filter(function (f: string) {
+            return f != file;
+        });
+        files.unshift(file);
+        if (files.length > 5) {
+            files = files.slice(0, 5);
         }
+        let jsonData: any = { files: files };
+        writeFile(recentsFile, JSON.stringify(jsonData), function (error) {
+            if (error) {
+                dialog.showMessageBox({ type: 'error', message: error.message });
+                return;
+            }
+        });
     }
 }
 
