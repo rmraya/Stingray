@@ -136,8 +136,17 @@ public class StingrayServer implements HttpHandler {
 				case "/exportTMX":
 					response = exportTMX(new JSONObject(request));
 					break;
+				case "/exportCSV":
+					response = exportCSV(new JSONObject(request));
+					break;
 				case "/saveFile":
 					response = saveFile();
+					break;
+				case "/removeTags":
+					response = removeTags();
+					break;
+				case "/setLanguages":
+					response = setLanguages(new JSONObject(request));
 					break;
 				default:
 					JSONObject unknown = new JSONObject();
@@ -175,14 +184,6 @@ public class StingrayServer implements HttpHandler {
 		}
 	}
 
-	private String getFileType(JSONObject json) {
-		return service.getFileType(json.getString("file")).toString();
-	}
-
-	private void setDebug(boolean value) {
-		debug = value;
-	}
-
 	private void run() {
 		server.start();
 		logger.log(Level.INFO, "StingrayServer started");
@@ -199,6 +200,10 @@ public class StingrayServer implements HttpHandler {
 		return request.toString();
 	}
 
+	private void setDebug(boolean value) {
+		debug = value;
+	}
+	
 	private String getLanguages() {
 		return service.getLanguages().toString();
 	}
@@ -238,8 +243,24 @@ public class StingrayServer implements HttpHandler {
 	private String exportTMX(JSONObject json) {
 		return service.exportTMX(json).toString();
 	}
-	
+
 	private String saveFile() {
 		return service.saveFile().toString();
+	}
+
+	private String exportCSV(JSONObject json) {
+		return service.exportCSV(json).toString();
+	}
+
+	private String removeTags() {
+		return service.removeTags().toString();
+	}
+
+	private String getFileType(JSONObject json) {
+		return service.getFileType(json.getString("file")).toString();
+	}
+
+	private String setLanguages(JSONObject json) {
+		return service.setLanguages(json).toString();
 	}
 }

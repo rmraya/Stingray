@@ -55,6 +55,9 @@ class Main {
         document.getElementById('export').addEventListener('click', ()=>{
             this.electron.ipcRenderer.send('export-tmx');
         });
+        document.getElementById('delimited').addEventListener('click', ()=>{
+            this.electron.ipcRenderer.send('export-csv');
+        });
         document.getElementById('openHelp').addEventListener('click', () => {
             this.electron.ipcRenderer.send('show-help');
         });
@@ -97,6 +100,9 @@ class Main {
         });
         this.electron.ipcRenderer.on('set-rows', (event, arg) => {
             this.setRows(arg);
+        });
+        this.electron.ipcRenderer.on('refresh-page', () => {
+            this.getRows();
         });
     }
 

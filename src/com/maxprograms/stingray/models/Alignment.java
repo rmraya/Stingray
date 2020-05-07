@@ -22,6 +22,7 @@ package com.maxprograms.stingray.models;
 import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -262,7 +263,7 @@ public class Alignment {
         return result.toString();
     }
 
-    protected void removeTags() {
+    public void removeTags() {
         for (int i = 0; i < sources.size(); i++) {
             Element src = sources.get(i);
             src.setText(getPureText(src));
@@ -364,5 +365,37 @@ public class Alignment {
         }
         return result;
     }
+
+    public void exportCSV(String csvFile) throws IOException {
+        try (FileOutputStream stream = new FileOutputStream(csvFile);
+                OutputStreamWriter cout = new OutputStreamWriter(stream, StandardCharsets.UTF_16LE)) {
+            byte[] feff = { -1, -2 };
+            stream.write(feff);
+            StringBuilder langs = new StringBuilder();
+            langs.append(srcLang.getCode());
+            langs.append('\t');
+            langs.append(tgtLang.getCode());
+            langs.append('\n');
+            cout.write(langs.toString());
+
+            int max = sources.size();
+            if (targets.size() < max) {
+                max = targets.size();
+            }
+            for (int i = 0; i < max; i++) {
+                StringBuilder line = new StringBuilder();
+                line.append(getPureText(sources.get(i)).replace('\n', ' ').strip());
+                line.append('\t');
+                line.append(getPureText(targets.get(i)).replace('\n', ' ').strip());
+                line.append('\n');
+                cout.write(line.toString());
+            }
+        }
+    }
+
+	public void setLanguages(JSONObject json) throws JSONException, IOException {
+        srcLang = LanguageUtils.getLanguage(json.getString("srcLang"));
+        tgtLang = LanguageUtils.getLanguage(json.getString("tgtLang"));
+	}
 
 }
