@@ -58,6 +58,15 @@ class Main {
         document.getElementById('delimited').addEventListener('click', ()=>{
             this.electron.ipcRenderer.send('export-csv');
         });
+        document.getElementById('tags').addEventListener('click', () => {
+            this.electron.ipcRenderer.send('remove-tags');
+        });
+        document.getElementById('duplicates').addEventListener('click', () => {
+            this.electron.ipcRenderer.send('remove-duplicates');
+        });
+        document.getElementById('langs').addEventListener('click', () => {
+            this.electron.ipcRenderer.send('change-languages');
+        });
         document.getElementById('openHelp').addEventListener('click', () => {
             this.electron.ipcRenderer.send('show-help');
         });

@@ -242,6 +242,15 @@ class Stingray {
             rect.height = arg.height + this.verticalPadding;
             Stingray.newFileWindow.setBounds(rect);
         });
+        ipcMain.on('remove-tags', () => {
+            Stingray.removeTags();
+        });
+        ipcMain.on('remove-duplicates', () => {
+            Stingray.removeDuplicates();
+        });
+        ipcMain.on('change-languages', () => {
+            Stingray.changeLanguages();
+        });
         ipcMain.on('languages-height', (event, arg) => {
             let rect: Rectangle = Stingray.changeLanguagesWindow.getBounds();
             rect.height = arg.height + this.verticalPadding;
