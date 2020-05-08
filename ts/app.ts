@@ -36,6 +36,7 @@ class Stingray {
     static contents: webContents;
     static alignmentStatus: any = { aligning: false, alignError: '', status: '' };
     static loadingStatus: any = { loading: false, loadError: '', status: '' };
+    static savingStatus: any = { saving: false, saveError: '', status: '' };
 
     static currentPreferences: any;
     static currentTheme: string = 'system';
@@ -45,12 +46,13 @@ class Stingray {
 
     javapath: string = Stingray.path.join(app.getAppPath(), 'bin', 'java');
     ls: ChildProcessWithoutNullStreams;
-    stopping: boolean = false;
 
     static currentFile: string;
     static srcLang: string;
     static tgtLang: string;
-    static saved: boolean;
+    static saved: boolean = true;
+    static shouldQuit: boolean;
+    stopping: boolean = false;
 
     constructor() {
         app.allowRendererProcessReuse = true;
@@ -70,7 +72,7 @@ class Stingray {
             this.javapath = Stingray.path.join(app.getAppPath(), 'bin', 'java.exe');
         }
 
-        this.ls = spawn(this.javapath, ['--module-path', 'lib', '-m', 'stingray/com.maxprograms.stingray.StingrayServer', '-port', '8040'], { cwd: app.getAppPath() });
+        this.ls = spawn(this.javapath, ['--module-path', 'lib', '-m', 'stingray/com.maxprograms.stingray.StingrayServer', '-port', '8040'], { cwd: app.getAppPath(), detached: true });
 
         this.ls.stdout.on('data', (data) => {
             console.log(`stdout: ${data}`);
@@ -111,14 +113,49 @@ class Stingray {
                 Stingray.mainWindow.setBounds(this.currentDefaults);
                 Stingray.mainWindow.show();
             });
+            Stingray.mainWindow.on('close', (ev) => {
+                if (!Stingray.saved) {
+                    Stingray.shouldQuit = true;
+                    Stingray.closeFile();
+                    ev.preventDefault();
+                }
+            });
             Stingray.checkUpdates(true);
         });
 
-        app.on('quit', () => {
+        app.on('before-quit', (ev) => {
+            if (!Stingray.saved) {
+                ev.preventDefault();
+                Stingray.shouldQuit = true;
+                Stingray.closeFile();
+            }
+        });
+
+        app.on('will-quit', (ev) => {
+            if (!Stingray.saved) {
+                ev.preventDefault();
+                Stingray.shouldQuit = true;
+                Stingray.closeFile();
+            }
+        });
+
+        app.on('quit', (ev) => {
+            if (!Stingray.saved) {
+                ev.preventDefault();
+                Stingray.shouldQuit = true;
+                Stingray.closeFile();
+                return;
+            }
             this.stopServer();
         });
 
-        app.on('window-all-closed', () => {
+        app.on('window-all-closed', (ev: Event) => {
+            if (!Stingray.saved) {
+                ev.preventDefault();
+                Stingray.shouldQuit = true;
+                Stingray.closeFile();
+                return;
+            }
             this.stopServer();
             app.quit();
         });
@@ -227,7 +264,7 @@ class Stingray {
     stopServer(): void {
         if (!this.stopping) {
             this.stopping = true;
-            this.ls.kill();
+            this.ls.kill(15);
         }
     }
 
@@ -249,7 +286,7 @@ class Stingray {
         var fileMenu: Menu = Menu.buildFromTemplate([
             { label: 'New Alignment', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } },
             { label: 'Open Alignment', accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openFileDialog(); } },
-            { label: 'Close Alignment', accelerator: 'CmdOrCtrl+W', click: () => { Stingray.closeAlignmentFile(); } },
+            { label: 'Close Alignment', accelerator: 'CmdOrCtrl+W', click: () => { Stingray.closeFile(); } },
             { label: 'Save Alignment', accelerator: 'CmdOrCtrl+S', click: () => { Stingray.saveFile(); } },
             { label: 'Save Alignment As...', accelerator: 'CmdOrCtrl+Shift+S', click: () => { Stingray.saveAlignmentFileAs(); } },
             new MenuItem({ type: 'separator' }),
@@ -907,6 +944,9 @@ class Stingray {
     }
 
     static openFile(): void {
+        if (this.currentFile !== '') {
+            this.closeFile();
+        }
         this.contents.send('start-waiting');
         this.contents.send('set-status', 'Loading file');
         this.sendRequest('/openFile', { file: this.currentFile },
@@ -922,7 +962,7 @@ class Stingray {
                             Stingray.contents.send('end-waiting');
                             Stingray.contents.send('set-status', '');
                             if (Stingray.loadingStatus.loadError !== '') {
-                                dialog.showErrorBox('Error', Stingray.loadingStatus.alignloadErrorError);
+                                dialog.showErrorBox('Error', Stingray.loadingStatus.loadError);
                             } else {
                                 Stingray.saved = true;
                                 Stingray.getFileInfo();
@@ -998,9 +1038,32 @@ class Stingray {
         this.contents.send('last-page');
     }
 
-    static closeAlignmentFile(): void {
+    static closeFile(): void {
         if (this.currentFile === '') {
             return;
+        }
+        if (!this.saved) {
+            let clicked: number = dialog.showMessageBoxSync(Stingray.mainWindow, {
+                type: 'question',
+                title: 'Save changes?',
+                message: 'Your changes  will be lost if you don\'t save them',
+                buttons: ['Don\'t Save', 'Cancel', 'Save'],
+                defaultId: 2
+            });
+            if (clicked === 0) {
+                this.saved = true;
+                Stingray.mainWindow.setDocumentEdited(false);
+                if (this.shouldQuit) {
+                    app.quit();
+                }
+            }
+            if (clicked === 1) {
+                this.shouldQuit = false;
+                return;
+            }
+            if (clicked === 2) {
+                this.saveFile();
+            }
         }
 
         // TODO
@@ -1008,14 +1071,40 @@ class Stingray {
 
     static saveFile(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
+        this.contents.send('start-waiting');
+        this.contents.send('set-status', 'Saving file');
         this.sendRequest("/saveFile", {},
             function success(data: any) {
-                dialog.showMessageBox(Stingray.mainWindow, { type: 'info', message: 'File saved' });
-                Stingray.saved = true;
-                Stingray.mainWindow.setDocumentEdited(false);
+                if (data.status === 'Success') {
+                    Stingray.savingStatus.saving = true;
+                    Stingray.savingStatus.status = 'Saving file';
+                    var intervalObject = setInterval(() => {
+                        if (Stingray.savingStatus.saving) {
+                            // keep waiting
+                        } else {
+                            clearInterval(intervalObject);
+                            Stingray.contents.send('end-waiting');
+                            Stingray.contents.send('set-status', '');
+                            if (Stingray.savingStatus.saveError !== '') {
+                                dialog.showErrorBox('Error', Stingray.savingStatus.saveError);
+                            } else {
+                                Stingray.saved = true;
+                                Stingray.mainWindow.setDocumentEdited(false);
+                                if (Stingray.shouldQuit) {
+                                    app.quit();
+                                }
+                            }
+                        }
+                        Stingray.getSavingStatus();
+                    }, 200);
+                } else {
+                    this.contents.send('end-waiting');
+                    this.contents.send('set-status', '');
+                    dialog.showErrorBox('Error', data.reason);
+                }
+
             },
             function error(reason: string) {
                 dialog.showErrorBox('Error', reason);
@@ -1023,9 +1112,21 @@ class Stingray {
         );
     }
 
+    static getSavingStatus(): void {
+        this.sendRequest('/savingStatus', {},
+            function success(data: any) {
+                Stingray.savingStatus = data;
+            },
+            function error(reason: string) {
+                Stingray.savingStatus.saving = false;
+                Stingray.savingStatus.saveError = reason;
+                Stingray.savingStatus.status = '';
+            }
+        );
+    }
+
     static saveAlignmentFileAs(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
 

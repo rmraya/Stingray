@@ -61,6 +61,9 @@ public class AlignmentService {
 	protected String loadError;
 	protected Alignment alignment;
 
+	protected boolean saving;
+	protected String saveError;
+
 	public AlignmentService() {
 
 	}
@@ -338,14 +341,44 @@ public class AlignmentService {
 
 	public JSONObject saveFile() {
 		JSONObject result = new JSONObject();
+		saving = true;
+		saveError = "";
+		status = "Saving file";
+
 		try {
-			alignment.save();
+			new Thread() {
+
+				@Override
+				public void run() {
+					try {
+						alignment.save();
+						saving = false;
+						status = "";
+					} catch (JSONException | IOException | SAXException | ParserConfigurationException e) {
+						saving = false;
+						logger.log(Level.ERROR, e);
+						saveError = e.getMessage();
+						status = "";
+					}
+				}
+			}.start();
 			result.put(Constants.STATUS, Constants.SUCCESS);
-		} catch (JSONException | IOException | SAXException | ParserConfigurationException e) {
+		} catch (IllegalThreadStateException e) {
 			logger.log(Level.ERROR, e);
+			saving = false;
+			saveError = e.getMessage();
+			status = "";
 			result.put(Constants.STATUS, Constants.ERROR);
 			result.put(Constants.REASON, e.getMessage());
 		}
+		return result;
+	}
+
+	public JSONObject savingStatus() {
+		JSONObject result = new JSONObject();
+		result.put("saving", saving);
+		result.put("saveError", saveError);
+		result.put("status", status);
 		return result;
 	}
 
@@ -374,7 +407,7 @@ public class AlignmentService {
 		try {
 			alignment.setLanguages(json);
 			result.put(Constants.STATUS, Constants.SUCCESS);
-		} catch (JSONException | IOException  e) {
+		} catch (JSONException | IOException e) {
 			logger.log(Level.ERROR, e);
 			result.put(Constants.STATUS, Constants.ERROR);
 			result.put(Constants.REASON, e.getMessage());

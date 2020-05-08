@@ -89,7 +89,7 @@ public class StingrayServer implements HttpHandler {
 			if (debug) {
 				logger.log(Level.INFO, request);
 			}
-			String response = "";
+			String response = "{}";
 			switch (url) {
 				case "/version":
 					JSONObject obj = new JSONObject();
@@ -99,10 +99,8 @@ public class StingrayServer implements HttpHandler {
 					response = obj.toString();
 					break;
 				case "/stop":
-					if (debug) {
-						logger.log(Level.INFO, "Stopping server");
-						break;
-					}
+					logger.log(Level.INFO, "Stop requested");
+					break;
 				case "/getLanguages":
 					response = getLanguages();
 					break;
@@ -142,6 +140,9 @@ public class StingrayServer implements HttpHandler {
 				case "/saveFile":
 					response = saveFile();
 					break;
+				case "/savingStatus": 
+					response = savingStatus();
+					break;
 				case "/removeTags":
 					response = removeTags();
 					break;
@@ -172,6 +173,16 @@ public class StingrayServer implements HttpHandler {
 			}
 			if ("/stop".equals(url)) {
 				logger.log(Level.INFO, "Stopping server");
+				JSONObject status = service.savingStatus();
+				while (status.getBoolean("saving")) {
+					System.out.print('.');
+					try {
+						Thread.sleep(500);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					status = service.savingStatus();
+				}
 				System.exit(0);
 			}
 		} catch (IOException e) {
@@ -203,7 +214,7 @@ public class StingrayServer implements HttpHandler {
 	private void setDebug(boolean value) {
 		debug = value;
 	}
-	
+
 	private String getLanguages() {
 		return service.getLanguages().toString();
 	}
@@ -262,5 +273,9 @@ public class StingrayServer implements HttpHandler {
 
 	private String setLanguages(JSONObject json) {
 		return service.setLanguages(json).toString();
+	}
+
+	private String savingStatus() {
+		return service.savingStatus().toString();
 	}
 }
