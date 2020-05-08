@@ -282,6 +282,8 @@ class Stingray {
             title: app.name,
             width: this.currentDefaults.width,
             height: this.currentDefaults.height,
+            minWidth: 900,
+            minHeight: 400,
             x: this.currentDefaults.x,
             y: this.currentDefaults.y,
             useContentSize: true,
@@ -460,7 +462,7 @@ class Stingray {
     }
 
     static checkUpdates(silent: boolean): void {
-        this.https.get('https://raw.githubusercontent.com/rmraya/Stingray/master/package.json', (res: IncomingMessage) => {
+        this.https.get('https://raw.githubusercontent.com/rmraya/Stingray/master/package.json', { timeout: 1500 }, (res: IncomingMessage) => {
             if (res.statusCode === 200) {
                 let rawData = '';
                 res.on('data', (chunk: string) => {
@@ -908,14 +910,14 @@ class Stingray {
                         Stingray.getAlignmentStatus();
                     }, 500);
                 } else {
-                    this.contents.send('end-waiting');
-                    this.contents.send('set-status', '');
+                    Stingray.contents.send('end-waiting');
+                    Stingray.contents.send('set-status', '');
                     dialog.showErrorBox('Error', data.reason);
                 }
             },
             function error(reason: string) {
-                this.contents.send('end-waiting');
-                this.contents.send('set-status', '');
+                Stingray.contents.send('end-waiting');
+                Stingray.contents.send('set-status', '');
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -981,14 +983,14 @@ class Stingray {
                         Stingray.getLoadingStatus();
                     }, 500);
                 } else {
-                    this.contents.send('end-waiting');
-                    this.contents.send('set-status', '');
+                    Stingray.contents.send('end-waiting');
+                    Stingray.contents.send('set-status', '');
                     dialog.showErrorBox('Error', data.reason);
                 }
             },
             function error(reason: string) {
-                this.contents.send('end-waiting');
-                this.contents.send('set-status', '');
+                Stingray.contents.send('end-waiting');
+                Stingray.contents.send('set-status', '');
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1060,7 +1062,7 @@ class Stingray {
                 defaultId: 2
             });
             if (clicked === 0) {
-                this.saved = true;
+                Stingray.saved = true;
                 Stingray.mainWindow.setDocumentEdited(false);
                 if (this.shouldQuit) {
                     app.quit();
@@ -1072,10 +1074,21 @@ class Stingray {
             }
             if (clicked === 2) {
                 this.saveFile();
+                return;
             }
         }
-
-        // TODO
+        if (!this.shouldQuit) {
+            this.sendRequest('/closeFile', {},
+                function success(data: any) {
+                    Stingray.saved = true;
+                    Stingray.mainWindow.setDocumentEdited(false);
+                    Stingray.contents.send('clear-file');
+                },
+                function error(reason: string) {
+                    dialog.showErrorBox('Error', reason);
+                }
+            );
+        }
     }
 
     static saveFile(): void {
@@ -1109,8 +1122,8 @@ class Stingray {
                         Stingray.getSavingStatus();
                     }, 200);
                 } else {
-                    this.contents.send('end-waiting');
-                    this.contents.send('set-status', '');
+                    Stingray.contents.send('end-waiting');
+                    Stingray.contents.send('set-status', '');
                     dialog.showErrorBox('Error', data.reason);
                 }
 
@@ -1144,7 +1157,6 @@ class Stingray {
 
     static exportTMX(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
         dialog.showSaveDialog({
@@ -1172,7 +1184,6 @@ class Stingray {
 
     static exportCSV(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
         dialog.showSaveDialog({
@@ -1201,13 +1212,14 @@ class Stingray {
 
     static removeTags(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
+        this.contents.send('start-waiting');
         this.sendRequest("/removeTags", {},
             function success(data: any) {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
+                Stingray.contents.send('end-waiting');
                 Stingray.contents.send('refresh-page');
             },
             function error(reason: string) {
@@ -1218,7 +1230,6 @@ class Stingray {
 
     static removeDuplicates(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
 
@@ -1227,10 +1238,8 @@ class Stingray {
 
     static changeLanguages(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
-
         this.changeLanguagesWindow = new BrowserWindow({
             parent: this.mainWindow,
             width: this.getWidth('changeLanguagesWindow'),
@@ -1254,7 +1263,6 @@ class Stingray {
 
     static replaceText(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
 
@@ -1263,7 +1271,6 @@ class Stingray {
 
     static saveEdit(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
 
@@ -1272,7 +1279,6 @@ class Stingray {
 
     static cancelEdit(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
 
@@ -1281,7 +1287,6 @@ class Stingray {
 
     static moveSegmentDown(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
 
@@ -1290,7 +1295,6 @@ class Stingray {
 
     static moveSegmentUp(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
 
@@ -1299,7 +1303,6 @@ class Stingray {
 
     static splitSegment(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
 
@@ -1308,7 +1311,6 @@ class Stingray {
 
     static mergeSegment(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
 
@@ -1317,7 +1319,6 @@ class Stingray {
 
     static removeSegment(): void {
         if (this.currentFile === '') {
-            dialog.showMessageBox(Stingray.mainWindow, { type: 'warning', message: 'Open alignment' });
             return;
         }
 

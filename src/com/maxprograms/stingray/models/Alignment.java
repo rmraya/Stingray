@@ -395,7 +395,9 @@ public class Alignment {
 
 	public void setLanguages(JSONObject json) throws JSONException, IOException {
         srcLang = LanguageUtils.getLanguage(json.getString("srcLang"));
+        doc.getRootElement().getChild("sources").setAttribute("xml:lang", json.getString("srcLang"));
         tgtLang = LanguageUtils.getLanguage(json.getString("tgtLang"));
+        doc.getRootElement().getChild("targets").setAttribute("xml:lang", json.getString("tgtLang"));
 	}
 
 }

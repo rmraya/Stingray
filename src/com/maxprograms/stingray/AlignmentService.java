@@ -414,4 +414,11 @@ public class AlignmentService {
 		}
 		return result;
 	}
+
+	public JSONObject closeFile() {
+		JSONObject result = new JSONObject();
+		alignment = null;
+		result.put(Constants.STATUS, Constants.SUCCESS);
+		return result;
+	}
 }

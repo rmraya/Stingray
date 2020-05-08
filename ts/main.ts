@@ -49,13 +49,13 @@ class Main {
         document.getElementById('openFile').addEventListener('click', () => {
             this.electron.ipcRenderer.send('open-file');
         });
-        document.getElementById('saveFile').addEventListener('click', ()=>{
+        document.getElementById('saveFile').addEventListener('click', () => {
             this.electron.ipcRenderer.send('save-file');
         });
-        document.getElementById('export').addEventListener('click', ()=>{
+        document.getElementById('export').addEventListener('click', () => {
             this.electron.ipcRenderer.send('export-tmx');
         });
-        document.getElementById('delimited').addEventListener('click', ()=>{
+        document.getElementById('delimited').addEventListener('click', () => {
             this.electron.ipcRenderer.send('export-csv');
         });
         document.getElementById('tags').addEventListener('click', () => {
@@ -85,6 +85,9 @@ class Main {
         this.electron.ipcRenderer.on('last-page', () => {
             this.lastPage();
         });
+        this.electron.ipcRenderer.on('clear-file', () => {
+            this.clearFile();
+        });
         this.electron.ipcRenderer.on('set-first-page', () => {
             this.currentPage = 0;
             (document.getElementById('page') as HTMLInputElement).value = '1';
@@ -95,16 +98,16 @@ class Main {
         (document.getElementById('rows_page') as HTMLInputElement).addEventListener('keydown', (ev: KeyboardEvent) => {
             this.rowsPageKeyboardListener(ev);
         });
-        document.getElementById('first').addEventListener('click',() => {
+        document.getElementById('first').addEventListener('click', () => {
             this.firstPage();
         });
-        document.getElementById('previous').addEventListener('click',() => {
+        document.getElementById('previous').addEventListener('click', () => {
             this.previousPage();
         });
-        document.getElementById('next').addEventListener('click',() => {
+        document.getElementById('next').addEventListener('click', () => {
             this.nextPage();
         });
-        document.getElementById('last').addEventListener('click',() => {
+        document.getElementById('last').addEventListener('click', () => {
             this.lastPage();
         });
         this.electron.ipcRenderer.on('set-rows', (event, arg) => {
@@ -139,7 +142,20 @@ class Main {
         }
         this.maxPage = Math.ceil(this.maxRows / this.rowsPage);
         document.getElementById('pages').innerText = '' + this.maxPage;
+        document.getElementById('sourceRows').innerText = '' + this.sourceRows;
+        document.getElementById('targetRows').innerText = '' + this.targetRows;
         this.firstPage();
+    }
+
+    clearFile(): void {
+        document.getElementById('title').innerText = 'Stingray';
+        document.getElementById('sourceHeader').innerText = 'Source';
+        document.getElementById('targetHeader').innerText = 'Target';
+        document.getElementById('tableBody').innerHTML = '';
+        (document.getElementById('page') as HTMLInputElement).value = '0';
+        document.getElementById('pages').innerText = '0';
+        document.getElementById('sourceRows').innerText = '';
+        document.getElementById('targetRows').innerText = '';
     }
 
     getRows(): void {

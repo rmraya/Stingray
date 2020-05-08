@@ -149,6 +149,9 @@ public class StingrayServer implements HttpHandler {
 				case "/setLanguages":
 					response = setLanguages(new JSONObject(request));
 					break;
+				case "/closeFile":
+					response = closeFile();
+					break;
 				default:
 					JSONObject unknown = new JSONObject();
 					unknown.put(Constants.STATUS, Constants.ERROR);
@@ -277,5 +280,9 @@ public class StingrayServer implements HttpHandler {
 
 	private String savingStatus() {
 		return service.savingStatus().toString();
+	}
+
+	private String closeFile() {
+		return service.closeFile().toString();
 	}
 }
