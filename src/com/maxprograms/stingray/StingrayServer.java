@@ -184,11 +184,11 @@ public class StingrayServer implements HttpHandler {
 				logger.log(Level.INFO, "Stopping server");
 				JSONObject status = service.savingStatus();
 				while (status.getBoolean("saving")) {
-					System.out.print('.');
 					try {
 						Thread.sleep(500);
 					} catch (InterruptedException e) {
-						e.printStackTrace();
+						logger.log(Level.ERROR, e);
+						Thread.currentThread().interrupt();
 					}
 					status = service.savingStatus();
 				}

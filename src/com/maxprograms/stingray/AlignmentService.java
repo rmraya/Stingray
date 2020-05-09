@@ -65,7 +65,9 @@ public class AlignmentService {
 	protected String saveError;
 
 	public AlignmentService() {
-
+		loading = false;
+		saving = false;
+		aligning = false;
 	}
 
 	public JSONObject getLanguages() {
@@ -307,15 +309,8 @@ public class AlignmentService {
 	}
 
 	public JSONObject getFileInfo() {
-		JSONObject result = new JSONObject();
-		try {
-			result = alignment.getFileInfo();
-			result.put(Constants.STATUS, Constants.SUCCESS);
-		} catch (JSONException | IOException e) {
-			logger.log(Level.ERROR, e);
-			result.put(Constants.STATUS, Constants.ERROR);
-			result.put(Constants.REASON, e.getMessage());
-		}
+		JSONObject result = alignment.getFileInfo();
+		result.put(Constants.STATUS, Constants.SUCCESS);
 		return result;
 	}
 

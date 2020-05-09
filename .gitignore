@@ -11,3 +11,6 @@ package-lock.json
 /release
 /Stingray-darwin-x64/
 /Stingray-win32-x64/
+.scannerwork
+sonarqube.sh
+sonar-project.properties

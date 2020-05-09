@@ -19,7 +19,7 @@ SOFTWARE.
 
 import { execFileSync, spawn, ChildProcessWithoutNullStreams } from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem, shell, webContents, nativeTheme, Rectangle, IpcMainEvent } from "electron";
-import { existsSync, mkdirSync, readFile, readFileSync, writeFile, writeFileSync, lstat } from "fs";
+import { existsSync, readFileSync, writeFile, writeFileSync } from "fs";
 import { ClientRequest, request, IncomingMessage } from "http";
 
 class Stingray {

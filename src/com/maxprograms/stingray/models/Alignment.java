@@ -23,7 +23,6 @@ import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -44,7 +43,6 @@ import com.maxprograms.xml.XMLOutputter;
 import com.maxprograms.xml.XMLUtils;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.xml.sax.SAXException;
 
@@ -110,7 +108,7 @@ public class Alignment {
         }
     }
 
-    public JSONObject getFileInfo() throws JSONException, IOException {
+    public JSONObject getFileInfo() {
         JSONObject result = new JSONObject();
         result.put("file", file);
         result.put("srcLang", jsonLang(srcLang));
@@ -228,8 +226,7 @@ public class Alignment {
         return removed;
     }
 
-    public void trimSpaces()
-            throws UnsupportedEncodingException, SAXException, IOException, ParserConfigurationException {
+    public void trimSpaces() throws SAXException, IOException, ParserConfigurationException {
         SAXBuilder builder = new SAXBuilder();
         for (int i = 0; i < sources.size(); i++) {
             Element src = sources.get(i);
@@ -393,11 +390,11 @@ public class Alignment {
         }
     }
 
-	public void setLanguages(JSONObject json) throws JSONException, IOException {
+    public void setLanguages(JSONObject json) throws IOException {
         srcLang = LanguageUtils.getLanguage(json.getString("srcLang"));
         doc.getRootElement().getChild("sources").setAttribute("xml:lang", json.getString("srcLang"));
         tgtLang = LanguageUtils.getLanguage(json.getString("tgtLang"));
         doc.getRootElement().getChild("targets").setAttribute("xml:lang", json.getString("tgtLang"));
-	}
+    }
 
 }
