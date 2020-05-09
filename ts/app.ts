@@ -516,6 +516,9 @@ class Stingray {
             }
         });
         this.aboutWindow.setMenu(null);
+        this.aboutWindow.on('closed', () => {
+            this.mainWindow.focus();
+        });
         this.aboutWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'about.html'));
         this.aboutWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
@@ -538,6 +541,9 @@ class Stingray {
             }
         });
         this.settingsWindow.setMenu(null);
+        this.settingsWindow.on('closed', () => {
+            this.mainWindow.focus();
+        });
         this.settingsWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'preferences.html'));
         this.settingsWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
@@ -566,6 +572,13 @@ class Stingray {
             }
         });
         this.licensesWindow.setMenu(null);
+        this.licensesWindow.on('closed', () => {
+            if (this.aboutWindow) {
+                this.aboutWindow.focus();
+            } else {
+                this.mainWindow.focus();
+            }
+        });
         this.licensesWindow.loadURL('file://' + app.getAppPath() + '/html/licenses.html');
         this.licensesWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
@@ -626,6 +639,13 @@ class Stingray {
             }
         });
         licenseWindow.setMenu(null);
+        licenseWindow.on('closed', () => {
+            if (Stingray.licensesWindow) {
+                this.licensesWindow.focus();
+            } else {
+                this.mainWindow.focus();
+            }
+        });
         licenseWindow.loadURL(licenseFile);
         licenseWindow.show();
     }
@@ -744,6 +764,9 @@ class Stingray {
             webPreferences: {
                 nodeIntegration: true
             }
+        });
+        this.newFileWindow.on('closed', () => {
+            this.mainWindow.focus();
         });
         this.newFileWindow.setMenu(null);
         this.newFileWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'newFile.html'));
@@ -1287,6 +1310,9 @@ class Stingray {
             }
         });
         this.changeLanguagesWindow.setMenu(null);
+        this.changeLanguagesWindow.on('closed', () => {
+            this.mainWindow.focus();
+        });
         this.changeLanguagesWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'changeLanguages.html'));
         this.changeLanguagesWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
