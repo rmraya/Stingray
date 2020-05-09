@@ -28,6 +28,13 @@ class Main {
     targetRows: number;
     maxRows: number;
 
+    currentId: string = null;
+    currentLang: string = null;
+    currentCell: Element = null;
+    currentContent: string = null;
+    textArea: HTMLTextAreaElement = null;
+    currentTags: string[] = [];
+
     constructor() {
         this.electron.ipcRenderer.send('get-theme');
         this.electron.ipcRenderer.on('set-theme', (event, arg) => {
@@ -50,6 +57,18 @@ class Main {
         });
         document.getElementById('saveFile').addEventListener('click', () => {
             this.electron.ipcRenderer.send('save-file');
+        });
+        document.getElementById('saveEdit').addEventListener('click', () => {
+            this.saveEdit();
+        });
+        this.electron.ipcRenderer.on('save-edit', () => {
+            this.saveEdit();
+        });
+        document.getElementById('cancelEdit').addEventListener('click', () => {
+            this.cancelEdit();
+        });
+        this.electron.ipcRenderer.on('cancel-edit', () => {
+            this.cancelEdit();
         });
         document.getElementById('export').addEventListener('click', () => {
             this.electron.ipcRenderer.send('export-tmx');
@@ -233,6 +252,103 @@ class Main {
             html = html + rows[i];
         }
         document.getElementById('tableBody').innerHTML = html;
+        var cells = document.getElementsByClassName('cell');
+        for (let i = 0; i < cells.length; i++) {
+            cells[i].addEventListener('click', (ev: MouseEvent) => {
+                this.clickListener(ev);
+            });
+        }
+    }
+
+    clickListener(event: MouseEvent) {
+        var element: Element = (event.target as Element);
+        if (element.parentElement.tagName === 'TH') {
+            // clicked select all
+            return;
+        }
+        var x: string = element.tagName;
+        if ('TEXTAREA' === x) {
+            // already editing
+            return;
+        }
+        var id: string;
+        var lang: string;
+        if ('TD' === x || 'INPUT' === x) {
+            var composed = event.composedPath();
+            if ('TR' === (composed[0] as Element).tagName) {
+                id = (composed[0] as Element).id;
+            } else if ('TR' === (composed[1] as Element).tagName) {
+                id = (composed[1] as Element).id;
+            } else if ('TR' === (composed[2] as Element).tagName) {
+                id = (composed[2] as Element).id;
+            }
+            lang = (event.target as Element).getAttribute('lang');
+        }
+        if (this.textArea !== null && (this.currentId !== id || this.currentLang !== lang)) {
+            this.saveEdit();
+        }
+
+        if (id !== null) {
+            this.currentId = id;
+            if (this.currentCell != null) {
+                this.currentCell.innerHTML = this.currentContent;
+                this.currentCell = null;
+                this.currentContent = null;
+            }
+            if (lang !== null) {
+                this.currentLang = lang;
+                this.currentCell = (event.target as Element);
+                this.currentContent = this.currentCell.innerHTML;
+                this.textArea = document.createElement('textarea');
+                this.textArea.setAttribute('style', 'height: ' + (this.currentCell.clientHeight - 8) + 'px; width: ' + (this.currentCell.clientWidth - 8) + 'px;')
+                this.textArea.innerHTML = this.cleanTags(this.currentContent);
+                this.currentCell.innerHTML = '';
+                this.currentCell.parentElement.style.padding = '0px';
+                this.currentCell.appendChild(this.textArea);
+                this.textArea.focus();
+                this.electron.ipcRenderer.send('get-cell-properties', { id: this.currentId, lang: this.currentLang });
+            }
+        }
+    }
+
+    saveEdit(): void {
+        if (this.textArea !== null) {
+            if (this.currentContent === this.textArea.value) {
+                this.cancelEdit();
+                return;
+            }
+            let edited: string = this.restoretags(this.textArea.value, this.currentTags);
+            this.currentCell.innerHTML = edited;
+            this.electron.ipcRenderer.send('save-data', { id: this.currentId, lang: this.currentLang, data: edited });
+        }
+    }
+
+    restoretags(text: string, originalTags: string[]): string {
+        for (let i: number = 0; i < originalTags.length; i++) {
+            text = text.replace('[[' + (i + 1) + ']]', originalTags[i]);
+        }
+        return text;
+    }
+
+    cancelEdit(): void {
+        this.currentCell.innerHTML = this.currentContent;
+        this.textArea = null;
+    }
+
+    cleanTags(unit: string): string {
+        var index: number = unit.indexOf('<svg ');
+        var tagNumber: number = 1;
+        this.currentTags = [];
+        while (index >= 0) {
+            let start: string = unit.slice(0, index);
+            let rest: string = unit.slice(index + 1);
+            let end: number = rest.indexOf('</svg>') + 5;
+            let tag: string = '<' + rest.slice(0, end) + '/>';
+            this.currentTags.push(tag);
+            unit = start + '[[' + tagNumber++ + ']]' + rest.slice(end + 1);
+            index = unit.indexOf('<svg ');
+        }
+        return unit;
     }
 }
 

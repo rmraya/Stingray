@@ -1332,16 +1332,14 @@ class Stingray {
         if (this.currentFile === '') {
             return;
         }
-
-        // TODO
+        this.contents.send('save-edit');
     }
 
     static cancelEdit(): void {
         if (this.currentFile === '') {
             return;
         }
-
-        // TODO
+        this.contents.send('cancel-edit');
     }
 
     static moveSegmentDown(): void {

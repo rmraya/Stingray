@@ -131,28 +131,31 @@ public class Alignment {
         int start = json.getInt("start");
         int count = json.getInt("count");
         for (int i = 0; i < count; i++) {
-            if (start + i >= sources.size() && start + i >= targets.size()) {
+            int id = start + i;
+            if (id >= sources.size() && id >= targets.size()) {
                 break;
             }
             StringBuilder row = new StringBuilder();
-            row.append("<tr><td class='fixed'>");
-            row.append(start + i);
+            row.append("<tr id=\"");
+            row.append("" + id);
+            row.append("\"><td class='fixed'>");
+            row.append(id);
             row.append("</td><td");
             if (srcLang.isBiDi()) {
                 row.append(" dir=\"rtl\"");
             }
-            row.append(" lang=\"");
+            row.append(" class=\"cell\" lang=\"");
             row.append(srcLang.getCode());
             row.append("\">");
-            row.append(getContent(sources, start + i));
+            row.append(getContent(sources, id));
             row.append("</td><td");
             if (tgtLang.isBiDi()) {
                 row.append(" dir=\"rtl\"");
             }
-            row.append(" lang=\"");
+            row.append(" class=\"cell\" lang=\"");
             row.append(tgtLang.getCode());
             row.append("\">");
-            row.append(getContent(targets, start + i));
+            row.append(getContent(targets, id));
             row.append("</td></tr>");
             result.put(row.toString());
         }
