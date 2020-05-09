@@ -421,4 +421,18 @@ public class AlignmentService {
 		result.put(Constants.STATUS, Constants.SUCCESS);
 		return result;
 	}
+
+	public JSONObject removeDuplicates() {
+		JSONObject result = new JSONObject();
+		alignment.removeDuplicates();
+		result.put(Constants.STATUS, Constants.SUCCESS);
+		return result;
+	}
+
+	public JSONObject renameFile(JSONObject json) {
+		JSONObject result = new JSONObject();
+		alignment.setFile(json.getString("file"));
+		result.put(Constants.STATUS, Constants.SUCCESS);
+		return result;
+	}
 }

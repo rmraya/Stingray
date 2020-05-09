@@ -68,7 +68,7 @@ class Stingray {
             }
         }
 
-        if (process.platform == 'win32') {
+        if (process.platform === 'win32') {
             this.javapath = Stingray.path.join(app.getAppPath(), 'bin', 'java.exe');
         }
 
@@ -299,7 +299,7 @@ class Stingray {
             { label: 'Open Alignment', accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openFileDialog(); } },
             { label: 'Close Alignment', accelerator: 'CmdOrCtrl+W', click: () => { Stingray.closeFile(); } },
             { label: 'Save Alignment', accelerator: 'CmdOrCtrl+S', click: () => { Stingray.saveFile(); } },
-            { label: 'Save Alignment As...', accelerator: 'CmdOrCtrl+Shift+S', click: () => { Stingray.saveAlignmentFileAs(); } },
+            { label: 'Save Alignment As...', accelerator: 'CmdOrCtrl+Shift+S', click: () => { Stingray.saveFileAs(); } },
             new MenuItem({ type: 'separator' }),
             { label: 'Export Aligment as TMX', click: () => { Stingray.exportTMX(); } },
             { label: 'Export Alignment as TAB Delimited', click: () => { Stingray.exportCSV(); } }
@@ -663,7 +663,7 @@ class Stingray {
         req.on('response',
             function (res: any) {
                 res.setEncoding('utf-8');
-                if (res.statusCode != 200) {
+                if (res.statusCode !== 200) {
                     error('sendRequest() error: ' + res.statusMessage);
                 }
                 var rawData: string = '';
@@ -1147,19 +1147,42 @@ class Stingray {
         );
     }
 
-    static saveAlignmentFileAs(): void {
+    static saveFileAs(): void {
         if (this.currentFile === '') {
             return;
         }
-
-        // TODO
+        dialog.showSaveDialog(this.mainWindow, {
+            title: 'Save Alignment As...',
+            properties: ['createDirectory', 'showOverwriteConfirmation'],
+            filters: [
+                { name: 'Alignment File', extensions: ['algn'] },
+                { name: 'Any File', extensions: ['*'] }
+            ],
+            defaultPath: Stingray.currentFile
+        }).then((value) => {
+            if (!value.canceled) {
+                this.currentFile = value.filePath;
+                this.sendRequest('/renameFile', { file: this.currentFile },
+                    function success(data: any) {
+                        Stingray.contents.send('file-renamed', Stingray.currentFile);
+                        Stingray.saveFile();
+                        Stingray.saveRecent(Stingray.currentFile);
+                    },
+                    function error(reason: string) {
+                        dialog.showErrorBox('Error', reason);
+                    }
+                );
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
     }
 
     static exportTMX(): void {
         if (this.currentFile === '') {
             return;
         }
-        dialog.showSaveDialog({
+        dialog.showSaveDialog(this.mainWindow, {
             title: 'Export TMX',
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
@@ -1186,7 +1209,7 @@ class Stingray {
         if (this.currentFile === '') {
             return;
         }
-        dialog.showSaveDialog({
+        dialog.showSaveDialog(this.mainWindow, {
             title: 'Export TAB Delimited',
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
@@ -1232,8 +1255,18 @@ class Stingray {
         if (this.currentFile === '') {
             return;
         }
-
-        // TODO
+        this.contents.send('start-waiting');
+        this.sendRequest("/removeDuplicates", {},
+            function success(data: any) {
+                Stingray.saved = false;
+                Stingray.mainWindow.setDocumentEdited(true);
+                Stingray.contents.send('end-waiting');
+                Stingray.getFileInfo();
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
     }
 
     static changeLanguages(): void {
@@ -1344,7 +1377,7 @@ class Stingray {
         let recentsFile = this.path.join(app.getPath('appData'), app.name, 'recent.json');
         let files: string[] = this.loadRecents();
         files = files.filter(function (f: string) {
-            return f != file;
+            return f !== file;
         });
         files.unshift(file);
         if (files.length > 5) {

@@ -140,11 +140,17 @@ public class StingrayServer implements HttpHandler {
 				case "/saveFile":
 					response = saveFile();
 					break;
-				case "/savingStatus": 
+				case "/renameFile":
+					response = renameFile(new JSONObject(request));
+					break;
+				case "/savingStatus":
 					response = savingStatus();
 					break;
 				case "/removeTags":
 					response = removeTags();
+					break;
+				case "/removeDuplicates":
+					response = removeDuplicates();
 					break;
 				case "/setLanguages":
 					response = setLanguages(new JSONObject(request));
@@ -262,12 +268,20 @@ public class StingrayServer implements HttpHandler {
 		return service.saveFile().toString();
 	}
 
+	private String renameFile(JSONObject json) {
+		return service.renameFile(json).toString();
+	}
+
 	private String exportCSV(JSONObject json) {
 		return service.exportCSV(json).toString();
 	}
 
 	private String removeTags() {
 		return service.removeTags().toString();
+	}
+
+	private String removeDuplicates() {
+		return service.removeDuplicates().toString();
 	}
 
 	private String getFileType(JSONObject json) {

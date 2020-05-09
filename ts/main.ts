@@ -21,10 +21,9 @@ class Main {
 
     electron = require('electron');
 
-    fileLoaded: boolean;
     maxPage: number;
     currentPage: number;
-    rowsPage: number = 200;
+    rowsPage: number = 500;
     sourceRows: number;
     targetRows: number;
     maxRows: number;
@@ -116,6 +115,9 @@ class Main {
         this.electron.ipcRenderer.on('refresh-page', () => {
             this.getRows();
         });
+        this.electron.ipcRenderer.on('file-renamed', (event, arg) => {
+            document.getElementById('title').innerText = 'Stingray - ' + arg;
+        });
     }
 
     setStatus(text: string): void {
@@ -194,10 +196,7 @@ class Main {
     }
 
     rowsPageKeyboardListener(ev: KeyboardEvent): void {
-        if (!this.fileLoaded) {
-            return;
-        }
-        if (ev.keyCode == 13) {
+        if (ev.key === 'Enter') {
             this.rowsPage = Number.parseInt((document.getElementById('rows_page') as HTMLInputElement).value);
             if (this.rowsPage < 1) {
                 this.rowsPage = 1;
@@ -213,10 +212,7 @@ class Main {
     }
 
     pageKeyboardListener(ev: KeyboardEvent): void {
-        if (!this.fileLoaded) {
-            return;
-        }
-        if (ev.keyCode == 13) {
+        if (ev.key === 'Enter') {
             this.currentPage = Number.parseInt((document.getElementById('page') as HTMLInputElement).value) - 1;
             if (this.currentPage < 0) {
                 this.currentPage = 0;
