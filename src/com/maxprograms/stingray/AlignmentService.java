@@ -325,7 +325,7 @@ public class AlignmentService {
 		try {
 			alignment.exportTMX(json.getString("file"));
 			result.put(Constants.STATUS, Constants.SUCCESS);
-		} catch (JSONException | IOException e) {
+		} catch (JSONException | IOException | SAXException | ParserConfigurationException e) {
 			logger.log(Level.ERROR, e);
 			result.put(Constants.STATUS, Constants.ERROR);
 			result.put(Constants.REASON, e.getMessage());
@@ -388,7 +388,7 @@ public class AlignmentService {
 		try {
 			alignment.exportCSV(json.getString("file"));
 			result.put(Constants.STATUS, Constants.SUCCESS);
-		} catch (JSONException | IOException e) {
+		} catch ( IOException e) {
 			logger.log(Level.ERROR, e);
 			result.put(Constants.STATUS, Constants.ERROR);
 			result.put(Constants.REASON, e.getMessage());
@@ -447,6 +447,13 @@ public class AlignmentService {
 	public JSONObject segmentUp(JSONObject json) {
 		JSONObject result = new JSONObject();
 		alignment.segmentUp(json);
+		result.put(Constants.STATUS, Constants.SUCCESS);
+		return result;
+	}
+
+	public JSONObject mergeNext(JSONObject json) {
+		JSONObject result = new JSONObject();
+		alignment.mergeNext(json);
 		result.put(Constants.STATUS, Constants.SUCCESS);
 		return result;
 	}

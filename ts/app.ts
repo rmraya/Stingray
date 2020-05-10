@@ -277,6 +277,9 @@ class Stingray {
         ipcMain.on('segment-up', (event, arg) => {
             Stingray.segmentUp(arg);
         });
+        ipcMain.on('merge-next', (event, arg) => {
+            Stingray.mergeNext(arg);
+        });
         ipcMain.on('remove-data', (event, arg) => {
             Stingray.removeData(arg);
         });
@@ -1380,8 +1383,7 @@ class Stingray {
         if (this.currentFile === '') {
             return;
         }
-
-        // TODO
+        this.contents.send('merge-segment');
     }
 
     static removeSegment(): void {
@@ -1459,6 +1461,19 @@ class Stingray {
 
     static segmentUp(data: any): void {
         this.sendRequest('/segmentUp', data,
+            function success(data: any) { 
+                Stingray.saved = false;
+                Stingray.mainWindow.setDocumentEdited(true);
+                Stingray.contents.send('refresh-page');
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
+    }
+
+    static mergeNext(data: any): void {
+        this.sendRequest('/mergeNext', data,
             function success(data: any) { 
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);

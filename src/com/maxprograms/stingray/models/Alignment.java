@@ -101,7 +101,6 @@ public class Alignment {
     }
 
     public void save() throws IOException, SAXException, ParserConfigurationException {
-        trimSpaces();
         XMLOutputter outputter = new XMLOutputter();
         outputter.preserveSpace(true);
         Indenter.indent(doc.getRootElement(), 2);
@@ -235,22 +234,12 @@ public class Alignment {
         return removed;
     }
 
-    public void trimSpaces() throws SAXException, IOException, ParserConfigurationException {
+    private Element trimSpaces(Element e) throws SAXException, IOException, ParserConfigurationException {
         SAXBuilder builder = new SAXBuilder();
-        for (int i = 0; i < sources.size(); i++) {
-            Element src = sources.get(i);
-            String text = "<source>" + extractText(src).strip() + "</source>";
-            Element root1 = builder.build(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)))
-                    .getRootElement();
-            src.setContent(root1.getContent());
-        }
-        for (int i = 0; i < targets.size(); i++) {
-            Element tgt = targets.get(i);
-            String text = "<source>" + extractText(tgt).strip() + "</source>";
-            Element root1 = builder.build(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)))
-                    .getRootElement();
-            tgt.setContent(root1.getContent());
-        }
+        String text = "<source>" + extractText(e).strip() + "</source>";
+        Element root1 = builder.build(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8))).getRootElement();
+        e.setContent(root1.getContent());
+        return e;
     }
 
     private static String extractText(Element e) {
@@ -300,7 +289,7 @@ public class Alignment {
         return result.toString();
     }
 
-    public void exportTMX(String tmxFile) throws IOException {
+    public void exportTMX(String tmxFile) throws IOException, SAXException, ParserConfigurationException {
         Document tmx = new Document(null, "tmx", "-//LISA OSCAR:1998//DTD for Translation Memory eXchange//EN",
                 "tmx14.dtd");
         Element root = tmx.getRootElement();
@@ -329,14 +318,14 @@ public class Alignment {
             Element stuv = new Element("tuv");
             stuv.setAttribute("xml:lang", srcLang.getCode());
             Element sseg = new Element("seg");
-            sseg.setContent(getTmxContent(targets.get(i)));
+            sseg.setContent(getTmxContent(trimSpaces(sources.get(i))));
             stuv.addContent(sseg);
             tu.addContent(stuv);
 
             Element ttuv = new Element("tuv");
             ttuv.setAttribute("xml:lang", tgtLang.getCode());
             Element tseg = new Element("seg");
-            tseg.setContent(getTmxContent(targets.get(i)));
+            tseg.setContent(getTmxContent(trimSpaces(targets.get(i))));
             ttuv.addContent(tseg);
             tu.addContent(ttuv);
         }
@@ -390,9 +379,9 @@ public class Alignment {
             }
             for (int i = 0; i < max; i++) {
                 StringBuilder line = new StringBuilder();
-                line.append(getPureText(sources.get(i)).replace('\n', ' ').strip());
+                line.append(getPureText(sources.get(i)).replace('\t', ' ').replace('\n', ' ').strip());
                 line.append('\t');
-                line.append(getPureText(targets.get(i)).replace('\n', ' ').strip());
+                line.append(getPureText(targets.get(i)).replace('\t', ' ').replace('\n', ' ').strip());
                 line.append('\n');
                 cout.write(line.toString());
             }
@@ -432,8 +421,7 @@ public class Alignment {
             list.remove(row + 1);
             list.add(row, e);
         } catch (IndexOutOfBoundsException e) {
-            Logger logger = System.getLogger(Alignment.class.getName());
-            logger.log(Level.ERROR, e);
+            // ignore
         }
     }
 
@@ -449,8 +437,22 @@ public class Alignment {
             list.remove(row - 1);
             list.add(row, e);
         } catch (IndexOutOfBoundsException e) {
-            Logger logger = System.getLogger(Alignment.class.getName());
-            logger.log(Level.ERROR, e);
+            // ignore
+        }
+    }
+
+    public void mergeNext(JSONObject json) {
+        try {
+            int row = Integer.parseInt(json.getString("id"));
+            List<Element> list = sources;
+            if (json.getString("lang").equals(tgtLang.getCode())) {
+                list = targets;
+            }
+            Element next = list.get(row + 1);
+            list.get(row).addContent(next.getContent());
+            list.remove(row + 1);
+        } catch (IndexOutOfBoundsException e) {
+            // ignore
         }
     }
 

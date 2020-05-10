@@ -82,6 +82,12 @@ class Main {
         this.electron.ipcRenderer.on('move-up', () => {
             this.moveSegmentUp();
         });
+        document.getElementById('mergeNext').addEventListener('click', () => {
+            this.mergeNext();
+        });
+        this.electron.ipcRenderer.on('merge-segment', () =>{
+            this.mergeNext();
+        });
         document.getElementById('remove').addEventListener('click', () => {
             this.removeSegment();
         });
@@ -430,6 +436,15 @@ class Main {
             let lang = this.currentLang;
             this.cancelEdit();
             this.electron.ipcRenderer.send('segment-up', { id: id, lang: lang });
+        }
+    }
+
+    mergeNext(): void {
+        if (this.textArea !== null) {
+            let id = this.currentId;
+            let lang = this.currentLang;
+            this.cancelEdit();
+            this.electron.ipcRenderer.send('merge-next', { id: id, lang: lang });
         }
     }
 
