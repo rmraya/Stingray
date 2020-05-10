@@ -146,6 +146,15 @@ public class StingrayServer implements HttpHandler {
 				case "/savingStatus":
 					response = savingStatus();
 					break;
+				case "/segmentDown":
+					response = segmentDown(new JSONObject(request));
+					break;
+				case "/segmentUp":
+					response = segmentUp(new JSONObject(request));
+					break;
+				case "/removeSegment":
+					response = removeSegment(new JSONObject(request));
+					break;
 				case "/removeTags":
 					response = removeTags();
 					break;
@@ -298,5 +307,16 @@ public class StingrayServer implements HttpHandler {
 
 	private String closeFile() {
 		return service.closeFile().toString();
+	}
+
+	private String segmentDown(JSONObject json) {
+		return service.segmentDown(json).toString();
+	}
+	private String segmentUp(JSONObject json) {
+		return service.segmentUp(json).toString();
+	}
+
+	private String removeSegment(JSONObject json) {
+		return service.removeSegment(json).toString();
 	}
 }

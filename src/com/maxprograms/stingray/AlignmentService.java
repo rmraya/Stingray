@@ -315,8 +315,7 @@ public class AlignmentService {
 	}
 
 	public JSONObject getRows(JSONObject json) {
-		JSONObject result = new JSONObject();
-		result.put("rows", alignment.getRows(json));
+		JSONObject result = alignment.getRows(json);
 		result.put(Constants.STATUS, Constants.SUCCESS);
 		return result;
 	}
@@ -427,6 +426,27 @@ public class AlignmentService {
 	public JSONObject renameFile(JSONObject json) {
 		JSONObject result = new JSONObject();
 		alignment.setFile(json.getString("file"));
+		result.put(Constants.STATUS, Constants.SUCCESS);
+		return result;
+	}
+
+	public JSONObject removeSegment(JSONObject json) {
+		JSONObject result = new JSONObject();
+		alignment.removeSegment(json);
+		result.put(Constants.STATUS, Constants.SUCCESS);
+		return result;
+	}
+
+	public JSONObject segmentDown(JSONObject json) {
+		JSONObject result = new JSONObject();
+		alignment.segmentDown(json);
+		result.put(Constants.STATUS, Constants.SUCCESS);
+		return result;
+	}
+
+	public JSONObject segmentUp(JSONObject json) {
+		JSONObject result = new JSONObject();
+		alignment.segmentUp(json);
 		result.put(Constants.STATUS, Constants.SUCCESS);
 		return result;
 	}

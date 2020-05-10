@@ -68,9 +68,15 @@ class ChangeLanguages {
     }
 
     saveLanguages() {
+        let srcLang = (document.getElementById('srcLangSelect') as HTMLSelectElement).value;
+        let tgtLang = (document.getElementById('tgtLangSelect') as HTMLSelectElement).value;
+        if (srcLang === tgtLang) {
+            window.alert('Select different languages');
+            return;
+        }
         var prefs: any = {
-            srcLang: (document.getElementById('srcLangSelect') as HTMLSelectElement).value,
-            tgtLang: (document.getElementById('tgtLangSelect') as HTMLSelectElement).value,
+            srcLang: srcLang,
+            tgtLang: tgtLang
         }
         this.electron.ipcRenderer.send('save-languages', prefs);
     }

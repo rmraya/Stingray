@@ -268,6 +268,18 @@ class Stingray {
         ipcMain.on('save-languages', (event, arg) => {
             Stingray.setLanguages(arg);
         });
+        ipcMain.on('save-data', (event, arg) => {
+            Stingray.saveData(arg);
+        });
+        ipcMain.on('segment-down', (event, arg) => {
+            Stingray.segmentDown(arg);
+        });
+        ipcMain.on('segment-up', (event, arg) => {
+            Stingray.segmentUp(arg);
+        });
+        ipcMain.on('remove-data', (event, arg) => {
+            Stingray.removeData(arg);
+        });
     }
 
     stopServer(): void {
@@ -1346,16 +1358,14 @@ class Stingray {
         if (this.currentFile === '') {
             return;
         }
-
-        // TODO
+        this.contents.send('move-down');
     }
 
     static moveSegmentUp(): void {
         if (this.currentFile === '') {
             return;
         }
-
-        // TODO
+        this.contents.send('move-up');
     }
 
     static splitSegment(): void {
@@ -1378,8 +1388,7 @@ class Stingray {
         if (this.currentFile === '') {
             return;
         }
-
-        // TODO
+        this.contents.send('remove-segment');
     }
 
     static loadRecents(): string[] {
@@ -1423,6 +1432,50 @@ class Stingray {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.getFileInfo();
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
+    }
+
+    static saveData(data: any): void {
+        console.log(JSON.stringify(data));
+        // TODO
+    }
+
+    static segmentDown(data: any): void {
+        this.sendRequest('/segmentDown', data,
+            function success(data: any) { 
+                Stingray.saved = false;
+                Stingray.mainWindow.setDocumentEdited(true);
+                Stingray.contents.send('refresh-page');
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
+    }
+
+    static segmentUp(data: any): void {
+        this.sendRequest('/segmentUp', data,
+            function success(data: any) { 
+                Stingray.saved = false;
+                Stingray.mainWindow.setDocumentEdited(true);
+                Stingray.contents.send('refresh-page');
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
+    }
+
+    static removeData(data: any): void {
+        this.sendRequest('/removeSegment', data,
+            function success(data: any) { 
+                Stingray.saved = false;
+                Stingray.mainWindow.setDocumentEdited(true);
+                Stingray.contents.send('refresh-page');
             },
             function error(reason: string) {
                 dialog.showErrorBox('Error', reason);

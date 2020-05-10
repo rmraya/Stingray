@@ -181,6 +181,10 @@ class NewFile {
             window.alert('Select target character set');
             return;
         }
+        if (srcLang === tgtLang) {
+            window.alert('Select different languages');
+            return;
+        }
         let paragraph = (document.getElementById('paragraph') as HTMLInputElement).checked;
         let params = {
             alignmentFile: alignmentFile,

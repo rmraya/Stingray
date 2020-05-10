@@ -70,6 +70,24 @@ class Main {
         this.electron.ipcRenderer.on('cancel-edit', () => {
             this.cancelEdit();
         });
+        document.getElementById('moveDown').addEventListener('click', () => {
+            this.moveSegmentDown();
+        });
+        this.electron.ipcRenderer.on('move-down', () => {
+            this.moveSegmentDown();
+        });
+        document.getElementById('moveUp').addEventListener('click', () => {
+            this.moveSegmentUp();
+        });
+        this.electron.ipcRenderer.on('move-up', () => {
+            this.moveSegmentUp();
+        });
+        document.getElementById('remove').addEventListener('click', () => {
+            this.removeSegment();
+        });
+        this.electron.ipcRenderer.on('remove-segment', () => {
+            this.removeSegment();
+        });
         document.getElementById('export').addEventListener('click', () => {
             this.electron.ipcRenderer.send('export-tmx');
         });
@@ -258,6 +276,22 @@ class Main {
                 this.clickListener(ev);
             });
         }
+        var fixed = document.getElementsByClassName('fixed');
+        for (let i = 0; i < fixed.length; i++) {
+            fixed[i].addEventListener('click', (ev: MouseEvent) => {
+                this.fixedListener(ev);
+            });
+        }
+        this.sourceRows = data.srcRows;
+        this.targetRows = data.tgtRows;
+        this.maxRows = this.sourceRows;
+        if (this.targetRows > this.maxRows) {
+            this.maxRows = this.targetRows;
+        }
+        this.maxPage = Math.ceil(this.maxRows / this.rowsPage);
+        document.getElementById('pages').innerText = '' + this.maxPage;
+        document.getElementById('sourceRows').innerText = '' + this.sourceRows;
+        document.getElementById('targetRows').innerText = '' + this.targetRows;
     }
 
     clickListener(event: MouseEvent) {
@@ -311,6 +345,36 @@ class Main {
         }
     }
 
+    fixedListener(event: MouseEvent) {
+        var element: Element = (event.target as Element);
+        var x: string = element.tagName;
+        var id: string;
+        var lang: string;
+        if ('TD' === x) {
+            var composed = event.composedPath();
+            if ('TR' === (composed[0] as Element).tagName) {
+                id = (composed[0] as Element).id;
+            } else if ('TR' === (composed[1] as Element).tagName) {
+                id = (composed[1] as Element).id;
+            } else if ('TR' === (composed[2] as Element).tagName) {
+                id = (composed[2] as Element).id;
+            }
+            lang = (event.target as Element).getAttribute('lang');
+        }
+        if (this.textArea !== null && (this.currentId !== id || this.currentLang !== lang)) {
+            this.saveEdit();
+        }
+
+        if (id !== null) {
+            this.currentId = id;
+            if (this.currentCell != null) {
+                this.currentCell.innerHTML = this.currentContent;
+                this.currentCell = null;
+                this.currentContent = null;
+            }
+        }
+    }
+
     saveEdit(): void {
         if (this.textArea !== null) {
             if (this.currentContent === this.textArea.value) {
@@ -349,6 +413,33 @@ class Main {
             index = unit.indexOf('<svg ');
         }
         return unit;
+    }
+
+    moveSegmentDown(): void {
+        if (this.textArea !== null) {
+            let id = this.currentId;
+            let lang = this.currentLang;
+            this.cancelEdit();
+            this.electron.ipcRenderer.send('segment-down', { id: id, lang: lang });
+        }
+    }
+
+    moveSegmentUp(): void {
+        if (this.textArea !== null) {
+            let id = this.currentId;
+            let lang = this.currentLang;
+            this.cancelEdit();
+            this.electron.ipcRenderer.send('segment-up', { id: id, lang: lang });
+        }
+    }
+
+    removeSegment(): void {
+        if (this.textArea !== null) {
+            let id = this.currentId;
+            let lang = this.currentLang;
+            this.cancelEdit();
+            this.electron.ipcRenderer.send('remove-data', { id: id, lang: lang });
+        }
     }
 }
 

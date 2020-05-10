@@ -23,6 +23,8 @@ import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -126,8 +128,9 @@ public class Alignment {
         return result;
     }
 
-    public JSONArray getRows(JSONObject json) {
-        JSONArray result = new JSONArray();
+    public JSONObject getRows(JSONObject json) {
+        JSONObject result = new JSONObject();
+        JSONArray rows = new JSONArray();
         int start = json.getInt("start");
         int count = json.getInt("count");
         for (int i = 0; i < count; i++) {
@@ -139,7 +142,7 @@ public class Alignment {
             row.append("<tr id=\"");
             row.append("" + id);
             row.append("\"><td class='fixed'>");
-            row.append(id);
+            row.append(id + 1);
             row.append("</td><td");
             if (srcLang.isBiDi()) {
                 row.append(" dir=\"rtl\"");
@@ -157,8 +160,11 @@ public class Alignment {
             row.append("\">");
             row.append(getContent(targets, id));
             row.append("</td></tr>");
-            result.put(row.toString());
+            rows.put(row.toString());
         }
+        result.put("rows", rows);
+        result.put("srcRows", sources.size());
+        result.put("tgtRows", targets.size());
         return result;
     }
 
@@ -398,6 +404,54 @@ public class Alignment {
         doc.getRootElement().getChild("sources").setAttribute("xml:lang", json.getString("srcLang"));
         tgtLang = LanguageUtils.getLanguage(json.getString("tgtLang"));
         doc.getRootElement().getChild("targets").setAttribute("xml:lang", json.getString("tgtLang"));
+    }
+
+    public void removeSegment(JSONObject json) {
+        try {
+            int row = Integer.parseInt(json.getString("id"));
+            List<Element> list = sources;
+            if (json.getString("lang").equals(tgtLang.getCode())) {
+                list = targets;
+            }
+            list.remove(row);
+        } catch (IndexOutOfBoundsException e) {
+            Logger logger = System.getLogger(Alignment.class.getName());
+            logger.log(Level.ERROR, e);
+        }
+    }
+
+    public void segmentDown(JSONObject json) {
+        try {
+            int row = Integer.parseInt(json.getString("id"));
+            List<Element> list = sources;
+            if (json.getString("lang").equals(tgtLang.getCode())) {
+                list = targets;
+            }
+            Element e = new Element("source");
+            e.clone(list.get(row + 1));
+            list.remove(row + 1);
+            list.add(row, e);
+        } catch (IndexOutOfBoundsException e) {
+            Logger logger = System.getLogger(Alignment.class.getName());
+            logger.log(Level.ERROR, e);
+        }
+    }
+
+    public void segmentUp(JSONObject json) {
+        try {
+            int row = Integer.parseInt(json.getString("id"));
+            List<Element> list = sources;
+            if (json.getString("lang").equals(tgtLang.getCode())) {
+                list = targets;
+            }
+            Element e = new Element("source");
+            e.clone(list.get(row - 1));
+            list.remove(row - 1);
+            list.add(row, e);
+        } catch (IndexOutOfBoundsException e) {
+            Logger logger = System.getLogger(Alignment.class.getName());
+            logger.log(Level.ERROR, e);
+        }
     }
 
 }
