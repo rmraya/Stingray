@@ -271,6 +271,9 @@ class Stingray {
         ipcMain.on('save-data', (event, arg) => {
             Stingray.saveData(arg);
         });
+        ipcMain.on('split-data', (event, arg) => {
+            Stingray.split(arg);
+        });
         ipcMain.on('segment-down', (event, arg) => {
             Stingray.segmentDown(arg);
         });
@@ -1375,8 +1378,7 @@ class Stingray {
         if (this.currentFile === '') {
             return;
         }
-
-        // TODO
+        this.contents.send('split-segment');
     }
 
     static mergeSegment(): void {
@@ -1442,13 +1444,26 @@ class Stingray {
     }
 
     static saveData(data: any): void {
+        this.sendRequest('/saveData', data,
+            function success(data: any) {
+                Stingray.saved = false;
+                Stingray.mainWindow.setDocumentEdited(true);
+                Stingray.contents.send('refresh-page');
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
+    }
+
+    static split(data: any): void {
         console.log(JSON.stringify(data));
         // TODO
     }
 
     static segmentDown(data: any): void {
         this.sendRequest('/segmentDown', data,
-            function success(data: any) { 
+            function success(data: any) {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('refresh-page');
@@ -1461,7 +1476,7 @@ class Stingray {
 
     static segmentUp(data: any): void {
         this.sendRequest('/segmentUp', data,
-            function success(data: any) { 
+            function success(data: any) {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('refresh-page');
@@ -1474,7 +1489,7 @@ class Stingray {
 
     static mergeNext(data: any): void {
         this.sendRequest('/mergeNext', data,
-            function success(data: any) { 
+            function success(data: any) {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('refresh-page');
@@ -1487,7 +1502,7 @@ class Stingray {
 
     static removeData(data: any): void {
         this.sendRequest('/removeSegment', data,
-            function success(data: any) { 
+            function success(data: any) {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('refresh-page');

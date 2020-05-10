@@ -82,6 +82,12 @@ class Main {
         this.electron.ipcRenderer.on('move-up', () => {
             this.moveSegmentUp();
         });
+        document.getElementById('split').addEventListener('click', () => {
+            this.split();
+        });
+        this.electron.ipcRenderer.on('split-segment', () =>{
+            this.split();
+        });
         document.getElementById('mergeNext').addEventListener('click', () => {
             this.mergeNext();
         });
@@ -413,7 +419,7 @@ class Main {
             let start: string = unit.slice(0, index);
             let rest: string = unit.slice(index + 1);
             let end: number = rest.indexOf('</svg>') + 5;
-            let tag: string = '<' + rest.slice(0, end) + '/>';
+            let tag: string = '<' + rest.slice(0, end) + '>';
             this.currentTags.push(tag);
             unit = start + '[[' + tagNumber++ + ']]' + rest.slice(end + 1);
             index = unit.indexOf('<svg ');
@@ -445,6 +451,16 @@ class Main {
             let lang = this.currentLang;
             this.cancelEdit();
             this.electron.ipcRenderer.send('merge-next', { id: id, lang: lang });
+        }
+    }
+
+    split(): void {
+        if (this.textArea !== null) {
+            let id = this.currentId;
+            let lang = this.currentLang;
+            let pos = this.textArea.selectionStart;
+            let edited: string = this.restoretags(this.textArea.value, this.currentTags);
+            this.electron.ipcRenderer.send('split-data', { id: id, lang: lang, data: edited, pos: pos });
         }
     }
 

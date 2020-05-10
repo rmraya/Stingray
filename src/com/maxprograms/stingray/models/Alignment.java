@@ -27,8 +27,10 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -190,9 +192,7 @@ public class Alignment {
                     result.append(makeSVG(tag++));
                 }
                 if ("g".equals(type)) {
-                    result.append(makeSVG(tag++));
                     result.append(pureText(e));
-                    result.append(makeSVG(tag++));
                 }
             }
         }
@@ -207,7 +207,7 @@ public class Alignment {
         if (tag >= 100) {
             width = 28;
         }
-        return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + (width + 1)
+        return "<svg width=\"" + (width + 1)
                 + "px\" height=\"17px\" version=\"1.1\"><g><rect style=\"fill:#009688\" width=\"" + width
                 + "px\" height=\"16px\" x=\"1\" y=\"1\" rx=\"3\" ry=\"3\" />"
                 + "<text style=\"font-size:12px;font-style:normal;font-weight:normal;text-align:center;\""
@@ -456,4 +456,61 @@ public class Alignment {
         }
     }
 
+    public void saveData(JSONObject json) throws SAXException, IOException, ParserConfigurationException {
+        try {
+            int row = Integer.parseInt(json.getString("id"));
+            List<Element> list = sources;
+            if (json.getString("lang").equals(tgtLang.getCode())) {
+                list = targets;
+            }
+            String data = json.getString("data");
+            if (data.indexOf("<svg") == -1) {
+                list.get(row).setText(data);
+            } else {
+                Map<String, String> tagsMap = getTags(list.get(row));
+                data = cleanSVG(data, tagsMap);
+                list.get(row).clone(rebuild(data));
+            }
+        } catch (IndexOutOfBoundsException e) {
+            // ignore
+        }
+    }
+
+    private Map<String, String> getTags(Element element) {
+        Map<String, String> result = new HashMap<>();
+        List<Element> children = element.getChildren("ph");
+        Iterator<Element> it = children.iterator();
+        int count = 1;
+        while (it.hasNext()) {
+            Element child = it.next();
+            result.put("" + count++, child.toString());
+        }
+        return result;
+    }
+
+    private String cleanSVG(String data, Map<String, String> map) throws SAXException, IOException, ParserConfigurationException {
+        SAXBuilder builder = new SAXBuilder();
+        String text = "<source>" + data + "</source>";
+        Element e = builder.build(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8))).getRootElement();
+        StringBuilder sb = new StringBuilder();
+        List<XMLNode> list = e.getContent();
+        Iterator<XMLNode> it = list.iterator();
+        int count = 1;
+        while (it.hasNext()) {
+            XMLNode node = it.next();
+            if (node.getNodeType() == XMLNode.TEXT_NODE) {
+                TextNode t = (TextNode) node;
+                sb.append(t.getText());
+            } else {
+                sb.append(map.get("" + count++));
+            }
+        }
+        return sb.toString();
+    }
+
+    private Element rebuild(String e) throws SAXException, IOException, ParserConfigurationException {
+        SAXBuilder builder = new SAXBuilder();
+        String text = "<source>" + e + "</source>";
+        return builder.build(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8))).getRootElement();
+    }
 }

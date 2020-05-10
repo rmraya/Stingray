@@ -457,4 +457,18 @@ public class AlignmentService {
 		result.put(Constants.STATUS, Constants.SUCCESS);
 		return result;
 	}
+
+	public JSONObject saveData(JSONObject json) {
+		JSONObject result = new JSONObject();
+		try {
+			alignment.saveData(json);
+			result.put(Constants.STATUS, Constants.SUCCESS);
+		} catch (SAXException | IOException | ParserConfigurationException e) {
+			logger.log(Level.ERROR, e);
+			result.put(Constants.STATUS, Constants.ERROR);
+			result.put(Constants.REASON, e.getMessage());
+		}
+		
+		return result;
+	}
 }

@@ -155,6 +155,9 @@ public class StingrayServer implements HttpHandler {
 				case "/mergeNext":
 					response = mergeNext(new JSONObject(request));
 					break;
+				case "/saveData":
+					response = saveData(new JSONObject(request));
+					break;
 				case "/removeSegment":
 					response = removeSegment(new JSONObject(request));
 					break;
@@ -325,5 +328,9 @@ public class StingrayServer implements HttpHandler {
 
 	private String removeSegment(JSONObject json) {
 		return service.removeSegment(json).toString();
+	}
+
+	private String saveData(JSONObject json) {
+		return service.saveData(json).toString();
 	}
 }
