@@ -1379,9 +1379,17 @@ class Stingray {
         });
     }
 
-    static replace(data: any) : void {
-        // TODO
-        console.log(JSON.stringify(data));
+    static replace(data: any): void {
+        this.sendRequest('/replaceText', data,
+            function success(data: any) {
+                Stingray.saved = false;
+                Stingray.mainWindow.setDocumentEdited(true);
+                Stingray.contents.send('refresh-page');
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
     }
 
     static saveEdit(): void {
@@ -1495,8 +1503,16 @@ class Stingray {
     }
 
     static split(data: any): void {
-        console.log(JSON.stringify(data));
-        // TODO
+        this.sendRequest('/splitSegment', data,
+            function success(data: any) {
+                Stingray.saved = false;
+                Stingray.mainWindow.setDocumentEdited(true);
+                Stingray.contents.send('refresh-page');
+            },
+            function error(reason: string) {
+                dialog.showErrorBox('Error', reason);
+            }
+        );
     }
 
     static segmentDown(data: any): void {

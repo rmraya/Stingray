@@ -468,7 +468,26 @@ public class AlignmentService {
 			result.put(Constants.STATUS, Constants.ERROR);
 			result.put(Constants.REASON, e.getMessage());
 		}
-		
+		return result;
+	}
+
+	public JSONObject replaceText(JSONObject json) {
+		JSONObject result = new JSONObject();
+		alignment.replaceText(json);
+		result.put(Constants.STATUS, Constants.SUCCESS);
+		return result;
+	}
+
+	public JSONObject splitSegment(JSONObject json) {
+		JSONObject result = new JSONObject();
+		try {
+			alignment.splitSegment(json);
+			result.put(Constants.STATUS, Constants.SUCCESS);
+		} catch (SAXException | IOException | ParserConfigurationException e) {
+			logger.log(Level.ERROR, e);
+			result.put(Constants.STATUS, Constants.ERROR);
+			result.put(Constants.REASON, e.getMessage());
+		}
 		return result;
 	}
 }

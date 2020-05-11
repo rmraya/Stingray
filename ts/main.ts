@@ -462,8 +462,10 @@ class Main {
             let id = this.currentId;
             let lang = this.currentLang;
             let pos = this.textArea.selectionStart;
-            let edited: string = this.restoretags(this.textArea.value, this.currentTags);
-            this.electron.ipcRenderer.send('split-data', { id: id, lang: lang, data: edited, pos: pos });
+            let edited = this.textArea.value;
+            let start = this.restoretags(edited.substr(0, pos), this.currentTags);
+            let end = this.restoretags(edited.substr(pos), this.currentTags);
+            this.electron.ipcRenderer.send('split-data', { id: id, lang: lang, start: start, end: end });
         }
     }
 

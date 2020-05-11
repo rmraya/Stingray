@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -58,6 +60,9 @@ public class Alignment {
     private Language srcLang;
     private List<Element> targets;
     private Language tgtLang;
+
+    private static Pattern pattern;
+    private static String lastTarget;
 
     public Alignment(String source, String target) throws IOException {
         doc = new Document(null, "algnproject", null, null);
@@ -476,6 +481,35 @@ public class Alignment {
         }
     }
 
+    public void splitSegment(JSONObject json) throws SAXException, IOException, ParserConfigurationException {
+        try {
+            int row = Integer.parseInt(json.getString("id"));
+            List<Element> list = sources;
+            if (json.getString("lang").equals(tgtLang.getCode())) {
+                list = targets;
+            }
+            Map<String, String> tagsMap = getTags(list.get(row));
+            String data = json.getString("start");
+            if (data.indexOf("<svg") == -1) {
+                list.get(row).setText(data);
+            } else {
+                data = cleanSVG(data, tagsMap);
+                list.get(row).clone(rebuild(data));
+            }
+            data = json.getString("end");
+            Element newSource = new Element("source");
+            if (data.indexOf("<svg") == -1) {
+                newSource.setText(data);
+            } else {
+                data = cleanSVG(data, tagsMap);
+                newSource.clone(rebuild(data));
+            }
+            list.add(row + 1, newSource);
+        } catch (IndexOutOfBoundsException e) {
+            // ignore
+        }
+    }
+
     private Map<String, String> getTags(Element element) {
         Map<String, String> result = new HashMap<>();
         List<Element> children = element.getChildren("ph");
@@ -488,7 +522,8 @@ public class Alignment {
         return result;
     }
 
-    private String cleanSVG(String data, Map<String, String> map) throws SAXException, IOException, ParserConfigurationException {
+    private String cleanSVG(String data, Map<String, String> map)
+            throws SAXException, IOException, ParserConfigurationException {
         SAXBuilder builder = new SAXBuilder();
         String text = "<source>" + data + "</source>";
         Element e = builder.build(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8))).getRootElement();
@@ -513,4 +548,63 @@ public class Alignment {
         String text = "<source>" + e + "</source>";
         return builder.build(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8))).getRootElement();
     }
+
+    public void replaceText(JSONObject json) {
+        String search = json.getString("search");
+        String replace = json.getString("replace");
+        boolean regExp = json.getBoolean("regExp");
+        List<Element> list = sources;
+        if (!json.getBoolean("inSource")) {
+            list = targets;
+        }
+        Iterator<Element> st = list.iterator();
+        while (st.hasNext()) {
+            Element element = st.next();
+            List<XMLNode> newContent = new ArrayList<>();
+            List<XMLNode> content = element.getContent();
+            Iterator<XMLNode> it = content.iterator();
+            while (it.hasNext()) {
+                XMLNode node = it.next();
+                if (node.getNodeType() == XMLNode.TEXT_NODE) {
+                    TextNode text = (TextNode) node;
+                    text.setText(replaceAll(text.getText(), search, replace, regExp));
+                    newContent.add(text);
+                }
+                if (node.getNodeType() == XMLNode.ELEMENT_NODE) {
+                    Element e = (Element) node;
+                    String type = e.getName();
+                    if (type.equals("g")) {
+                        e.setText(replaceAll(e.getText(), search, replace, regExp));
+                    }
+                    newContent.add(node);
+                }
+            }
+            element.setContent(newContent);
+        }
+    }
+
+    public static String replaceAll(String string, String target, String replacement, boolean regExp) {
+        String source = string;
+        if (regExp) {
+            if (pattern == null || !target.equals(lastTarget)) {
+                pattern = Pattern.compile(target);
+                lastTarget = target;
+            }
+            Matcher matcher = pattern.matcher(string);
+            StringBuffer sb = new StringBuffer();
+            while (matcher.find()) {
+                matcher.appendReplacement(sb, replacement);
+            }
+            matcher.appendTail(sb);
+            return sb.toString();
+        }
+        int start = source.indexOf(target);
+        while (start != -1) {
+            source = source.substring(0, start) + replacement + source.substring(start + target.length());
+            start += replacement.length();
+            start = source.indexOf(target, start);
+        }
+        return source;
+    }
+
 }
