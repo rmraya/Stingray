@@ -70,6 +70,9 @@ class Main {
         this.electron.ipcRenderer.on('cancel-edit', () => {
             this.cancelEdit();
         });
+        document.getElementById('replaceText').addEventListener('click', () => {
+            this.electron.ipcRenderer.send('replace-text');
+        });
         document.getElementById('moveDown').addEventListener('click', () => {
             this.moveSegmentDown();
         });

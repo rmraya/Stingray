@@ -33,6 +33,7 @@ class Stingray {
     static settingsWindow: BrowserWindow;
     static newFileWindow: BrowserWindow;
     static changeLanguagesWindow: BrowserWindow;
+    static replaceTextWindow: BrowserWindow;
     static contents: webContents;
     static alignmentStatus: any = { aligning: false, alignError: '', status: '' };
     static loadingStatus: any = { loading: false, loadError: '', status: '' };
@@ -180,6 +181,17 @@ class Stingray {
             let rect: Rectangle = Stingray.settingsWindow.getBounds();
             rect.height = arg.height + this.verticalPadding;
             Stingray.settingsWindow.setBounds(rect);
+        });
+        ipcMain.on('replace-text', () => {
+            Stingray.replaceText();
+        })
+        ipcMain.on('replacetext-height', (event, arg) => {
+            let rect: Rectangle = Stingray.replaceTextWindow.getBounds();
+            rect.height = arg.height + this.verticalPadding;
+            Stingray.replaceTextWindow.setBounds(rect);
+        });
+        ipcMain.on('replace-request', (event, arg) => {
+            Stingray.replace(arg);
         });
         ipcMain.on('browse-srx', (event, arg) => {
             this.browseSRX(event);
@@ -682,6 +694,7 @@ class Stingray {
             case 'settingsWindow': { return 600; }
             case 'newFileWindow': { return 850; }
             case 'changeLanguagesWindow': { return 550; }
+            case 'replaceTextWindow': { return 450; }
         }
     }
 
@@ -1342,8 +1355,33 @@ class Stingray {
         if (this.currentFile === '') {
             return;
         }
+        this.replaceTextWindow = new BrowserWindow({
+            parent: this.mainWindow,
+            width: this.getWidth('replaceTextWindow'),
+            useContentSize: true,
+            minimizable: false,
+            maximizable: false,
+            resizable: false,
+            show: false,
+            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            webPreferences: {
+                nodeIntegration: true
+            }
+        });
+        this.replaceTextWindow.setMenu(null);
+        this.replaceTextWindow.on('closed', () => {
+            this.mainWindow.focus();
+        });
+        this.replaceTextWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'searchReplace.html'));
+        this.replaceTextWindow.once('ready-to-show', (event: IpcMainEvent) => {
+            event.sender.send('get-height');
+            this.replaceTextWindow.show();
+        });
+    }
 
+    static replace(data: any) : void {
         // TODO
+        console.log(JSON.stringify(data));
     }
 
     static saveEdit(): void {
