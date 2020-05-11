@@ -2,7 +2,7 @@
 
 
 
-![TMXEditor logo](https://www.maxprograms.com/images/stingray_s.png)
+![Stingray logo](https://www.maxprograms.com/images/stingray_s.png)
 
 Stingray is an open source document aligner designed to assist professional translators in the production of translation memories from existing translated material.
 
@@ -44,7 +44,7 @@ Subscription version includes unlimited email support at tech@maxprograms.com
 - Point your `JAVA_HOME` environment variable to JDK 11
 - Run `ant` to compile the Java code
 - Run `npm install` to download and install NodeJS dependencies
-- Run `npm start` to launch TMXEditor
+- Run `npm start` to launch Stingray
 
 ### Steps for building
 
