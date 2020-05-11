@@ -88,13 +88,13 @@ class Main {
         document.getElementById('split').addEventListener('click', () => {
             this.split();
         });
-        this.electron.ipcRenderer.on('split-segment', () =>{
+        this.electron.ipcRenderer.on('split-segment', () => {
             this.split();
         });
         document.getElementById('mergeNext').addEventListener('click', () => {
             this.mergeNext();
         });
-        this.electron.ipcRenderer.on('merge-segment', () =>{
+        this.electron.ipcRenderer.on('merge-segment', () => {
             this.mergeNext();
         });
         document.getElementById('remove').addEventListener('click', () => {
@@ -349,13 +349,12 @@ class Main {
                 this.currentCell = (event.target as Element);
                 this.currentContent = this.currentCell.innerHTML;
                 this.textArea = document.createElement('textarea');
-                this.textArea.setAttribute('style', 'height: ' + (this.currentCell.clientHeight - 8) + 'px; width: ' + (this.currentCell.clientWidth - 8) + 'px;')
+                this.textArea.setAttribute('style', 'height: ' + (this.currentCell.clientHeight - 8) + 'px; width: ' + (this.currentCell.clientWidth - 8) + 'px;');
                 this.textArea.innerHTML = this.cleanTags(this.currentContent);
                 this.currentCell.innerHTML = '';
                 this.currentCell.parentElement.style.padding = '0px';
                 this.currentCell.appendChild(this.textArea);
                 this.textArea.focus();
-                this.electron.ipcRenderer.send('get-cell-properties', { id: this.currentId, lang: this.currentLang });
             }
         }
     }
