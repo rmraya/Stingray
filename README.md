@@ -25,7 +25,7 @@ You can subscribe to [Maxprograms Support](https://groups.io/g/maxprograms/) at 
 
 ### Subscriptions
 
-Ready to use installers and technical support for Stingray will soon be available as yearly subscriptions at [Maxprograms Online Store](https://www.maxprograms.com/store/buy.html).
+Ready to use installers and technical support for Stingray are available as yearly subscriptions at [Maxprograms Online Store](https://www.maxprograms.com/store/buy.html).
 
 The version of Stingray included in the official installers from [Stingray's Home Page](https://www.maxprograms.com/products/stingray.html) can be used at no cost for 7 days requesting a free Evaluation Key.
 
