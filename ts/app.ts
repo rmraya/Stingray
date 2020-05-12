@@ -1449,7 +1449,15 @@ class Stingray {
         try {
             var data: Buffer = readFileSync(recentsFile);
             let recents = JSON.parse(data.toString());
-            return recents.files;
+            let list: string[] = [];
+            let length = recents.files.length;
+            for (let i=0 ; i<length ; i++) {
+                let file: string = recents.files[i];
+                if (existsSync(file)) {
+                    list.push(file);
+                }
+            }
+            return list;
         } catch (err) {
             console.log(err);
             return [];
