@@ -98,10 +98,10 @@ class Stingray {
             catalog: Stingray.path.join(app.getAppPath(), 'catalog', 'catalog.xml'),
             srx: Stingray.path.join(app.getAppPath(), 'srx', 'default.srx')
         }
-        Stingray.loadPreferences();
         app.on('ready', () => {
             Stingray.currentFile = '';
             this.createWindow();
+            Stingray.loadPreferences();
             Stingray.mainWindow.loadURL(Stingray.path.join('file://', app.getAppPath(), 'index.html'));
             Stingray.mainWindow.on('resize', () => {
                 this.saveDefaults();
@@ -210,6 +210,7 @@ class Stingray {
         });
         ipcMain.on('save-preferences', (event, arg) => {
             Stingray.settingsWindow.close();
+            Stingray.mainWindow.focus();
             Stingray.currentPreferences = arg;
             Stingray.savePreferences();
         });
@@ -349,7 +350,7 @@ class Stingray {
             { label: 'Confirm Edit', accelerator: 'Alt+Enter', click: () => { Stingray.saveEdit(); } },
             { label: 'Cancel Edit', accelerator: 'Esc', click: () => { Stingray.cancelEdit(); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Move Segment Down', accelerator:  'Alt+CmdOrCtrl+Down' , click: () => { Stingray.moveSegmentDown(); } },
+            { label: 'Move Segment Down', accelerator: 'Alt+CmdOrCtrl+Down', click: () => { Stingray.moveSegmentDown(); } },
             { label: 'Move Segment Up', accelerator: 'Alt+CmdOrCtrl+Up', click: () => { Stingray.moveSegmentUp(); } },
             { label: 'Split Segment', accelerator: 'CmdOrCtrl+L', click: () => { Stingray.splitSegment(); } },
             { label: 'Merge With Next Segment', accelerator: 'CmdOrCtrl+M', click: () => { Stingray.mergeSegment(); } },
@@ -457,29 +458,31 @@ class Stingray {
                 console.log(err);
             }
         }
+        let light = 'file://' + this.path.join(app.getAppPath(), 'css', 'light.css');
+        let dark = 'file://' + this.path.join(app.getAppPath(), 'css', 'dark.css');
         if (this.currentPreferences.theme === 'system') {
             if (nativeTheme.shouldUseDarkColors) {
-                this.currentTheme = this.path.join(app.getAppPath(), 'css', 'dark.css');
-                nativeTheme.themeSource = 'dark';
+                this.currentTheme = dark;
             } else {
-                this.currentTheme = this.path.join(app.getAppPath(), 'css', 'light.css');
-                nativeTheme.themeSource = 'light';
+                this.currentTheme = light;
             }
         }
         if (this.currentPreferences.theme === 'dark') {
-            this.currentTheme = this.path.join(app.getAppPath(), 'css', 'dark.css');
-            nativeTheme.themeSource = 'dark';
+            this.currentTheme = dark;
         }
         if (this.currentPreferences.theme === 'light') {
-            this.currentTheme = this.path.join(app.getAppPath(), 'css', 'light.css');
-            nativeTheme.themeSource = 'light';
+            this.currentTheme = light;
         }
+        if (process.platform === 'win32') {
+            nativeTheme.themeSource = this.currentPreferences.theme;
+        }
+        this.setTheme();
     }
 
     static savePreferences(): void {
         let preferencesFile = this.path.join(app.getPath('appData'), app.name, 'preferences.json');
         writeFileSync(preferencesFile, JSON.stringify(this.currentPreferences));
-        nativeTheme.themeSource = this.currentPreferences.theme;
+        this.loadPreferences();
     }
 
     saveDefaults(): void {
@@ -814,7 +817,7 @@ class Stingray {
             properties: ['openFile'],
             filters: [
                 { name: 'SRX File', extensions: ['srx'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: 'Any File', extensions:['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -832,7 +835,7 @@ class Stingray {
             properties: ['openFile'],
             filters: [
                 { name: 'XML File', extensions: ['xml'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: 'Any File', extensions:['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -849,7 +852,7 @@ class Stingray {
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
                 { name: 'Alignment File', extensions: ['algn'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: 'Any File', extensions:['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -865,7 +868,7 @@ class Stingray {
             title: 'Source File',
             properties: ['openFile'],
             filters: [
-                { name: 'Any File', extensions: ['*'] },
+                { name: 'Any File', extensions: (process.platform !== 'linux' ? [] : ['*']) },
                 { name: 'Adobe InDesign Interchange', extensions: ['inx'] },
                 { name: 'Adobe InDesign IDML', extensions: ['idml'] },
                 { name: 'DITA Map', extensions: ['ditamap', 'dita', 'xml'] },
@@ -897,7 +900,7 @@ class Stingray {
             title: 'Target File',
             properties: ['openFile'],
             filters: [
-                { name: 'Any File', extensions: ['*'] },
+                { name: 'Any File', extensions: (process.platform !== 'linux' ? [] : ['*']) },
                 { name: 'Adobe InDesign Interchange', extensions: ['inx'] },
                 { name: 'Adobe InDesign IDML', extensions: ['idml'] },
                 { name: 'DITA Map', extensions: ['ditamap', 'dita', 'xml'] },
@@ -996,7 +999,7 @@ class Stingray {
             properties: ['openFile'],
             filters: [
                 { name: 'Alignment File', extensions: ['algn'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: 'Any File', extensions:['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -1210,7 +1213,7 @@ class Stingray {
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
                 { name: 'Alignment File', extensions: ['algn'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: 'Any File', extensions:['*'] }
             ],
             defaultPath: Stingray.currentFile
         }).then((value) => {
@@ -1241,7 +1244,7 @@ class Stingray {
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
                 { name: 'TMX File', extensions: ['tmx'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: 'Any File', extensions:['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -1269,7 +1272,7 @@ class Stingray {
             filters: [
                 { name: 'CSV File', extensions: ['csv'] },
                 { name: 'Text File', extensions: ['txt'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: 'Any File', extensions:['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -1451,7 +1454,7 @@ class Stingray {
             let recents = JSON.parse(data.toString());
             let list: string[] = [];
             let length = recents.files.length;
-            for (let i=0 ; i<length ; i++) {
+            for (let i = 0; i < length; i++) {
                 let file: string = recents.files[i];
                 if (existsSync(file)) {
                     list.push(file);
@@ -1485,6 +1488,7 @@ class Stingray {
 
     static setLanguages(langs: any): void {
         this.changeLanguagesWindow.close();
+        Stingray.mainWindow.focus();
         this.sendRequest('/setLanguages', langs,
             function success(data: any) {
                 Stingray.saved = false;
