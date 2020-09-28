@@ -23,24 +23,25 @@ class NewFile {
 
     constructor() {
         this.electron.ipcRenderer.send('get-theme');
-        this.electron.ipcRenderer.on('set-theme', (event, arg) => {
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
             (document.getElementById('theme') as HTMLLinkElement).href = arg;
         });
         this.electron.ipcRenderer.send('get-languages');
-        this.electron.ipcRenderer.on('set-languages', (event, arg) => {
+        this.electron.ipcRenderer.on('set-languages', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setLanguages(arg);
         });
         this.electron.ipcRenderer.send('get-types');
-        this.electron.ipcRenderer.on('set-types', (event, arg) => {
+        this.electron.ipcRenderer.on('set-types', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setTypes(arg);
         });
         this.electron.ipcRenderer.send('get-charsets');
-        this.electron.ipcRenderer.on('set-charsets', (event, arg) => {
+        this.electron.ipcRenderer.on('set-charsets', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setCharsets(arg);
         });
-        document.addEventListener('keydown', (event) => {
+        document.addEventListener('keydown', (event: KeyboardEvent) => { KeyboardHandler.keyListener(event); });
+        document.addEventListener('keydown', (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                window.close();
+                this.electron.ipcRenderer.send('close-new-file');
             }
         });
         this.electron.ipcRenderer.on('get-height', () => {
@@ -51,18 +52,18 @@ class NewFile {
             this.electron.ipcRenderer.send('browse-alignment');
             document.getElementById('browseAlignment').blur();
         });
-        this.electron.ipcRenderer.on('set-alignment', (event, arg) => {
+        this.electron.ipcRenderer.on('set-alignment', (event: Electron.IpcRendererEvent, arg: any) => {
             (document.getElementById('alignmentInput') as HTMLInputElement).value = arg;
-        });        
+        });
         document.getElementById('browseSource').addEventListener('click', () => {
             this.electron.ipcRenderer.send('browse-source');
             document.getElementById('browseSource').blur();
         });
-        this.electron.ipcRenderer.on('set-source', (event, arg) => {
+        this.electron.ipcRenderer.on('set-source', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setSource(arg);
         });
-        this.electron.ipcRenderer.on('set-target', (event, arg) => {
-           this.setTarget(arg);
+        this.electron.ipcRenderer.on('set-target', (event: Electron.IpcRendererEvent, arg: any) => {
+            this.setTarget(arg);
         });
         document.getElementById('browseTarget').addEventListener('click', () => {
             this.electron.ipcRenderer.send('browse-target');
@@ -91,7 +92,7 @@ class NewFile {
         }
     }
 
-    setTypes(arg: any) : void {
+    setTypes(arg: any): void {
         var array: any[] = arg.types;
         var typeOptions = '<option value="none">Select Type</option>';
         for (let i = 0; i < array.length; i++) {
@@ -102,7 +103,7 @@ class NewFile {
         document.getElementById('tgtTypeSelect').innerHTML = typeOptions;
     }
 
-    setCharsets(arg: any) : void {
+    setCharsets(arg: any): void {
         var array: any[] = arg.charsets;
         var typeOptions = '<option value="none">Select Character Set</option>';
         for (let i = 0; i < array.length; i++) {

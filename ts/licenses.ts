@@ -23,12 +23,16 @@ class Licenses {
 
     constructor() {
         this.electron.ipcRenderer.send('get-theme');
-        this.electron.ipcRenderer.on('set-theme', (event, arg) => {
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
             (document.getElementById('theme') as HTMLLinkElement).href = arg;
         });
-        document.addEventListener('keydown', (event) => {
+        this.electron.ipcRenderer.on('get-height', () =>{
+            let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
+            this.electron.ipcRenderer.send('licenses-height', { width: body.clientWidth, height: body.clientHeight });
+        });
+        document.addEventListener('keydown', (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                window.close();
+                this.electron.ipcRenderer.send('close-licenses');
             }
         });
         document.getElementById('Stingray').addEventListener('click', () => {

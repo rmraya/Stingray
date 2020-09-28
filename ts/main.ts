@@ -37,7 +37,7 @@ class Main {
 
     constructor() {
         this.electron.ipcRenderer.send('get-theme');
-        this.electron.ipcRenderer.on('set-theme', (event, arg) => {
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
             (document.getElementById('theme') as HTMLLinkElement).href = arg;
         });
         this.electron.ipcRenderer.on('start-waiting', () => {
@@ -46,7 +46,7 @@ class Main {
         this.electron.ipcRenderer.on('end-waiting', () => {
             document.getElementById('body').classList.remove("wait");
         });
-        this.electron.ipcRenderer.on('set-status', (event, arg) => {
+        this.electron.ipcRenderer.on('set-status', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setStatus(arg);
         });
         document.getElementById('newFile').addEventListener('click', () => {
@@ -121,7 +121,7 @@ class Main {
         document.getElementById('openHelp').addEventListener('click', () => {
             this.electron.ipcRenderer.send('show-help');
         });
-        this.electron.ipcRenderer.on('file-info', (event, arg) => {
+        this.electron.ipcRenderer.on('file-info', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setFileInfo(arg);
         });
         this.electron.ipcRenderer.on('first-page', () => {
@@ -161,13 +161,13 @@ class Main {
         document.getElementById('last').addEventListener('click', () => {
             this.lastPage();
         });
-        this.electron.ipcRenderer.on('set-rows', (event, arg) => {
+        this.electron.ipcRenderer.on('set-rows', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setRows(arg);
         });
         this.electron.ipcRenderer.on('refresh-page', () => {
             this.getRows();
         });
-        this.electron.ipcRenderer.on('file-renamed', (event, arg) => {
+        this.electron.ipcRenderer.on('file-renamed', (event: Electron.IpcRendererEvent, arg: any) => {
             document.getElementById('title').innerText = 'Stingray - ' + arg;
         });
     }

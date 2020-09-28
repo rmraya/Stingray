@@ -5,12 +5,11 @@
 	--light-background: #3c65a4;
 	--lighter-background: #7da3c6;
 	--soft-background: #666666;
-	--normal-background: #efefef;
+	--normal-background: #ececec;
 	--normal-color: #111111;
-	--even-row-background: #efefef;
-	--odd-row-background: #fefefe;
+	--even-row-background: #eceff1;
+	--odd-row-background: #cfd8dc;
 	--highlight-color: #ecf01b;
-	--shadow-color: #eeeeee;
 	--input-background: #ffffff;
 }
 
@@ -232,8 +231,11 @@ button {
 	margin: 3px;
 	padding-left: 4px;
 	padding-right: 4px;
-	box-shadow: 2px 2px 1px 2px var(--shadow-color);
 	white-space: nowrap;
+}
+
+button:focus {
+	outline: none !important;
 }
 
 button:hover {
@@ -320,7 +322,6 @@ label {
 	text-align: left;
 	font-size: 0.8em;
 	vertical-align: middle;
-	box-shadow: none;
 }
 
 .toolbar button img {
@@ -390,15 +391,16 @@ button.toolbar:hover {
 }
 
 .titlepanel {
-	padding-top:0px; display:flex; 
-	width:100%; 
-	background: var(--dark-background); 
+	padding-top: 0px;
+	display: flex;
+	width: 100%;
+	background: var(--dark-background);
 	color: var(--dark-color);
 	white-space: nowrap;
 }
 
 .titlepanel a:hover {
-	background: var(--darker-background); 
+	background: var(--darker-background);
 }
 
 .panelcontent {
@@ -466,4 +468,10 @@ button.toolbar:hover {
 
 .middle {
 	vertical-align: middle;
+}
+
+svg {
+	fill: var(--normal-color);
+	stroke: var(--normal-color);
+	stroke-width: 0.3;
 }

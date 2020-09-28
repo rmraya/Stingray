@@ -24,25 +24,25 @@ class About {
     constructor() {
         this.electron.ipcRenderer.send('get-theme');
         this.electron.ipcRenderer.send('get-version');
-        this.electron.ipcRenderer.on('set-theme', (event, arg) => {
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
             (document.getElementById('theme') as HTMLLinkElement).href = arg;
         });
-        this.electron.ipcRenderer.on('set-version', (event, arg) => {
+        this.electron.ipcRenderer.on('set-version', (event: Electron.IpcRendererEvent, arg: any) => {
             document.getElementById('version').innerHTML = arg;
         });
         document.getElementById('licensesButton').addEventListener('click', () => {
             this.electron.ipcRenderer.send('licenses-clicked');
-            document.getElementById('licensesButton').blur();
         });
-        document.addEventListener('keydown', (event) => {
+        document.addEventListener('keydown', (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                window.close();
+                this.electron.ipcRenderer.send('close-about');
             }
         });
         this.electron.ipcRenderer.on('get-height', () => {
             let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-            this.electron.ipcRenderer.send('about-height', { width: body.clientWidth, height: body.clientHeight });
+            this.electron.ipcRenderer.send('about-height', { width: body.clientWidth, height: (body.clientHeight + 20) });
         });
+        document.getElementById('licensesButton').focus();
     }
 }
 

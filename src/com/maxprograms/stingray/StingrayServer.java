@@ -51,10 +51,6 @@ public class StingrayServer implements HttpHandler {
 		boolean shouldDebug = false;
 		for (int i = 0; i < args.length; i++) {
 			String arg = args[i];
-			if (arg.equals("-version")) {
-				logger.log(Level.INFO, () -> "Version: " + Constants.VERSION + " Build: " + Constants.BUILD);
-				return;
-			}
 			if (arg.equals("-port") && (i + 1) < args.length) {
 				port = args[i + 1];
 			}
@@ -91,13 +87,6 @@ public class StingrayServer implements HttpHandler {
 			}
 			String response = "{}";
 			switch (url) {
-				case "/version":
-					JSONObject obj = new JSONObject();
-					obj.put("tool", "StingrayServer");
-					obj.put("version", Constants.VERSION);
-					obj.put("build", Constants.BUILD);
-					response = obj.toString();
-					break;
 				case "/stop":
 					logger.log(Level.INFO, "Stop requested");
 					break;
@@ -158,7 +147,7 @@ public class StingrayServer implements HttpHandler {
 				case "/saveData":
 					response = saveData(new JSONObject(request));
 					break;
-				case "/splitSegment": 
+				case "/splitSegment":
 					response = splitSegment(new JSONObject(request));
 					break;
 				case "/replaceText":

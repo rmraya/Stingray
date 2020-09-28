@@ -24,15 +24,15 @@ class ChangeLanguages {
     constructor() {
         this.electron.ipcRenderer.send('get-theme');
         this.electron.ipcRenderer.send('get-languages');
-        this.electron.ipcRenderer.on('set-languages', (event, arg) => {
+        this.electron.ipcRenderer.on('set-languages', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setLanguages(arg);
         });
-        this.electron.ipcRenderer.on('set-theme', (event, arg) => {
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
             (document.getElementById('theme') as HTMLLinkElement).href = arg;
         });
-        document.addEventListener('keydown', (event) => {
+        document.addEventListener('keydown', (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                window.close();
+                this.electron.ipcRenderer.send('close-change=languages');
             }
             if (event.key === 'Enter') {
                 this.saveLanguages();
@@ -45,7 +45,7 @@ class ChangeLanguages {
             let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
             this.electron.ipcRenderer.send('languages-height', { width: body.clientWidth, height: body.clientHeight });
         });
-        this.electron.ipcRenderer.on('language-pair', (event, arg) => {
+        this.electron.ipcRenderer.on('language-pair', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setFileLanguages(arg);
         });
     }

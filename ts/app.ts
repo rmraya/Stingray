@@ -17,10 +17,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 *****************************************************************************/
 
-import { execFileSync, spawn, ChildProcessWithoutNullStreams } from "child_process";
-import { app, BrowserWindow, dialog, ipcMain, Menu, MenuItem, shell, webContents, nativeTheme, Rectangle, IpcMainEvent } from "electron";
+import { ChildProcessWithoutNullStreams, execFileSync, spawn } from "child_process";
+import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, Menu, MenuItem, nativeTheme, Rectangle, shell, webContents } from "electron";
 import { existsSync, readFileSync, writeFile, writeFileSync } from "fs";
-import { ClientRequest, request, IncomingMessage } from "http";
+import { ClientRequest, IncomingMessage, request } from "http";
 
 class Stingray {
 
@@ -28,12 +28,18 @@ class Stingray {
     static https = require('https');
 
     static mainWindow: BrowserWindow;
+    static messagesWindow: BrowserWindow;
     static aboutWindow: BrowserWindow;
     static licensesWindow: BrowserWindow;
     static settingsWindow: BrowserWindow;
     static newFileWindow: BrowserWindow;
     static changeLanguagesWindow: BrowserWindow;
     static replaceTextWindow: BrowserWindow;
+    static registerExpiredWindow: BrowserWindow;
+    static registerSubscriptionWindow: BrowserWindow;
+    static requestEvaluationWindow: BrowserWindow;
+    static newSubscriptionWindow: BrowserWindow;
+
     static contents: webContents;
     static alignmentStatus: any = { aligning: false, alignError: '', status: '' };
     static loadingStatus: any = { loading: false, loadError: '', status: '' };
@@ -43,7 +49,7 @@ class Stingray {
     static currentTheme: string = 'system';
 
     currentDefaults: Rectangle;
-    verticalPadding: number = 50;
+    static verticalPadding: number = 50;
 
     javapath: string = Stingray.path.join(app.getAppPath(), 'bin', 'java');
     ls: ChildProcessWithoutNullStreams;
@@ -55,7 +61,10 @@ class Stingray {
     static shouldQuit: boolean;
     stopping: boolean = false;
 
-    constructor() {
+    static argFile: string = '';
+    static isReady: boolean = false;
+
+    constructor(args: string[]) {
         app.allowRendererProcessReuse = true;
         if (!app.requestSingleInstanceLock()) {
             app.quit();
@@ -68,7 +77,17 @@ class Stingray {
                 Stingray.mainWindow.focus();
             }
         }
-
+        if (process.platform === 'win32' && args.length > 1 && args[1] !== '.') {
+            Stingray.argFile = ''
+            for (let i = 1; i < args.length; i++) {
+                if (args[i] !== '.') {
+                    if (Stingray.argFile !== '') {
+                        Stingray.argFile = Stingray.argFile + ' ';
+                    }
+                    Stingray.argFile = Stingray.argFile + args[i];
+                }
+            }
+        }
         if (process.platform === 'win32') {
             this.javapath = Stingray.path.join(app.getAppPath(), 'bin', 'java.exe');
         }
@@ -111,8 +130,11 @@ class Stingray {
             });
             Stingray.mainWindow.once('ready-to-show', () => {
                 Stingray.setTheme();
+                Stingray.isReady = true;
                 Stingray.mainWindow.setBounds(this.currentDefaults);
                 Stingray.mainWindow.show();
+                Stingray.checkUpdates(true);
+                Stingray.mainLoaded();
             });
             Stingray.mainWindow.on('close', (ev) => {
                 if (!Stingray.saved) {
@@ -121,7 +143,6 @@ class Stingray {
                     ev.preventDefault();
                 }
             });
-            Stingray.checkUpdates(true);
         });
 
         app.on('before-quit', (ev) => {
@@ -131,7 +152,6 @@ class Stingray {
                 Stingray.closeFile();
             }
         });
-
         app.on('will-quit', (ev) => {
             if (!Stingray.saved) {
                 ev.preventDefault();
@@ -139,7 +159,14 @@ class Stingray {
                 Stingray.closeFile();
             }
         });
-
+        app.on('open-file', function (event, filePath) {
+            event.preventDefault();
+            if (Stingray.isReady) {
+                Stingray.openFile(filePath);
+            } else {
+                Stingray.argFile = filePath;
+            }
+        });
         app.on('quit', (ev) => {
             if (!Stingray.saved) {
                 ev.preventDefault();
@@ -166,73 +193,70 @@ class Stingray {
             Stingray.setTheme();
         });
 
-        ipcMain.on('get-theme', (event, arg) => {
+        ipcMain.on('get-theme', (event: IpcMainEvent) => {
             event.sender.send('set-theme', Stingray.currentTheme);
         });
-        ipcMain.on('about-height', (event, arg) => {
-            let rect: Rectangle = Stingray.aboutWindow.getBounds();
-            rect.height = arg.height + this.verticalPadding;
-            Stingray.aboutWindow.setBounds(rect);
+        ipcMain.on('about-height', (event: IpcMainEvent, arg: any) => {
+            Stingray.setHeight(Stingray.aboutWindow, arg);
         });
-        ipcMain.on('get-version', (event, arg) => {
-            this.getVersion(event);
+        ipcMain.on('licenses-height', (event: IpcMainEvent, arg: any) => {
+            Stingray.setHeight(Stingray.licensesWindow, arg);
         });
-        ipcMain.on('settings-height', (event, arg) => {
-            let rect: Rectangle = Stingray.settingsWindow.getBounds();
-            rect.height = arg.height + this.verticalPadding;
-            Stingray.settingsWindow.setBounds(rect);
+        ipcMain.on('get-version', (event: IpcMainEvent) => {
+            event.sender.send('set-version', app.name + ' ' + app.getVersion());
+        });
+        ipcMain.on('settings-height', (event: IpcMainEvent, arg: any) => {
+            Stingray.setHeight(Stingray.settingsWindow, arg);
         });
         ipcMain.on('replace-text', () => {
             Stingray.replaceText();
         })
-        ipcMain.on('replacetext-height', (event, arg) => {
-            let rect: Rectangle = Stingray.replaceTextWindow.getBounds();
-            rect.height = arg.height + this.verticalPadding;
-            Stingray.replaceTextWindow.setBounds(rect);
+        ipcMain.on('replacetext-height', (event: IpcMainEvent, arg: any) => {
+            Stingray.setHeight(Stingray.replaceTextWindow, arg);
         });
-        ipcMain.on('replace-request', (event, arg) => {
+        ipcMain.on('replace-request', (event: IpcMainEvent, arg: any) => {
             Stingray.replace(arg);
         });
-        ipcMain.on('browse-srx', (event, arg) => {
+        ipcMain.on('browse-srx', (event: IpcMainEvent) => {
             this.browseSRX(event);
         });
-        ipcMain.on('browse-catalog', (event, arg) => {
+        ipcMain.on('browse-catalog', (event: IpcMainEvent) => {
             this.browseCatalog(event);
         });
-        ipcMain.on('browse-alignment', (event, arg) => {
+        ipcMain.on('browse-alignment', (event: IpcMainEvent) => {
             this.browseAlignment(event);
         });
-        ipcMain.on('browse-source', (event, arg) => {
+        ipcMain.on('browse-source', (event: IpcMainEvent) => {
             this.browseSource(event);
         });
-        ipcMain.on('browse-target', (event, arg) => {
+        ipcMain.on('browse-target', (event: IpcMainEvent) => {
             this.browseTarget(event);
         });
-        ipcMain.on('save-preferences', (event, arg) => {
-            Stingray.settingsWindow.close();
+        ipcMain.on('save-preferences', (event: IpcMainEvent, arg: any) => {
+            Stingray.destroyWindow(Stingray.settingsWindow);
             Stingray.mainWindow.focus();
             Stingray.currentPreferences = arg;
             Stingray.savePreferences();
         });
-        ipcMain.on('get-preferences', (event, arg) => {
+        ipcMain.on('get-preferences', (event: IpcMainEvent) => {
             event.sender.send('set-preferences', Stingray.currentPreferences);
         });
         ipcMain.on('licenses-clicked', () => {
-            Stingray.showLicenses();
+            Stingray.showLicenses('about');
         });
-        ipcMain.on('open-license', (event, arg) => {
+        ipcMain.on('open-license', (event: IpcMainEvent, arg: any) => {
             Stingray.openLicense(arg.type);
         })
         ipcMain.on('show-help', () => {
             Stingray.showHelp();
         });
-        ipcMain.on('get-languages', (event, arg) => {
+        ipcMain.on('get-languages', (event: IpcMainEvent) => {
             this.getLanguages(event);
         });
-        ipcMain.on('get-types', (event, arg) => {
+        ipcMain.on('get-types', (event: IpcMainEvent) => {
             this.getTypes(event);
         });
-        ipcMain.on('get-charsets', (event, arg) => {
+        ipcMain.on('get-charsets', (event: IpcMainEvent) => {
             this.getCharsets(event);
         });
         ipcMain.on('new-file', () => {
@@ -250,11 +274,13 @@ class Stingray {
         ipcMain.on('export-csv', () => {
             Stingray.exportCSV();
         });
-        ipcMain.on('newFile-height', (event, arg) => {
-            let rect: Rectangle = Stingray.newFileWindow.getBounds();
-            rect.height = arg.height + this.verticalPadding;
-            Stingray.newFileWindow.setBounds(rect);
+        ipcMain.on('newFile-height', (event: IpcMainEvent, arg: any) => {
+            Stingray.setHeight(Stingray.newFileWindow, arg);
         });
+        ipcMain.on('messages-height', (event: IpcMainEvent, arg: any) => {
+            Stingray.setHeight(Stingray.messagesWindow, arg);
+        });
+
         ipcMain.on('remove-tags', () => {
             Stingray.removeTags();
         });
@@ -264,47 +290,109 @@ class Stingray {
         ipcMain.on('change-languages', () => {
             Stingray.changeLanguages();
         });
-        ipcMain.on('languages-height', (event, arg) => {
-            let rect: Rectangle = Stingray.changeLanguagesWindow.getBounds();
-            rect.height = arg.height + this.verticalPadding;
-            Stingray.changeLanguagesWindow.setBounds(rect);
+        ipcMain.on('languages-height', (event: IpcMainEvent, arg: any) => {
+            Stingray.setHeight(Stingray.changeLanguagesWindow, arg);
         });
-        ipcMain.on('create-alignment', (event, arg) => {
+        ipcMain.on('create-alignment', (event: IpcMainEvent, arg: any) => {
             Stingray.createAlignment(arg);
         });
-        ipcMain.on('get-rows', (event, arg) => {
+        ipcMain.on('get-rows', (event: IpcMainEvent, arg: any) => {
             Stingray.getRows(arg);
         });
-        ipcMain.on('file-languages', (event, arg) => {
+        ipcMain.on('file-languages', (event: IpcMainEvent) => {
             event.sender.send('language-pair', { srcLang: Stingray.srcLang, tgtLang: Stingray.tgtLang });
         });
-        ipcMain.on('save-languages', (event, arg) => {
+        ipcMain.on('save-languages', (event: IpcMainEvent, arg: any) => {
             Stingray.setLanguages(arg);
         });
-        ipcMain.on('save-data', (event, arg) => {
+        ipcMain.on('save-data', (event: IpcMainEvent, arg: any) => {
             Stingray.saveData(arg);
         });
-        ipcMain.on('split-data', (event, arg) => {
+        ipcMain.on('split-data', (event: IpcMainEvent, arg: any) => {
             Stingray.split(arg);
         });
-        ipcMain.on('segment-down', (event, arg) => {
+        ipcMain.on('segment-down', (event: IpcMainEvent, arg: any) => {
             Stingray.segmentDown(arg);
         });
-        ipcMain.on('segment-up', (event, arg) => {
+        ipcMain.on('segment-up', (event: IpcMainEvent, arg: any) => {
             Stingray.segmentUp(arg);
         });
-        ipcMain.on('merge-next', (event, arg) => {
+        ipcMain.on('merge-next', (event: IpcMainEvent, arg: any) => {
             Stingray.mergeNext(arg);
         });
-        ipcMain.on('remove-data', (event, arg) => {
+        ipcMain.on('remove-data', (event: IpcMainEvent, arg: any) => {
             Stingray.removeData(arg);
         });
+        ipcMain.on('close-about', () => {
+            Stingray.destroyWindow(Stingray.aboutWindow);
+        });
+        ipcMain.on('close-change=languages', () => {
+            Stingray.destroyWindow(Stingray.changeLanguagesWindow);
+        });
+        ipcMain.on('close-licenses', () => {
+            Stingray.destroyWindow(Stingray.licensesWindow);
+        });
+        ipcMain.on('close-messages', () => {
+            Stingray.destroyWindow(Stingray.messagesWindow);
+        });
+        ipcMain.on('close-new-file', () => {
+            Stingray.destroyWindow(Stingray.newFileWindow);
+        });
+        ipcMain.on('close-preferences', () => {
+            Stingray.destroyWindow(Stingray.settingsWindow);
+        });
+        ipcMain.on('close-search-replace', () => {
+            Stingray.destroyWindow(Stingray.replaceTextWindow);
+        });
+        // REGISTRATION
+        ipcMain.on('close-register-subscription', () => {
+            Stingray.destroyWindow(Stingray.registerSubscriptionWindow);
+        });
+        ipcMain.on('close-register-new-subscription', () => {
+            Stingray.destroyWindow(Stingray.newSubscriptionWindow);
+        });
+        ipcMain.on('close-request-evaluation', () => {
+            Stingray.destroyWindow(Stingray.requestEvaluationWindow);
+        });
+        ipcMain.on('close-register-expired', () => {
+            Stingray.destroyWindow(Stingray.registerExpiredWindow);
+        });
+    }
+
+    static destroyWindow(window: BrowserWindow): void {
+        if (window) {
+            try {
+                let parent: BrowserWindow = window.getParentWindow();
+                window.destroy();
+                window = undefined;
+                parent.focus();
+            } catch (e) {
+                console.log(e);
+            }
+        }
     }
 
     stopServer(): void {
         if (!this.stopping) {
             this.stopping = true;
             this.ls.kill(15);
+        }
+    }
+
+    static setHeight(window: BrowserWindow, arg: any) {
+        let rect: Rectangle = window.getBounds();
+        rect.height = arg.height + Stingray.verticalPadding;
+        window.setBounds(rect);
+        window.show();
+    }
+
+    static mainLoaded(): void {
+        if (Stingray.argFile !== '') {
+            setTimeout(() => {
+                Stingray.openFile(Stingray.argFile);
+                Stingray.argFile = '';
+            }, 2000);
+
         }
     }
 
@@ -341,7 +429,7 @@ class Stingray {
             let length: number = recentFiles.length;
             for (let i = 0; i < length; i++) {
                 let file: string = recentFiles[i];
-                fileMenu.append(new MenuItem({ label: file, click: () => { Stingray.currentFile = file; Stingray.openFile() } }));
+                fileMenu.append(new MenuItem({ label: file, click: () => { Stingray.openFile(file) } }));
             }
         }
         var editMenu: Menu = Menu.buildFromTemplate([
@@ -379,13 +467,11 @@ class Stingray {
             { label: 'Stingray User Guide', accelerator: 'F1', click: () => { Stingray.showHelp(); } },
             new MenuItem({ type: 'separator' }),
             { label: 'Check for Updates...', click: () => { Stingray.checkUpdates(false); } },
-            { label: 'View Licenses', click: () => { Stingray.showLicenses(); } },
+            { label: 'View Licenses', click: () => { Stingray.showLicenses('main'); } },
             new MenuItem({ type: 'separator' }),
             { label: 'Release History', click: () => { Stingray.showReleaseHistory(); } },
             { label: 'Support Group', click: () => { Stingray.showSupportGroup(); } }
         ]);
-
-
         var template: MenuItem[] = [
             new MenuItem({ label: '&File', role: 'fileMenu', submenu: fileMenu }),
             new MenuItem({ label: '&Edit', role: 'editMenu', submenu: editMenu }),
@@ -505,14 +591,14 @@ class Stingray {
                     try {
                         const parsedData: any = JSON.parse(rawData);
                         if (app.getVersion() !== parsedData.version) {
-                            dialog.showMessageBox(this.mainWindow, {
+                            Stingray.showMessage({
                                 type: 'info',
                                 title: 'Updates Available',
                                 message: 'Version ' + parsedData.version + ' is available'
                             });
                         } else {
                             if (!silent) {
-                                dialog.showMessageBox(this.mainWindow, {
+                                Stingray.showMessage({
                                     type: 'info',
                                     message: 'There are currently no updates available'
                                 });
@@ -537,7 +623,7 @@ class Stingray {
     static showAbout(): void {
         this.aboutWindow = new BrowserWindow({
             parent: this.mainWindow,
-            width: this.getWidth('aboutWindow'),
+            width: 360,
             minimizable: false,
             maximizable: false,
             resizable: false,
@@ -555,14 +641,13 @@ class Stingray {
         this.aboutWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'about.html'));
         this.aboutWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
-            this.aboutWindow.show();
         });
     }
 
     static showSettings(): void {
         this.settingsWindow = new BrowserWindow({
             parent: this.mainWindow,
-            width: this.getWidth('settingsWindow'),
+            width: 600,
             useContentSize: true,
             minimizable: false,
             maximizable: false,
@@ -580,7 +665,6 @@ class Stingray {
         this.settingsWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'preferences.html'));
         this.settingsWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
-            this.settingsWindow.show();
         });
     }
 
@@ -588,12 +672,11 @@ class Stingray {
         shell.openExternal(this.path.join('file://', app.getAppPath(), 'stingray.pdf'));
     }
 
-    static showLicenses(): void {
-        let height = 345;
+    static showLicenses(from: string): void {
+        let parent: BrowserWindow = from === 'about' ? this.aboutWindow : this.mainWindow;
         this.licensesWindow = new BrowserWindow({
-            parent: this.mainWindow,
-            width: this.getWidth('licensesWindow'),
-            height: height,
+            parent: parent,
+            width: 430,
             useContentSize: true,
             minimizable: false,
             maximizable: false,
@@ -605,17 +688,9 @@ class Stingray {
             }
         });
         this.licensesWindow.setMenu(null);
-        this.licensesWindow.on('closed', () => {
-            if (this.aboutWindow) {
-                this.aboutWindow.focus();
-            } else {
-                this.mainWindow.focus();
-            }
-        });
         this.licensesWindow.loadURL('file://' + app.getAppPath() + '/html/licenses.html');
         this.licensesWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
-            this.licensesWindow.show();
         });
     }
 
@@ -672,33 +747,16 @@ class Stingray {
             }
         });
         licenseWindow.setMenu(null);
-        licenseWindow.on('closed', () => {
-            if (Stingray.licensesWindow) {
-                this.licensesWindow.focus();
-            } else {
-                this.mainWindow.focus();
-            }
-        });
         licenseWindow.loadURL(licenseFile);
         licenseWindow.show();
     }
+
     static showReleaseHistory(): void {
         shell.openExternal('https://www.maxprograms.com/products/stgraylog.html');
     }
 
     static showSupportGroup(): void {
         shell.openExternal('https://groups.io/g/maxprograms/');
-    }
-
-    static getWidth(window: string): number {
-        switch (window) {
-            case 'aboutWindow': { return 436; }
-            case 'licensesWindow': { return 430; }
-            case 'settingsWindow': { return 600; }
-            case 'newFileWindow': { return 850; }
-            case 'changeLanguagesWindow': { return 550; }
-            case 'replaceTextWindow': { return 450; }
-        }
     }
 
     static sendRequest(url: string, json: any, success: any, error: any) {
@@ -772,23 +830,10 @@ class Stingray {
         );
     }
 
-    getVersion(event: IpcMainEvent): void {
-        Stingray.sendRequest('/version', {},
-            function success(data: any) {
-                data.srcLang = Stingray.currentPreferences.srcLang;
-                data.tgtLang = Stingray.currentPreferences.tgtLang;
-                event.sender.send('set-version', app.name + ' ' + data.version);
-            },
-            function error(reason: string) {
-                dialog.showErrorBox('Error', reason);
-            }
-        );
-    }
-
     static newFile(): void {
         this.newFileWindow = new BrowserWindow({
             parent: this.mainWindow,
-            width: this.getWidth('newFileWindow'),
+            width: 850,
             useContentSize: true,
             minimizable: false,
             maximizable: false,
@@ -806,7 +851,6 @@ class Stingray {
         this.newFileWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'newFile.html'));
         this.newFileWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
-            this.newFileWindow.show();
         });
     }
 
@@ -817,7 +861,7 @@ class Stingray {
             properties: ['openFile'],
             filters: [
                 { name: 'SRX File', extensions: ['srx'] },
-                { name: 'Any File', extensions:['*'] }
+                { name: 'Any File', extensions: ['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -835,7 +879,7 @@ class Stingray {
             properties: ['openFile'],
             filters: [
                 { name: 'XML File', extensions: ['xml'] },
-                { name: 'Any File', extensions:['*'] }
+                { name: 'Any File', extensions: ['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -852,7 +896,7 @@ class Stingray {
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
                 { name: 'Alignment File', extensions: ['algn'] },
-                { name: 'Any File', extensions:['*'] }
+                { name: 'Any File', extensions: ['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -875,6 +919,7 @@ class Stingray {
                 { name: 'HTML Page', extensions: ['html', 'htm'] },
                 { name: 'JavaScript', extensions: ['js'] },
                 { name: 'Java Properties', extensions: ['properties'] },
+                { name: 'JSON', extensions: ['json'] },
                 { name: 'MIF (Maker Interchange Format)', extensions: ['mif'] },
                 { name: 'Microsoft Office 2007 Document', extensions: ['docx', 'xlsx', 'pptx'] },
                 { name: 'OpenOffice 1.x Document', extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
@@ -907,6 +952,7 @@ class Stingray {
                 { name: 'HTML Page', extensions: ['html', 'htm'] },
                 { name: 'JavaScript', extensions: ['js'] },
                 { name: 'Java Properties', extensions: ['properties'] },
+                { name: 'JSON', extensions: ['json'] },
                 { name: 'MIF (Maker Interchange Format)', extensions: ['mif'] },
                 { name: 'Microsoft Office 2007 Document', extensions: ['docx', 'xlsx', 'pptx'] },
                 { name: 'OpenOffice 1.x Document', extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
@@ -939,7 +985,7 @@ class Stingray {
     }
 
     static createAlignment(params: any): void {
-        this.newFileWindow.close();
+        this.destroyWindow(this.newFileWindow);
         this.mainWindow.focus();
         this.contents.send('start-waiting');
         this.contents.send('set-status', 'Preparing files');
@@ -960,8 +1006,7 @@ class Stingray {
                             if (Stingray.alignmentStatus.alignError !== '') {
                                 dialog.showErrorBox('Error', Stingray.alignmentStatus.alignError);
                             } else {
-                                Stingray.currentFile = params.alignmentFile;
-                                Stingray.openFile();
+                                Stingray.openFile(params.alignmentFile);
                             }
                         }
                         Stingray.getAlignmentStatus();
@@ -999,25 +1044,24 @@ class Stingray {
             properties: ['openFile'],
             filters: [
                 { name: 'Alignment File', extensions: ['algn'] },
-                { name: 'Any File', extensions:['*'] }
+                { name: 'Any File', extensions: ['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
-                Stingray.currentFile = value.filePaths[0];
-                Stingray.openFile();
+                Stingray.openFile(value.filePaths[0]);
             }
         }).catch((error) => {
             console.log(error);
         });
     }
 
-    static openFile(): void {
+    static openFile(file: string): void {
         if (this.currentFile !== '') {
             this.closeFile();
         }
         this.contents.send('start-waiting');
         this.contents.send('set-status', 'Loading file');
-        this.sendRequest('/openFile', { file: this.currentFile },
+        this.sendRequest('/openFile', { file: file },
             function success(data: any) {
                 if (data.status === 'Success') {
                     Stingray.loadingStatus.loading = true;
@@ -1032,6 +1076,7 @@ class Stingray {
                             if (Stingray.loadingStatus.loadError !== '') {
                                 dialog.showErrorBox('Error', Stingray.loadingStatus.loadError);
                             } else {
+                                Stingray.currentFile = file;
                                 Stingray.saved = true;
                                 Stingray.getFileInfo();
                                 Stingray.saveRecent(Stingray.currentFile);
@@ -1213,7 +1258,7 @@ class Stingray {
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
                 { name: 'Alignment File', extensions: ['algn'] },
-                { name: 'Any File', extensions:['*'] }
+                { name: 'Any File', extensions: ['*'] }
             ],
             defaultPath: Stingray.currentFile
         }).then((value) => {
@@ -1244,13 +1289,13 @@ class Stingray {
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
                 { name: 'TMX File', extensions: ['tmx'] },
-                { name: 'Any File', extensions:['*'] }
+                { name: 'Any File', extensions: ['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
                 this.sendRequest("/exportTMX", { file: value.filePath },
                     function success(data: any) {
-                        dialog.showMessageBox(Stingray.mainWindow, { type: 'info', message: 'File exported' });
+                        Stingray.showMessage({ type: 'info', message: 'File exported' });
                     },
                     function error(reason: string) {
                         dialog.showErrorBox('Error', reason);
@@ -1272,13 +1317,13 @@ class Stingray {
             filters: [
                 { name: 'CSV File', extensions: ['csv'] },
                 { name: 'Text File', extensions: ['txt'] },
-                { name: 'Any File', extensions:['*'] }
+                { name: 'Any File', extensions: ['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
                 this.sendRequest("/exportCSV", { file: value.filePath },
                     function success(data: any) {
-                        dialog.showMessageBox(Stingray.mainWindow, { type: 'info', message: 'File exported' });
+                        Stingray.showMessage({ type: 'info', message: 'File exported' });
                     },
                     function error(reason: string) {
                         dialog.showErrorBox('Error', reason);
@@ -1332,7 +1377,7 @@ class Stingray {
         }
         this.changeLanguagesWindow = new BrowserWindow({
             parent: this.mainWindow,
-            width: this.getWidth('changeLanguagesWindow'),
+            width: 550,
             useContentSize: true,
             minimizable: false,
             maximizable: false,
@@ -1350,7 +1395,6 @@ class Stingray {
         this.changeLanguagesWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'changeLanguages.html'));
         this.changeLanguagesWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
-            this.changeLanguagesWindow.show();
         });
     }
 
@@ -1360,7 +1404,7 @@ class Stingray {
         }
         this.replaceTextWindow = new BrowserWindow({
             parent: this.mainWindow,
-            width: this.getWidth('replaceTextWindow'),
+            width: 450,
             useContentSize: true,
             minimizable: false,
             maximizable: false,
@@ -1378,7 +1422,6 @@ class Stingray {
         this.replaceTextWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'searchReplace.html'));
         this.replaceTextWindow.once('ready-to-show', (event: IpcMainEvent) => {
             event.sender.send('get-height');
-            this.replaceTextWindow.show();
         });
     }
 
@@ -1480,14 +1523,14 @@ class Stingray {
         let jsonData: any = { files: files };
         writeFile(recentsFile, JSON.stringify(jsonData), function (error) {
             if (error) {
-                dialog.showMessageBox({ type: 'error', message: error.message });
+                Stingray.showMessage({ type: 'error', message: error.message });
                 return;
             }
         });
     }
 
     static setLanguages(langs: any): void {
-        this.changeLanguagesWindow.close();
+        this.destroyWindow(this.changeLanguagesWindow);
         Stingray.mainWindow.focus();
         this.sendRequest('/setLanguages', langs,
             function success(data: any) {
@@ -1578,6 +1621,29 @@ class Stingray {
             }
         );
     }
+
+    static showMessage(arg: any): void {
+        Stingray.messagesWindow = new BrowserWindow({
+            parent: this.mainWindow,
+            width: 600,
+            useContentSize: true,
+            minimizable: false,
+            maximizable: false,
+            resizable: false,
+            modal: true,
+            show: false,
+            icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            webPreferences: {
+                nodeIntegration: true
+            }
+        });
+        Stingray.messagesWindow.setMenu(null);
+        Stingray.messagesWindow.loadURL('file://' + this.path.join(app.getAppPath(), 'html', 'messages.html'));
+        Stingray.messagesWindow.once('ready-to-show', (event: IpcMainEvent) => {
+            event.sender.send('set-message', arg);
+            event.sender.send('get-height');
+        });
+    }
 }
 
-new Stingray();
+new Stingray(process.argv);
