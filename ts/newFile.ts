@@ -30,7 +30,6 @@ class NewFile {
         this.electron.ipcRenderer.on('set-languages', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setLanguages(arg);
         });
-        this.electron.ipcRenderer.send('get-types');
         this.electron.ipcRenderer.on('set-types', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setTypes(arg);
         });
@@ -43,10 +42,6 @@ class NewFile {
             if (event.key === 'Escape') {
                 this.electron.ipcRenderer.send('close-new-file');
             }
-        });
-        this.electron.ipcRenderer.on('get-height', () => {
-            let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-            this.electron.ipcRenderer.send('newFile-height', { width: body.clientWidth, height: body.clientHeight });
         });
         document.getElementById('browseAlignment').addEventListener('click', () => {
             this.electron.ipcRenderer.send('browse-alignment');
@@ -73,6 +68,7 @@ class NewFile {
             this.createAlignment();
             document.getElementById('create').blur();
         });
+        document.getElementById('alignmentInput').focus();
     }
 
     setLanguages(arg: any): void {
@@ -90,6 +86,7 @@ class NewFile {
         if (arg.tgtLang !== 'none') {
             (document.getElementById('tgtLangSelect') as HTMLSelectElement).value = arg.tgtLang;
         }
+        this.electron.ipcRenderer.send('get-types');
     }
 
     setTypes(arg: any): void {
@@ -101,6 +98,8 @@ class NewFile {
         }
         document.getElementById('srcTypeSelect').innerHTML = typeOptions;
         document.getElementById('tgtTypeSelect').innerHTML = typeOptions;
+        let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
+        this.electron.ipcRenderer.send('newFile-height', { width: body.clientWidth, height: body.clientHeight });
     }
 
     setCharsets(arg: any): void {

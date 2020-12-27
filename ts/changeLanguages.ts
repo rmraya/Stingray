@@ -41,13 +41,10 @@ class ChangeLanguages {
         document.getElementById('save').addEventListener('click', () => {
             this.saveLanguages();
         });
-        this.electron.ipcRenderer.on('get-height', () => {
-            let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-            this.electron.ipcRenderer.send('languages-height', { width: body.clientWidth, height: body.clientHeight });
-        });
         this.electron.ipcRenderer.on('language-pair', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setFileLanguages(arg);
         });
+        document.getElementById('srcLangSelect').focus();
     }
 
     setLanguages(arg: any): void {
@@ -65,6 +62,8 @@ class ChangeLanguages {
     setFileLanguages(arg: any) {
         (document.getElementById('srcLangSelect') as HTMLSelectElement).value = arg.srcLang;
         (document.getElementById('tgtLangSelect') as HTMLSelectElement).value = arg.tgtLang;
+        let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
+        this.electron.ipcRenderer.send('languages-height', { width: body.clientWidth, height: body.clientHeight });
     }
 
     saveLanguages() {

@@ -34,15 +34,16 @@ class About {
             this.electron.ipcRenderer.send('licenses-clicked');
         });
         document.addEventListener('keydown', (event: KeyboardEvent) => {
+            if (event.code === 'Enter' || event.code === 'NumpadEnter') {
+                this.electron.ipcRenderer.send('licenses-clicked');
+            }
             if (event.key === 'Escape') {
                 this.electron.ipcRenderer.send('close-about');
             }
         });
-        this.electron.ipcRenderer.on('get-height', () => {
-            let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-            this.electron.ipcRenderer.send('about-height', { width: body.clientWidth, height: (body.clientHeight + 20) });
-        });
         document.getElementById('licensesButton').focus();
+        let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
+        this.electron.ipcRenderer.send('about-height', { width: body.clientWidth, height: (body.clientHeight + 20) });
     }
 }
 

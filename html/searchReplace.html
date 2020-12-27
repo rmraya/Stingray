@@ -11,26 +11,33 @@
     <table>
         <tr>
             <td class="middle noWrap"><label for="searchText">Text to Search</label></td>
-            <td class="middle fill_width"><input type="text" id="searchText" class="fill_width"></td>
+            <td class="middle fill_width">
+                <input type="text" id="searchText" class="table_input">
+            </td>
         </tr>
         <tr>
             <td class="middle noWrap"><label for="replaceText">Replace with</label></td>
-            <td class="middle fill_width"><input type="text" id="replaceText" class="fill_width"></td>
+            <td class="middle fill_width">
+                <input type="text" id="replaceText" class="table_input">
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" class="middle">
+                <input type="checkbox" id="regularExpression" class="middle">
+                <label for="regularExpression" class="middle">Regular Expression</label>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" class="middle">
+                <span class="middle" >Search in: </span>
+                <input type="radio" name="language" id="source" class="middle" checked>
+                <label for="source"class="middle" >Source Text</label>
+                <input type="radio" name="language" id="target"class="middle" >
+                <label for="target"class="middle" >Target Text</label>
+            </td>
         </tr>
     </table>
 
-    <div style="padding:4px;" class="fill-width">
-        <input type="checkbox" id="regularExpression">
-        <label for="regularExpression">Regular Expression</label>
-    </div>
-
-    <div style="padding:4px;" class="fill-width">
-        <span>Search in: </span>
-        <input type="radio" name="language" id="source" checked>
-        <label for="source">Source Text</label>
-        <input type="radio" name="language" id="target">
-        <label for="target">Target Text</label>
-    </div>
 
 
     <div class="buttonArea">

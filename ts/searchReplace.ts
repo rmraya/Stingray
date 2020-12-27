@@ -38,10 +38,9 @@ class SearchReplace {
         document.getElementById('replace').addEventListener('click', () => {
             this.replace();
         });
-        this.electron.ipcRenderer.on('get-height', () => {
-            let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-            this.electron.ipcRenderer.send('replacetext-height', { width: body.clientWidth, height: body.clientHeight });
-        });
+        document.getElementById('searchText').focus();
+        let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
+        this.electron.ipcRenderer.send('replacetext-height', { width: body.clientWidth, height: body.clientHeight });
     }
 
     replace(): void {

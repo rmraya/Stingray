@@ -147,13 +147,13 @@ public class Alignment {
             StringBuilder row = new StringBuilder();
             row.append("<tr id=\"");
             row.append("" + id);
-            row.append("\"><td class='fixed'>");
+            row.append("\"><td class='fixed initial'>");
             row.append(id + 1);
             row.append("</td><td");
             if (srcLang.isBiDi()) {
                 row.append(" dir=\"rtl\"");
             }
-            row.append(" class=\"cell\" lang=\"");
+            row.append(" class=\"cell initial\" lang=\"");
             row.append(srcLang.getCode());
             row.append("\">");
             row.append(getContent(sources, id));

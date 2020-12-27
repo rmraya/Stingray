@@ -1,7 +1,5 @@
 #  Stingray Document Aligner
 
-
-
 ![Stingray logo](https://www.maxprograms.com/images/stingray_s.png)
 
 Stingray is a document aligner designed to assist professional translators in the production of translation memories from existing translated material.
@@ -33,7 +31,7 @@ Ready to use installers and technical support for Stingray are available as year
 
 The version of Stingray included in the official installers from [Stingray's Home Page](https://www.maxprograms.com/products/stingray.html) can be used at no cost for 7 days requesting a free Evaluation Key.
 
-Subscription Keys are issued to be used by one person in one computer. They cannot be shared or transferred to a different machine.
+Subscription Keys cannot be shared or transferred to a different machine.
 
 Subscription version includes unlimited email support at tech@maxprograms.com
 

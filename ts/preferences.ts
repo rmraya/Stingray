@@ -55,16 +55,13 @@ class Preferences {
         document.getElementById('save').addEventListener('click', () => {
             this.savePreferences();
         });
-        this.electron.ipcRenderer.on('get-height', () => {
-            let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-            this.electron.ipcRenderer.send('settings-height', { width: body.clientWidth, height: body.clientHeight });
-        });
         this.electron.ipcRenderer.on('set-srx', (event: Electron.IpcRendererEvent, arg: any) => {
             (document.getElementById('defaultSRX') as HTMLInputElement).value = arg;
         });
         this.electron.ipcRenderer.on('set-catalog', (event: Electron.IpcRendererEvent, arg: any) => {
             (document.getElementById('defaultCatalog') as HTMLInputElement).value = arg;
         });
+        document.getElementById('srcLangSelect').focus();
     }
 
     setLanguages(arg: any): void {
@@ -77,6 +74,9 @@ class Preferences {
         document.getElementById('srcLangSelect').innerHTML = languageOptions;
         document.getElementById('tgtLangSelect').innerHTML = languageOptions;
         this.electron.ipcRenderer.send('get-preferences');
+
+        let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
+        this.electron.ipcRenderer.send('settings-height', { width: body.clientWidth, height: body.clientHeight });
     }
 
     savePreferences() {
