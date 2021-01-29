@@ -108,6 +108,8 @@ public class Alignment {
     }
 
     public void save() throws IOException, SAXException, ParserConfigurationException {
+        setSources(sources);
+        setTargets(targets);
         XMLOutputter outputter = new XMLOutputter();
         outputter.preserveSpace(true);
         Indenter.indent(doc.getRootElement(), 2);
