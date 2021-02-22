@@ -99,12 +99,14 @@ public class Alignment {
         List<XMLNode> content = new ArrayList<>();
         content.addAll(list);
         doc.getRootElement().getChild("sources").setContent(content);
+        sources = doc.getRootElement().getChild("sources").getChildren();
     }
 
     public void setTargets(List<Element> list) {
         List<XMLNode> content = new ArrayList<>();
         content.addAll(list);
         doc.getRootElement().getChild("targets").setContent(content);
+        targets = doc.getRootElement().getChild("targets").getChildren();
     }
 
     public void save() throws IOException, SAXException, ParserConfigurationException {
