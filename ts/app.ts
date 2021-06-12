@@ -1,21 +1,14 @@
-/*****************************************************************************
-Copyright (c) 2008-2021 - Maxprograms,  http://www.maxprograms.com\\
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to compile,
-modify and use the Software in its executable form without restrictions.
-
-Redistribution of this Software or parts of it in any form (source code or
-executable binaries) requires prior written permission from Maxprograms.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*****************************************************************************/
+/*******************************************************************************
+ * Copyright (c) 2008-2021 Maxprograms.
+ *
+ * This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License 1.0
+ * which accompanies this distribution, and is available at
+ * https://www.eclipse.org/org/documents/epl-v10.html
+ *
+ * Contributors:
+ *     Maxprograms - initial API and implementation
+ *******************************************************************************/
 
 import { ChildProcessWithoutNullStreams, execFileSync, spawn } from "child_process";
 import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, Menu, MenuItem, nativeTheme, Rectangle, shell, webContents } from "electron";
@@ -77,6 +70,9 @@ class Stingray {
                 }
                 Stingray.mainWindow.focus();
             }
+        }
+        if (process.arch === 'arm64') {
+            Stingray.verticalPadding = 56;
         }
         if (process.platform === 'win32' && args.length > 1 && args[1] !== '.') {
             Stingray.argFile = ''
@@ -605,11 +601,14 @@ class Stingray {
                         if (app.getVersion() !== parsedData.version) {
                             Stingray.latestVersion = parsedData.version;
                             switch (process.platform) {
-                                case 'darwin': Stingray.downloadLink = parsedData.darwin;
+                                case 'darwin':
+                                    Stingray.downloadLink = process.arch === 'arm64' ? parsedData.arm64 : parsedData.darwin;
                                     break;
-                                case 'win32': Stingray.downloadLink = parsedData.win32;
+                                case 'win32':
+                                    Stingray.downloadLink = parsedData.win32;
                                     break;
-                                case 'linux': Stingray.downloadLink = parsedData.linux;
+                                case 'linux':
+                                    Stingray.downloadLink = parsedData.linux;
                                     break;
                             }
                             Stingray.updatesWindow = new BrowserWindow({
@@ -746,8 +745,8 @@ class Stingray {
         var title = '';
         switch (type) {
             case 'Stingray':
-                licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'license.txt');
-                title = 'Stingray License';
+                licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'EclipsePublicLicense1.0.html');
+                title = 'Eclipse Public License 1.0';
                 break;
             case "electron":
                 licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'electron.txt');
