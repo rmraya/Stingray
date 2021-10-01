@@ -2,6 +2,7 @@
 @import "./neutrals.css";
 :root {
 	--error-color: #960303;
+	font-size: 16px;
 }
 
 body {
@@ -197,18 +198,18 @@ input {
 	background-color: var(--gray20);
 	color: var(--gray190);
 	border: 1px solid var(--gray190);
-	margin-top: 3px;
-	height: 1.4rem;
-	font-size: 1rem;
+	height: 22px;
+	font-size: 14px;
+	padding: 2px 4px;
 	border-radius: 2px;
 }
 
 .table_input {
-	width: calc(100% - 10px);
+	width: calc(100% - 14px);
 }
 
 .table_select {
-	width: calc(100% - 5px);
+	width: calc(100% - 4px);
 }
 
 input:focus {
@@ -216,24 +217,26 @@ input:focus {
 	border: 1px solid var(--themePrimary);
 }
 
+input:focus+label {
+	color: var(--themePrimary);
+}
+
 input:disabled {
 	background-color: var(--gray90);
 }
 
 input[type=number] {
-	font-size: 0.8em;
-	width: 40px;
-	margin: 0;
-	padding: 0;
-	padding-left: 2px;
+	font-size: 14px;
+	padding: 2px 4px;
 }
 
 select {
 	background-color: var(--gray20);
 	color: var(--gray190);
 	border: 1px solid var(--gray190);
-	font-size: 1em;
-	height: 1.6em;
+	font-size: 14px;
+	height: 28px;
+	padding: 2px 4px;
 	border-radius: 2px;
 }
 
@@ -242,12 +245,18 @@ select:focus {
 	border: 1px solid var(--themePrimary);
 }
 
+option {
+	font-size: 14px;
+	background-color: var(--gray20);
+	color: var(--gray190);
+}
+
 button {
 	color: var(--white);
 	background: var(--themePrimary);
 	border: 1px solid var(--themePrimary);
 	border-radius: 2px;
-	font-size: 1em;
+	font-size: 14px;
 	text-align: center;
 	margin: 4px;
 	padding-left: 8px;
@@ -257,6 +266,7 @@ button {
 
 button:focus {
 	outline: none !important;
+	background: var(--themeDarkAlt);
 }
 
 button:hover {
@@ -316,12 +326,6 @@ label {
 	justify-content: flex-end;
 }
 
-.inputArea {
-	display: flex;
-	flex-direction: row;
-	vertical-align: middle;
-}
-
 /* toolbars */
 
 .toolbar {
@@ -333,6 +337,7 @@ label {
 	stroke: var(--themePrimary);
 	padding: 2px 4px;
 	justify-content: flex-start;
+	vertical-align: middle;
 }
 
 .toolbar button {
@@ -344,7 +349,7 @@ label {
 	fill: inherit;
 	stroke: inherit;
 	text-align: left;
-	font-size: 0.8em;
+	font-size: 12px;
 	vertical-align: middle;
 	box-shadow: none;
 }
@@ -388,6 +393,12 @@ svg {
 	stroke-width: 0.1;
 }
 
+th svg {
+	margin-top: 4px;
+	fill: var(--gray10) !important;
+	stroke: var(--gray10) !important;
+}
+
 .panel {
 	z-index: 5;
 	display: block;
@@ -411,6 +422,8 @@ svg {
 .tooltip {
 	position: relative;
 	display: inline-block;
+	margin: 0px;
+	padding: 0px;
 }
 
 .tooltip .tooltiptext {
@@ -495,14 +508,39 @@ span.stats {
 	font-weight: 700;
 }
 
+.lighter {
+	background-color: var(--gray10);
+}
+
 .paddedPanel {
 	margin-top: 8px;
 	margin-right: 8px;
 	margin-left: 8px;
 	margin-bottom: 8px;
-	border-radius: 2px;
+	border-radius: 4px;
 	width: calc(100% - 16px);
 	height: calc(100% - 16px);
 	overflow: auto;
-	box-shadow: 0px 2px 4px var(--gray130);
+	background: var(--gray30);
+}
+
+::-webkit-scrollbar {
+	mix-blend-mode: lighten;
+	width: 12px;
+	height: 12px;
+}
+
+::-webkit-scrollbar-thumb {
+	min-height: 30px !important;
+	background-color: var(--gray90);
+	border-radius: 6px;
+}
+
+::-webkit-scrollbar-corner {
+	background-color: inherit;
+	border-radius: inherit;
+}
+
+::-webkit-scrollbar-button {
+	border-radius: inherit;
 }

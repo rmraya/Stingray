@@ -118,10 +118,7 @@ class Main {
 
     resize(): void {
         let height: number = document.body.clientHeight;
-        let width: number = document.body.clientWidth;
-
-        this.mainPanel.style.height = (height - this.topBar.clientHeight - this.bottomBar.clientHeight - 2) + 'px';
-        this.mainPanel.style.width = width + 'px';
+        this.mainPanel.style.height = (height - this.topBar.clientHeight - this.bottomBar.clientHeight) + 'px';
     }
 
     createTopToolbar(): void {
@@ -331,7 +328,7 @@ class Main {
     createCenterPanel(): void {
         this.mainPanel = document.getElementById('main') as HTMLDivElement;
 
-        let tableContainer : HTMLDivElement = document.createElement('div');
+        let tableContainer: HTMLDivElement = document.createElement('div');
         tableContainer.classList.add('paddedPanel');
         this.mainPanel.appendChild(tableContainer);
 
@@ -378,11 +375,12 @@ class Main {
         });
         this.bottomBar.appendChild(previous);
 
-        let pageSpan: HTMLSpanElement = document.createElement('span');
-        pageSpan.innerText = 'Page';
-        pageSpan.style.marginLeft = '10px';
-        pageSpan.style.marginTop = '4px';
-        this.bottomBar.appendChild(pageSpan);
+        let pageLabel: HTMLLabelElement = document.createElement('label');
+        pageLabel.innerText = 'Page';
+        pageLabel.setAttribute('for', 'page');
+        pageLabel.style.marginLeft = '10px';
+        pageLabel.style.marginTop = '4px';
+        this.bottomBar.appendChild(pageLabel);
 
         let pageDiv: HTMLDivElement = document.createElement('div');
         pageDiv.classList.add('tooltip');
@@ -440,8 +438,9 @@ class Main {
         });
         this.bottomBar.appendChild(last);
 
-        let unitsPage: HTMLSpanElement = document.createElement('span');
+        let unitsPage: HTMLLabelElement = document.createElement('label');
         unitsPage.innerText = 'Rows/Page';
+        unitsPage.setAttribute('for', 'rows_page');
         unitsPage.style.marginLeft = '10px';
         unitsPage.style.marginTop = '4px';
         this.bottomBar.appendChild(unitsPage);

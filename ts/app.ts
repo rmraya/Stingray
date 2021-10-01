@@ -30,7 +30,7 @@ class Stingray {
     static replaceTextWindow: BrowserWindow;
     static updatesWindow: BrowserWindow;
 
-    static contents: webContents;
+    static contents: Electron.WebContents;
     static alignmentStatus: any = { aligning: false, alignError: '', status: '' };
     static loadingStatus: any = { loading: false, loadError: '', status: '' };
     static savingStatus: any = { saving: false, saveError: '', status: '' };
@@ -59,7 +59,6 @@ class Stingray {
     static downloadLink: string;
 
     constructor(args: string[]) {
-        app.allowRendererProcessReuse = true;
         if (!app.requestSingleInstanceLock()) {
             app.quit();
         } else {
@@ -412,10 +411,10 @@ class Stingray {
             minHeight: 400,
             x: this.currentDefaults.x,
             y: this.currentDefaults.y,
-            useContentSize: true,
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false
+                contextIsolation: false,
+                nativeWindowOpen: true,
             },
             show: false,
             icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png')
@@ -614,7 +613,6 @@ class Stingray {
                             Stingray.updatesWindow = new BrowserWindow({
                                 parent: this.mainWindow,
                                 width: 600,
-                                useContentSize: true,
                                 minimizable: false,
                                 maximizable: false,
                                 resizable: false,
@@ -622,7 +620,8 @@ class Stingray {
                                 icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
                                 webPreferences: {
                                     nodeIntegration: true,
-                                    contextIsolation: false
+                                    contextIsolation: false,
+                                    nativeWindowOpen: true
                                 }
                             });
                             Stingray.updatesWindow.setMenu(null);
@@ -670,12 +669,12 @@ class Stingray {
             minimizable: false,
             maximizable: false,
             resizable: false,
-            useContentSize: true,
             show: false,
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false
+                contextIsolation: false,
+                nativeWindowOpen: true
             }
         });
         this.aboutWindow.setMenu(null);
@@ -692,7 +691,6 @@ class Stingray {
         this.settingsWindow = new BrowserWindow({
             parent: this.mainWindow,
             width: 600,
-            useContentSize: true,
             minimizable: false,
             maximizable: false,
             resizable: false,
@@ -700,7 +698,8 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false
+                contextIsolation: false,
+                nativeWindowOpen: true
             }
         });
         this.settingsWindow.setMenu(null);
@@ -722,7 +721,6 @@ class Stingray {
         this.licensesWindow = new BrowserWindow({
             parent: parent,
             width: 430,
-            useContentSize: true,
             minimizable: false,
             maximizable: false,
             resizable: false,
@@ -730,7 +728,8 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false
+                contextIsolation: false,
+                nativeWindowOpen: true
             }
         });
         this.licensesWindow.setMenu(null);
@@ -790,7 +789,8 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false
+                contextIsolation: false,
+                nativeWindowOpen: true
             }
         });
         licenseWindow.setMenu(null);
@@ -881,7 +881,6 @@ class Stingray {
         this.newFileWindow = new BrowserWindow({
             parent: this.mainWindow,
             width: 850,
-            useContentSize: true,
             minimizable: false,
             maximizable: false,
             resizable: false,
@@ -889,7 +888,8 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false
+                contextIsolation: false,
+                nativeWindowOpen: true
             }
         });
         this.newFileWindow.on('closed', () => {
@@ -1430,7 +1430,6 @@ class Stingray {
         this.changeLanguagesWindow = new BrowserWindow({
             parent: this.mainWindow,
             width: 550,
-            useContentSize: true,
             minimizable: false,
             maximizable: false,
             resizable: false,
@@ -1438,7 +1437,8 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false
+                contextIsolation: false,
+                nativeWindowOpen: true
             }
         });
         this.changeLanguagesWindow.setMenu(null);
@@ -1458,7 +1458,6 @@ class Stingray {
         this.replaceTextWindow = new BrowserWindow({
             parent: this.mainWindow,
             width: 450,
-            useContentSize: true,
             minimizable: false,
             maximizable: false,
             resizable: false,
@@ -1466,7 +1465,8 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false
+                contextIsolation: false,
+                nativeWindowOpen: true
             }
         });
         this.replaceTextWindow.setMenu(null);
@@ -1680,7 +1680,6 @@ class Stingray {
         Stingray.messagesWindow = new BrowserWindow({
             parent: this.mainWindow,
             width: 600,
-            useContentSize: true,
             minimizable: false,
             maximizable: false,
             resizable: false,
@@ -1689,7 +1688,8 @@ class Stingray {
             icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false
+                contextIsolation: false,
+                nativeWindowOpen: true
             }
         });
         Stingray.messageParam = arg;
