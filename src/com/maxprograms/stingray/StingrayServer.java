@@ -161,6 +161,9 @@ public class StingrayServer implements HttpHandler {
 				case "/closeFile":
 					response = closeFile();
 					break;
+				case "/systemInfo":
+					response = getSystemInformation();
+					break;				
 				default:
 					JSONObject unknown = new JSONObject();
 					unknown.put(Constants.STATUS, Constants.ERROR);
@@ -330,4 +333,12 @@ public class StingrayServer implements HttpHandler {
 	private String replaceText(JSONObject json) {
 		return service.replaceText(json).toString();
 	}
+
+    private static String getSystemInformation() {
+        JSONObject result = new JSONObject();
+        result.put("stingray", Constants.VERSION + " Build: " + Constants.BUILD);
+        result.put("openxliff", com.maxprograms.converters.Constants.VERSION + " Build: " + com.maxprograms.converters.Constants.BUILD);
+        result.put("java", System.getProperty("java.version") + " Vendor: " + System.getProperty("java.vendor"));
+        return result.toString();
+    }
 }

@@ -1,5 +1,6 @@
 @import "./theme.css";
 @import "./neutrals.css";
+
 :root {
 	--error-color: #960303;
 	font-size: 16px;
@@ -17,13 +18,13 @@ body {
 }
 
 header {
-	background: var(--themePrimary);
+	background: var(--ClassicBlue80);
 	color: var(--gray10);
-	border-bottom: solid 2px var(--themePrimary);
+	border-bottom: solid 2px var(--ClassicBlue80);
 }
 
 a {
-	color: var(--themePrimary);
+	color: var(--ClassicBlue80);
 	cursor: pointer;
 }
 
@@ -37,10 +38,11 @@ a:hover {
 	left: calc(40% - 100px);
 	width: 200px;
 	margin: auto;
-	background-color: var(--themeDarker);
+	background-color: var(--ClassicBlue90);
 	color: var(--white);
 	padding: 20px;
-	border: 1px solid var(--white);
+	border-radius: 8px;
+	box-shadow: 0px 4px 8px var(--gray160);
 }
 
 /* tables */
@@ -52,7 +54,7 @@ table {
 
 thead {
 	height: 26px;
-	background: var(--themeDark);
+	background: var(--ClassicBlue90);
 	color: var(--gray10);
 }
 
@@ -82,7 +84,7 @@ td.list {
 
 td.editing {
 	background-color: var(--black) !important;
-	outline: 1px solid var(--themePrimary);
+	outline: 1px solid var(--ClassicBlue80);
 }
 
 td.fixed {
@@ -109,8 +111,8 @@ td.final {
 }
 
 tr.selected {
-	border-top: 2px solid var(--themePrimary) !important;
-	border-bottom: 2px solid var(--themePrimary) !important;
+	border-top: 2px solid var(--ClassicBlue80) !important;
+	border-bottom: 2px solid var(--ClassicBlue80) !important;
 	background-color: var(--black) !important;
 }
 
@@ -120,7 +122,7 @@ th {
 	padding: 0px 4px;
 	top: 0;
 	font-weight: 300;
-	background: var(--themeDark);
+	background: var(--ClassicBlue90);
 	color: var(--white);
 	fill: var(--white);
 	stroke: var(--white);
@@ -132,8 +134,8 @@ th {
 }
 
 .currentRow {
-	border-top: 2px solid var(--themePrimary) !important;
-	border-bottom: 2px solid var(--themePrimary) !important;
+	border-top: 2px solid var(--ClassicBlue80) !important;
+	border-bottom: 2px solid var(--ClassicBlue80) !important;
 	background-color: var(--black) !important;
 }
 
@@ -143,7 +145,7 @@ th {
 	margin: 0;
 	width: 100%;
 	white-space: pre-wrap;
-	border-bottom: 1px solid var(--themePrimary);
+	border-bottom: 1px solid var(--ClassicBlue80);
 }
 
 .targetContainer {
@@ -170,7 +172,7 @@ th {
 
 .highlighted {
 	color: var(--gray40);
-	background-color: var(--themePrimary);
+	background-color: var(--ClassicBlue80);
 	padding-left: 2px;
 	padding-right: 2px;
 	border-radius: 2px;
@@ -214,11 +216,11 @@ input {
 
 input:focus {
 	outline: none !important;
-	border: 1px solid var(--themePrimary);
+	border: 1px solid var(--ClassicBlue80);
 }
 
 input:focus+label {
-	color: var(--themePrimary);
+	color: var(--ClassicBlue80);
 }
 
 input:disabled {
@@ -242,7 +244,7 @@ select {
 
 select:focus {
 	outline: none !important;
-	border: 1px solid var(--themePrimary);
+	border: 1px solid var(--ClassicBlue80);
 }
 
 option {
@@ -253,10 +255,10 @@ option {
 
 button {
 	color: var(--white);
-	background: var(--themePrimary);
-	border: 1px solid var(--themePrimary);
-	border-radius: 2px;
-	font-size: 14px;
+	background: var(--ClassicBlue90);
+	border: 1px solid var(--ClassicBlue90);
+	border-radius: 4px;
+	font-size: 1em;
 	text-align: center;
 	margin: 4px;
 	padding-left: 8px;
@@ -266,12 +268,12 @@ button {
 
 button:focus {
 	outline: none !important;
-	background: var(--themeDarkAlt);
+	background: var(--ClassicBlue100);
 }
 
 button:hover {
-	background: var(--themeDarkAlt);
-	border: 1px solid var(--themeDarkAlt);
+	background: var(--ClassicBlue100);
+	border: 1px solid var(--ClassicBlue100);
 	transition-property: all;
 	transition-duration: 0.5s;
 	transition-timing-function: cubic-bezier(0.14, 0.71, 0.38, 1);
@@ -333,8 +335,8 @@ label {
 	flex-direction: row;
 	background: var(--gray130);
 	color: var(--gray10);
-	fill: var(--themePrimary);
-	stroke: var(--themePrimary);
+	fill: var(--ClassicBlue80);
+	stroke: var(--ClassicBlue80);
 	padding: 2px 4px;
 	justify-content: flex-start;
 	vertical-align: middle;
@@ -427,7 +429,7 @@ th svg {
 }
 
 .tooltip .tooltiptext {
-	background-color: var(--themeDarker);
+	background-color: var(--ClassicBlue100);
 	color: var(--white);
 	visibility: hidden;
 	padding: 4px;
@@ -467,8 +469,8 @@ th svg {
 }
 
 .active svg {
-	stroke: var(--themePrimary) !important;
-	fill: var(--themePrimary) !important;
+	stroke: var(--ClassicBlue70) !important;
+	fill: var(--ClassicBlue70) !important;
 }
 
 .bordered {
@@ -503,7 +505,7 @@ span.stats {
 }
 
 .space {
-	background: var(--themeTertiary);
+	background: var(--ClassicBlue50);
 	border-radius: 2px;
 	font-weight: 700;
 }

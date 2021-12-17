@@ -11,9 +11,11 @@
  *******************************************************************************/
 
 import { ChildProcessWithoutNullStreams, execFileSync, spawn } from "child_process";
-import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, Menu, MenuItem, nativeTheme, Rectangle, shell, webContents } from "electron";
-import { existsSync, readFileSync, writeFile, writeFileSync } from "fs";
-import { ClientRequest, IncomingMessage, request } from "http";
+import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, Menu, MenuItem, nativeTheme, net, Rectangle, session, shell } from "electron";
+import { IncomingMessage } from "electron/main";
+import { appendFileSync, existsSync, readFileSync, unlinkSync, writeFile, writeFileSync } from "fs";
+import { ClientRequest, request } from "http";
+import { Locations, Point } from "./locations";
 
 class Stingray {
 
@@ -29,6 +31,7 @@ class Stingray {
     static changeLanguagesWindow: BrowserWindow;
     static replaceTextWindow: BrowserWindow;
     static updatesWindow: BrowserWindow;
+    static systemInfoWindow: BrowserWindow;
 
     static contents: Electron.WebContents;
     static alignmentStatus: any = { aligning: false, alignError: '', status: '' };
@@ -37,9 +40,9 @@ class Stingray {
 
     static currentPreferences: any;
     static currentTheme: string = 'system';
-
+    static locations: Locations;
     currentDefaults: Rectangle;
-    static verticalPadding: number = 46;
+    static verticalPadding: number = 50;
 
     javapath: string = Stingray.path.join(app.getAppPath(), 'bin', 'java');
     ls: ChildProcessWithoutNullStreams;
@@ -89,7 +92,7 @@ class Stingray {
             Stingray.verticalPadding = 56;
         }
 
-        this.ls = spawn(this.javapath, ['--module-path', 'lib', '-m', 'stingray/com.maxprograms.stingray.StingrayServer', '-port', '8040'], { cwd: app.getAppPath(), detached: true });
+        this.ls = spawn(this.javapath, ['--module-path', 'lib', '-m', 'stingray/com.maxprograms.stingray.StingrayServer', '-port', '8040'], { cwd: app.getAppPath(), detached: true, windowsHide: true });
 
         this.ls.stdout.on('data', (data) => {
             console.log(`stdout: ${data}`);
@@ -103,9 +106,9 @@ class Stingray {
             console.log(`child process exited with code ${code}`);
         });
 
-        var ck: Buffer = execFileSync(this.javapath, ['--module-path', 'lib', '-m', 'openxliff/com.maxprograms.server.CheckURL', 'http://localhost:8040/StingrayServer'], { cwd: app.getAppPath() });
-        console.log(ck.toString());
+        execFileSync(this.javapath, ['--module-path', 'lib', '-m', 'openxliff/com.maxprograms.server.CheckURL', 'http://localhost:8040/StingrayServer'], { cwd: app.getAppPath(), windowsHide: true });
 
+        Stingray.locations = new Locations(Stingray.path.join(app.getPath('appData'), app.name, 'locations.json'));
         this.loadDefaults();
         Stingray.currentPreferences = {
             theme: 'system',
@@ -132,6 +135,12 @@ class Stingray {
                 Stingray.mainWindow.show();
                 Stingray.checkUpdates(true);
                 Stingray.mainLoaded();
+                if (process.platform === 'darwin' && app.runningUnderARM64Translation) {
+                    Stingray.showMessage({
+                        type: 'warning',
+                        message: 'You are running a version for Macs with Intel processors on a Mac with Apple M1 chipset.'
+                    });
+                }
             });
             Stingray.mainWindow.on('close', (ev) => {
                 if (!Stingray.saved) {
@@ -239,6 +248,18 @@ class Stingray {
         });
         ipcMain.on('get-preferences', (event: IpcMainEvent) => {
             event.sender.send('set-preferences', Stingray.currentPreferences);
+        });
+        ipcMain.on('system-info-clicked', () => {
+            Stingray.showSystemInfo();
+        });
+        ipcMain.on('close-systemInfo', () => {
+            Stingray.destroyWindow(Stingray.systemInfoWindow);
+        });
+        ipcMain.on('systemInfo-height', (event: IpcMainEvent, arg: any) => {
+            Stingray.setHeight(Stingray.systemInfoWindow, arg);
+        });
+        ipcMain.on('get-system-info', (event: IpcMainEvent) => {
+            Stingray.getSystemInformation(event);
         });
         ipcMain.on('licenses-clicked', () => {
             Stingray.showLicenses('about');
@@ -588,15 +609,27 @@ class Stingray {
     }
 
     static checkUpdates(silent: boolean): void {
-        this.https.get('https://maxprograms.com/stingray.json', (res: IncomingMessage) => {
-            if (res.statusCode === 200) {
-                let rawData = '';
-                res.on('data', (chunk: string) => {
-                    rawData += chunk;
+        session.defaultSession.clearCache().then(() => {
+            let request: Electron.ClientRequest = net.request({
+                url: 'https://maxprograms.com/stingray.json',
+                session: session.defaultSession
+            });
+            request.on('response', (response: IncomingMessage) => {
+                let responseData: string = '';
+                if (response.statusCode !== 200) {
+                    if (!silent) {
+                        Stingray.showMessage({
+                            type: 'info',
+                            message: 'Server status: ' + response.statusCode
+                        });
+                    }
+                }
+                response.on('data', (chunk: Buffer) => {
+                    responseData += chunk;
                 });
-                res.on('end', () => {
+                response.on('end', () => {
                     try {
-                        const parsedData = JSON.parse(rawData);
+                        let parsedData = JSON.parse(responseData);
                         if (app.getVersion() !== parsedData.version) {
                             Stingray.latestVersion = parsedData.version;
                             switch (process.platform) {
@@ -629,6 +662,9 @@ class Stingray {
                             Stingray.updatesWindow.once('ready-to-show', () => {
                                 Stingray.updatesWindow.show();
                             });
+                            this.updatesWindow.on('close', () => {
+                                this.mainWindow.focus();
+                            });
                         } else {
                             if (!silent) {
                                 Stingray.showMessage({
@@ -637,29 +673,81 @@ class Stingray {
                                 });
                             }
                         }
-                    } catch (e) {
-                        Stingray.showMessage({ type: 'error', message: e.message });
+                    } catch (reason: any) {
+                        if (!silent) {
+                            Stingray.showMessage({
+                                type: 'error',
+                                message: reason.message
+                            });
+                        }
                     }
                 });
-            } else {
+            });
+            request.on('error', (error: Error) => {
                 if (!silent) {
-                    Stingray.showMessage({ type: 'error', message: 'Updates Request Failed.\nStatus code: ' + res.statusCode });
+                    Stingray.showMessage({
+                        type: 'error',
+                        message: error.message
+                    });
                 }
-            }
-        }).on('error', (e: any) => {
-            if (!silent) {
-                Stingray.showMessage({ type: 'error', message: e.message });
-            }
+            });
+            request.end();
         });
     }
 
     static downloadLatest(): void {
-        shell.openExternal(Stingray.downloadLink).catch((reason: any) => {
-            if (reason instanceof Error) {
-                console.log(reason.message);
-            }
-            this.showMessage({ type: 'error', message: 'Unable to download latest version.' });
+        let downloadsFolder = app.getPath('downloads');
+        let url: URL = new URL(Stingray.downloadLink);
+        let path: string = url.pathname;
+        path = path.substring(path.lastIndexOf('/') + 1);
+        let file: string = downloadsFolder + (process.platform === 'win32' ? '\\' : '/') + path;
+        if (existsSync(file)) {
+            unlinkSync(file);
+        }
+        let request: Electron.ClientRequest = net.request({
+            url: Stingray.downloadLink,
+            session: session.defaultSession
         });
+        Stingray.mainWindow.webContents.send('set-status', 'Downloading...');
+        Stingray.updatesWindow.destroy();
+        request.on('response', (response: IncomingMessage) => {
+            let fileSize = Number.parseInt(response.headers['content-length'] as string);
+            let received: number = 0;
+            response.on('data', (chunk: Buffer) => {
+                received += chunk.length;
+                if (process.platform === 'win32' || process.platform === 'darwin') {
+                    Stingray.mainWindow.setProgressBar(received / fileSize);
+                }
+                Stingray.mainWindow.webContents.send('set-status', 'Downloaded: ' + Math.trunc(received * 100 / fileSize) + '%');
+                appendFileSync(file, chunk);
+            });
+            response.on('end', () => {
+                Stingray.mainWindow.webContents.send('set-status', '');
+                dialog.showMessageBox({
+                    type: 'info',
+                    message: 'Update downloaded'
+                });
+                if (process.platform === 'win32' || process.platform === 'darwin') {
+                    Stingray.mainWindow.setProgressBar(0);
+                    shell.openPath(file).then(() => {
+                        app.quit();
+                    }).catch((reason: string) => {
+                        dialog.showErrorBox('Error', reason);
+                    });
+                }
+                if (process.platform === 'linux') {
+                    shell.showItemInFolder(file);
+                }
+            });
+            response.on('error', (reason: string) => {
+                Stingray.mainWindow.webContents.send('set-status', '');
+                dialog.showErrorBox('Error', reason);
+                if (process.platform === 'win32' || process.platform === 'darwin') {
+                    Stingray.mainWindow.setProgressBar(0);
+                }
+            });
+        });
+        request.end();
     }
 
     static showAbout(): void {
@@ -685,6 +773,7 @@ class Stingray {
         this.aboutWindow.once('ready-to-show', (event: IpcMainEvent) => {
             this.aboutWindow.show();
         });
+        Stingray.setLocation(this.aboutWindow, 'about.html');
     }
 
     static showSettings(): void {
@@ -710,10 +799,60 @@ class Stingray {
         this.settingsWindow.once('ready-to-show', (event: IpcMainEvent) => {
             this.settingsWindow.show();
         });
+        Stingray.setLocation(this.settingsWindow, 'preferences.html');
     }
 
     static showHelp(): void {
         shell.openExternal(this.path.join('file://', app.getAppPath(), 'stingray.pdf'));
+    }
+
+    static showSystemInfo() {
+        this.systemInfoWindow = new BrowserWindow({
+            parent: Stingray.aboutWindow,
+            width: 430,
+            minimizable: false,
+            maximizable: false,
+            resizable: false,
+            show: false,
+            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            webPreferences: {
+                nodeIntegration: true,
+                contextIsolation: false,
+                nativeWindowOpen: true
+            }
+        });
+        this.systemInfoWindow.setMenu(null);
+        this.systemInfoWindow.loadURL('file://' + this.path.join(app.getAppPath(), 'html', 'systemInfo.html'));
+        this.systemInfoWindow.once('ready-to-show', () => {
+            this.systemInfoWindow.show();
+        });
+        this.systemInfoWindow.on('close', () => {
+            Stingray.aboutWindow.focus();
+        });
+        Stingray.setLocation(this.systemInfoWindow, 'systemInfo.html');
+    }
+
+    static getSystemInformation(event: IpcMainEvent) {
+        this.sendRequest('/systemInfo', {},
+            (data: any) => {
+                data.electron = process.versions.electron;
+                event.sender.send('set-system-info', data);
+            },
+            (reason: string) => {
+                Stingray.showMessage({ type: 'error', message: reason });
+            }
+        );
+    }
+
+    static setLocation(window: BrowserWindow, key: string): void {
+        if (Stingray.locations.hasLocation(key)) {
+            let position: Point = Stingray.locations.getLocation(key);
+            window.setPosition(position.x, position.y, true);
+        }
+        window.addListener('moved', () => {
+            let bounds: Rectangle = window.getBounds();
+            Stingray.locations.setLocation(key, bounds.x, bounds.y);
+        });
     }
 
     static showLicenses(from: string): void {
@@ -737,6 +876,7 @@ class Stingray {
         this.licensesWindow.once('ready-to-show', (event: IpcMainEvent) => {
             this.licensesWindow.show();
         });
+        Stingray.setLocation(this.licensesWindow, 'licenses.html');
     }
 
     static openLicense(type: string) {
@@ -900,6 +1040,7 @@ class Stingray {
         this.newFileWindow.once('ready-to-show', (event: IpcMainEvent) => {
             this.newFileWindow.show();
         });
+        Stingray.setLocation(this.newFileWindow, 'newFile.html');
     }
 
     browseSRX(event: IpcMainEvent): void {
@@ -1449,6 +1590,7 @@ class Stingray {
         this.changeLanguagesWindow.once('ready-to-show', (event: IpcMainEvent) => {
             this.changeLanguagesWindow.show();
         });
+        Stingray.setLocation(this.changeLanguagesWindow, 'changeLanguages.html');
     }
 
     static replaceText(): void {
@@ -1477,6 +1619,7 @@ class Stingray {
         this.replaceTextWindow.once('ready-to-show', (event: IpcMainEvent) => {
             this.replaceTextWindow.show();
         });
+        Stingray.setLocation(this.replaceTextWindow, 'searchReplace.html');
     }
 
     static replace(data: any): void {
@@ -1698,6 +1841,7 @@ class Stingray {
         Stingray.messagesWindow.once('ready-to-show', (event: IpcMainEvent) => {
             Stingray.messagesWindow.show();
         });
+        Stingray.setLocation(this.messagesWindow, 'messages.html');
     }
 }
 
