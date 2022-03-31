@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008-2021 Maxprograms.
+ * Copyright (c) 2022 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -163,7 +163,7 @@ public class StingrayServer implements HttpHandler {
 					break;
 				case "/systemInfo":
 					response = getSystemInformation();
-					break;				
+					break;
 				default:
 					JSONObject unknown = new JSONObject();
 					unknown.put(Constants.STATUS, Constants.ERROR);
@@ -334,11 +334,12 @@ public class StingrayServer implements HttpHandler {
 		return service.replaceText(json).toString();
 	}
 
-    private static String getSystemInformation() {
-        JSONObject result = new JSONObject();
-        result.put("stingray", Constants.VERSION + " Build: " + Constants.BUILD);
-        result.put("openxliff", com.maxprograms.converters.Constants.VERSION + " Build: " + com.maxprograms.converters.Constants.BUILD);
-        result.put("java", System.getProperty("java.version") + " Vendor: " + System.getProperty("java.vendor"));
-        return result.toString();
-    }
+	private static String getSystemInformation() {
+		JSONObject result = new JSONObject();
+		result.put("stingray", Constants.VERSION + " Build: " + Constants.BUILD);
+		result.put("openxliff",
+				com.maxprograms.converters.Constants.VERSION + " Build: " + com.maxprograms.converters.Constants.BUILD);
+		result.put("java", System.getProperty("java.version") + " Vendor: " + System.getProperty("java.vendor"));
+		return result.toString();
+	}
 }

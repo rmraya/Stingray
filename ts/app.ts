@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008-2021 Maxprograms.
+ * Copyright (c) 2022 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -11,9 +11,9 @@
  *******************************************************************************/
 
 import { ChildProcessWithoutNullStreams, execFileSync, spawn } from "child_process";
-import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, Menu, MenuItem, nativeTheme, net, Rectangle, session, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, Menu, MenuItem, nativeTheme, net, session, Rectangle, shell } from "electron";
 import { IncomingMessage } from "electron/main";
-import { appendFileSync, existsSync, readFileSync, unlinkSync, writeFile, writeFileSync } from "fs";
+import { appendFileSync, existsSync, readFileSync, writeFile, writeFileSync, unlinkSync } from "fs";
 import { ClientRequest, request } from "http";
 import { Locations, Point } from "./locations";
 
@@ -105,8 +105,6 @@ class Stingray {
         this.ls.on('close', (code) => {
             console.log(`child process exited with code ${code}`);
         });
-
-        execFileSync(this.javapath, ['--module-path', 'lib', '-m', 'openxliff/com.maxprograms.server.CheckURL', 'http://localhost:8040/StingrayServer'], { cwd: app.getAppPath(), windowsHide: true });
 
         Stingray.locations = new Locations(Stingray.path.join(app.getPath('appData'), app.name, 'locations.json'));
         this.loadDefaults();
@@ -434,8 +432,7 @@ class Stingray {
             y: this.currentDefaults.y,
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false,
-                nativeWindowOpen: true,
+                contextIsolation: false
             },
             show: false,
             icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png')
@@ -653,8 +650,7 @@ class Stingray {
                                 icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
                                 webPreferences: {
                                     nodeIntegration: true,
-                                    contextIsolation: false,
-                                    nativeWindowOpen: true
+                                    contextIsolation: false
                                 }
                             });
                             Stingray.updatesWindow.setMenu(null);
@@ -761,8 +757,7 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false,
-                nativeWindowOpen: true
+                contextIsolation: false
             }
         });
         this.aboutWindow.setMenu(null);
@@ -787,8 +782,7 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false,
-                nativeWindowOpen: true
+                contextIsolation: false
             }
         });
         this.settingsWindow.setMenu(null);
@@ -800,6 +794,7 @@ class Stingray {
             this.settingsWindow.show();
         });
         Stingray.setLocation(this.settingsWindow, 'preferences.html');
+
     }
 
     static showHelp(): void {
@@ -817,8 +812,7 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false,
-                nativeWindowOpen: true
+                contextIsolation: false
             }
         });
         this.systemInfoWindow.setMenu(null);
@@ -867,8 +861,7 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false,
-                nativeWindowOpen: true
+                contextIsolation: false
             }
         });
         this.licensesWindow.setMenu(null);
@@ -929,8 +922,7 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false,
-                nativeWindowOpen: true
+                contextIsolation: false
             }
         });
         licenseWindow.setMenu(null);
@@ -1028,8 +1020,7 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false,
-                nativeWindowOpen: true
+                contextIsolation: false
             }
         });
         this.newFileWindow.on('closed', () => {
@@ -1578,8 +1569,7 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false,
-                nativeWindowOpen: true
+                contextIsolation: false
             }
         });
         this.changeLanguagesWindow.setMenu(null);
@@ -1607,8 +1597,7 @@ class Stingray {
             icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false,
-                nativeWindowOpen: true
+                contextIsolation: false
             }
         });
         this.replaceTextWindow.setMenu(null);
@@ -1831,8 +1820,7 @@ class Stingray {
             icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png'),
             webPreferences: {
                 nodeIntegration: true,
-                contextIsolation: false,
-                nativeWindowOpen: true
+                contextIsolation: false
             }
         });
         Stingray.messageParam = arg;

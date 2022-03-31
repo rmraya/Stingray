@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008-2021 Maxprograms.
+ * Copyright (c) 2022 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -295,6 +295,7 @@ public class Alignment {
         Document tmx = new Document(null, "tmx", "-//LISA OSCAR:1998//DTD for Translation Memory eXchange//EN",
                 "tmx14.dtd");
         Element root = tmx.getRootElement();
+        root.setAttribute("version", "1.4");
         Element header = new Element("header");
         header.setAttribute("creationtool", "Stingray");
         header.setAttribute("creationtoolversion", Constants.VERSION);
