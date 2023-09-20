@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Maxprograms.
+ * Copyright (c) 2008 - 2023 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -19,8 +19,8 @@ public class Constants {
     }
 
     public static final String APPNAME = "Stingray";
-    public static final String VERSION = "2.6.0";
-    public static final String BUILD = "20220331_1357";
+    public static final String VERSION = "2.7.0";
+    public static final String BUILD = "20230920_0849";
 
     public static final String REASON = "reason";
 	public static final String STATUS = "status";

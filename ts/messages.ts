@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Maxprograms.
+ * Copyright (c) 2008 - 2023 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -60,5 +60,3 @@ class Messages {
         }, 200);
     }
 }
-
-new Messages();

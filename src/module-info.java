@@ -19,5 +19,6 @@ module stingray {
 	requires transitive openxliff;
 	requires transitive jdk.httpserver;
 	requires transitive json;
+	requires transitive xmljava;
 	requires java.logging;
 }

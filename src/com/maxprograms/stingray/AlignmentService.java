@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Maxprograms.
+ * Copyright (c) 2008 - 2023 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -76,6 +76,7 @@ public class AlignmentService {
 				array.put(json);
 			}
 			result.put("languages", array);
+			result.put(Constants.STATUS, Constants.SUCCESS);
 		} catch (SAXException | IOException | ParserConfigurationException e) {
 			logger.log(Level.ERROR, "Error getting languages", e);
 			result.put(Constants.REASON, e.getMessage());
@@ -96,6 +97,7 @@ public class AlignmentService {
 			}
 		}
 		result.put("types", array);
+		result.put(Constants.STATUS, Constants.SUCCESS);
 		return result;
 	}
 
@@ -113,6 +115,7 @@ public class AlignmentService {
 			array.put(json);
 		}
 		result.put("charsets", array);
+		result.put(Constants.STATUS, Constants.SUCCESS);
 		return result;
 	}
 
@@ -301,13 +304,13 @@ public class AlignmentService {
 		return result;
 	}
 
-	public JSONObject getFileInfo() {
+	public JSONObject getFileInfo() throws JSONException, SAXException, IOException, ParserConfigurationException {
 		JSONObject result = alignment.getFileInfo();
 		result.put(Constants.STATUS, Constants.SUCCESS);
 		return result;
 	}
 
-	public JSONObject getRows(JSONObject json) {
+	public JSONObject getRows(JSONObject json) throws SAXException, IOException, ParserConfigurationException {
 		JSONObject result = alignment.getRows(json);
 		result.put(Constants.STATUS, Constants.SUCCESS);
 		return result;
@@ -341,7 +344,7 @@ public class AlignmentService {
 						alignment.save();
 						saving = false;
 						status = "";
-					} catch (JSONException | IOException | SAXException | ParserConfigurationException e) {
+					} catch (JSONException | IOException e) {
 						saving = false;
 						logger.log(Level.ERROR, e);
 						saveError = e.getMessage();
@@ -381,7 +384,20 @@ public class AlignmentService {
 		try {
 			alignment.exportCSV(json.getString("file"));
 			result.put(Constants.STATUS, Constants.SUCCESS);
-		} catch ( IOException e) {
+		} catch (IOException e) {
+			logger.log(Level.ERROR, e);
+			result.put(Constants.STATUS, Constants.ERROR);
+			result.put(Constants.REASON, e.getMessage());
+		}
+		return result;
+	}
+
+	public JSONObject exportExcel(JSONObject json) {
+		JSONObject result = new JSONObject();
+		try {
+			alignment.exportExcel(json.getString("file"));
+			result.put(Constants.STATUS, Constants.SUCCESS);
+		} catch (IOException | JSONException | SAXException | ParserConfigurationException e) {
 			logger.log(Level.ERROR, e);
 			result.put(Constants.STATUS, Constants.ERROR);
 			result.put(Constants.REASON, e.getMessage());
@@ -394,7 +410,7 @@ public class AlignmentService {
 		try {
 			alignment.setLanguages(json);
 			result.put(Constants.STATUS, Constants.SUCCESS);
-		} catch (JSONException | IOException e) {
+		} catch (JSONException | IOException | SAXException | ParserConfigurationException e) {
 			logger.log(Level.ERROR, e);
 			result.put(Constants.STATUS, Constants.ERROR);
 			result.put(Constants.REASON, e.getMessage());

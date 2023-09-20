@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Maxprograms.
+ * Copyright (c) 2008 - 2023 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -26,11 +26,15 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import javax.xml.parsers.ParserConfigurationException;
+
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.xml.sax.SAXException;
 
 public class StingrayServer implements HttpHandler {
 
@@ -63,7 +67,7 @@ public class StingrayServer implements HttpHandler {
 	public StingrayServer(Integer port) throws IOException {
 		server = HttpServer.create(new InetSocketAddress(port), 0);
 		server.createContext("/", this);
-		server.setExecutor(new ThreadPoolExecutor(3, 10, 20, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(100)));
+		server.setExecutor(new ThreadPoolExecutor(3, 10, 20, TimeUnit.SECONDS, new ArrayBlockingQueue<>(100)));
 		service = new AlignmentService();
 	}
 
@@ -82,6 +86,7 @@ public class StingrayServer implements HttpHandler {
 			switch (url) {
 				case "/stop":
 					logger.log(Level.INFO, "Stop requested");
+					response = stop();
 					break;
 				case "/getLanguages":
 					response = getLanguages();
@@ -118,6 +123,9 @@ public class StingrayServer implements HttpHandler {
 					break;
 				case "/exportCSV":
 					response = exportCSV(new JSONObject(request));
+					break;
+				case "/exportExcel":
+					response = exportExcel(new JSONObject(request));
 					break;
 				case "/saveFile":
 					response = saveFile();
@@ -186,21 +194,7 @@ public class StingrayServer implements HttpHandler {
 					}
 				}
 			}
-			if ("/stop".equals(url)) {
-				logger.log(Level.INFO, "Stopping server");
-				JSONObject status = service.savingStatus();
-				while (status.getBoolean("saving")) {
-					try {
-						Thread.sleep(500);
-					} catch (InterruptedException e) {
-						logger.log(Level.ERROR, e);
-						Thread.currentThread().interrupt();
-					}
-					status = service.savingStatus();
-				}
-				System.exit(0);
-			}
-		} catch (IOException e) {
+		} catch (IOException | JSONException | SAXException | ParserConfigurationException e) {
 			logger.log(Level.ERROR, e);
 			String message = e.getMessage();
 			exchange.sendResponseHeaders(500, message.length());
@@ -258,11 +252,11 @@ public class StingrayServer implements HttpHandler {
 		return service.loadingStatus().toString();
 	}
 
-	private String getFileInfo() {
+	private String getFileInfo() throws JSONException, SAXException, IOException, ParserConfigurationException {
 		return service.getFileInfo().toString();
 	}
 
-	private String getRows(JSONObject json) {
+	private String getRows(JSONObject json) throws SAXException, IOException, ParserConfigurationException {
 		return service.getRows(json).toString();
 	}
 
@@ -280,6 +274,10 @@ public class StingrayServer implements HttpHandler {
 
 	private String exportCSV(JSONObject json) {
 		return service.exportCSV(json).toString();
+	}
+
+	private String exportExcel(JSONObject json) {
+		return service.exportExcel(json).toString();
 	}
 
 	private String removeTags() {
@@ -339,7 +337,30 @@ public class StingrayServer implements HttpHandler {
 		result.put("stingray", Constants.VERSION + " Build: " + Constants.BUILD);
 		result.put("openxliff",
 				com.maxprograms.converters.Constants.VERSION + " Build: " + com.maxprograms.converters.Constants.BUILD);
+		result.put("xmljava",
+				com.maxprograms.xml.Constants.VERSION + " Build: " + com.maxprograms.xml.Constants.BUILD);
 		result.put("java", System.getProperty("java.version") + " Vendor: " + System.getProperty("java.vendor"));
+		result.put(Constants.STATUS, Constants.SUCCESS);
+		return result.toString();
+	}
+
+	private String stop() {
+		logger.log(Level.INFO, "Stopping server");
+		JSONObject result = new JSONObject();
+		JSONObject status = service.savingStatus();
+		while (status.getBoolean("saving")) {
+			try {
+				Thread.sleep(500);
+				status = service.savingStatus();
+			} catch (InterruptedException e) {
+				logger.log(Level.ERROR, e);
+				result.put(Constants.STATUS, Constants.ERROR);
+				result.put(Constants.REASON, e.getMessage());
+			}
+		}
+		if (!result.has("reason")) {
+			result.put(Constants.STATUS, Constants.SUCCESS);
+		}
 		return result.toString();
 	}
 }

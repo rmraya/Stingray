@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Maxprograms.
+ * Copyright (c) 2008 - 2023 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -41,10 +41,9 @@ class ChangeLanguages {
     }
 
     setLanguages(arg: any): void {
-        var array = arg.languages;
-        var languageOptions = '';
-        for (let i = 0; i < array.length; i++) {
-            var lang = array[i];
+        let array = arg.languages;
+        let languageOptions = '';
+        for (let lang of array) {
             languageOptions = languageOptions + '<option value="' + lang.code + '">' + lang.description + '</option>';
         }
         document.getElementById('srcLangSelect').innerHTML = languageOptions;
@@ -66,7 +65,7 @@ class ChangeLanguages {
             window.alert('Select different languages');
             return;
         }
-        var prefs: any = {
+        let prefs: any = {
             srcLang: srcLang,
             tgtLang: tgtLang
         }
@@ -74,7 +73,6 @@ class ChangeLanguages {
     }
 }
 
-new ChangeLanguages();
 
 
 

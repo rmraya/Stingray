@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Maxprograms.
+ * Copyright (c) 2008 - 2023 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -92,19 +92,18 @@ class Stingray {
             Stingray.verticalPadding = 56;
         }
 
-        this.ls = spawn(this.javapath, ['--module-path', 'lib', '-m', 'stingray/com.maxprograms.stingray.StingrayServer', '-port', '8040'], { cwd: app.getAppPath(), detached: true, windowsHide: true });
 
-        this.ls.stdout.on('data', (data) => {
-            console.log(`stdout: ${data}`);
-        });
 
-        this.ls.stderr.on('data', (data) => {
-            console.error(`stderr: ${data}`);
-        });
-
-        this.ls.on('close', (code) => {
-            console.log(`child process exited with code ${code}`);
-        });
+        this.ls = spawn(this.javapath, ['--module-path', 'lib', '-m', 'stingray/com.maxprograms.stingray.StingrayServer', '-port', '8040'], { cwd: app.getAppPath(), windowsHide: true });
+        if (!app.isPackaged) {
+            this.ls.stdout.on('data', (data: Buffer | string) => {
+                console.log(data instanceof Buffer ? data.toString() : data);
+            });
+            this.ls.stderr.on('data', (data: Buffer | string) => {
+                console.error(data instanceof Buffer ? data.toString() : data);
+            });
+        }
+        execFileSync(this.javapath, ['--module-path', 'lib', '-m', 'stingray/com.maxprograms.stingray.CheckURL', 'http://localhost:8040/'], { cwd: app.getAppPath(), windowsHide: true });
 
         Stingray.locations = new Locations(Stingray.path.join(app.getPath('appData'), app.name, 'locations.json'));
         this.loadDefaults();
@@ -163,7 +162,7 @@ class Stingray {
                 Stingray.closeFile();
             }
         });
-        app.on('open-file', function (event, filePath) {
+        app.on('open-file', (event, filePath) => {
             event.preventDefault();
             if (Stingray.isReady) {
                 Stingray.openFile(filePath);
@@ -291,6 +290,9 @@ class Stingray {
         });
         ipcMain.on('export-csv', () => {
             Stingray.exportCSV();
+        });
+        ipcMain.on('export-excel', () => {
+            Stingray.exportExcel();
         });
         ipcMain.on('newFile-height', (event: IpcMainEvent, arg: any) => {
             Stingray.setHeight(Stingray.newFileWindow, arg);
@@ -438,7 +440,7 @@ class Stingray {
             icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png')
         });
         Stingray.contents = Stingray.mainWindow.webContents;
-        var fileMenu: Menu = Menu.buildFromTemplate([
+        let fileMenu: Menu = Menu.buildFromTemplate([
             { label: 'New Alignment', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } },
             { label: 'Open Alignment', accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openFileDialog(); } },
             { label: 'Close Alignment', accelerator: 'CmdOrCtrl+W', click: () => { Stingray.closeFile(); } },
@@ -446,6 +448,7 @@ class Stingray {
             { label: 'Save Alignment As...', accelerator: 'CmdOrCtrl+Shift+S', click: () => { Stingray.saveFileAs(); } },
             new MenuItem({ type: 'separator' }),
             { label: 'Export Aligment as TMX', click: () => { Stingray.exportTMX(); } },
+            { label: 'Export Aligment as Excel', click: () => { Stingray.exportExcel(); } },
             { label: 'Export Alignment as TAB Delimited', click: () => { Stingray.exportCSV(); } }
         ]);
         let recentFiles: string[] = Stingray.loadRecents();
@@ -457,7 +460,7 @@ class Stingray {
                 fileMenu.append(new MenuItem({ label: file, click: () => { Stingray.openFile(file) } }));
             }
         }
-        var editMenu: Menu = Menu.buildFromTemplate([
+        let editMenu: Menu = Menu.buildFromTemplate([
             { label: 'Replace Text...', accelerator: 'CmdOrCtrl+F', click: () => { Stingray.replaceText(); } },
             new MenuItem({ type: 'separator' }),
             { label: 'Confirm Edit', accelerator: 'Alt+Enter', click: () => { Stingray.saveEdit(); } },
@@ -474,7 +477,7 @@ class Stingray {
             { label: 'Paste', accelerator: 'CmdOrCtrl+V', click: () => { Stingray.contents.paste(); } },
             { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: () => { Stingray.contents.selectAll(); } }
         ]);
-        var viewMenu: Menu = Menu.buildFromTemplate([
+        let viewMenu: Menu = Menu.buildFromTemplate([
             { label: 'First Page', accelerator: 'CmdOrCtrl+Home', click: () => { Stingray.firstPage(); } },
             { label: 'Previous Page', accelerator: 'CmdOrCtrl+PageUp', click: () => { Stingray.previousPage(); } },
             { label: 'Next Page', accelerator: 'CmdOrCtrl+PageDown', click: () => { Stingray.nextPage(); } },
@@ -483,12 +486,12 @@ class Stingray {
             new MenuItem({ label: 'Toggle Full Screen', role: 'togglefullscreen' }),
             new MenuItem({ label: 'Toggle Development Tools', accelerator: 'F12', role: 'toggleDevTools' })
         ]);
-        var tasksMenu: Menu = Menu.buildFromTemplate([
+        let tasksMenu: Menu = Menu.buildFromTemplate([
             { label: 'Remove all Tags', click: () => { Stingray.removeTags(); } },
             { label: 'Remove Duplicate Entries', click: () => { Stingray.removeDuplicates(); } },
             { label: 'Change Language Codes', click: () => { Stingray.changeLanguages(); } },
         ]);
-        var helpMenu: Menu = Menu.buildFromTemplate([
+        let helpMenu: Menu = Menu.buildFromTemplate([
             { label: 'Stingray User Guide', accelerator: 'F1', click: () => { Stingray.showHelp(); } },
             new MenuItem({ type: 'separator' }),
             { label: 'Check for Updates...', click: () => { Stingray.checkUpdates(false); } },
@@ -497,7 +500,7 @@ class Stingray {
             { label: 'Release History', click: () => { Stingray.showReleaseHistory(); } },
             { label: 'Support Group', click: () => { Stingray.showSupportGroup(); } }
         ]);
-        var template: MenuItem[] = [
+        let template: MenuItem[] = [
             new MenuItem({ label: '&File', role: 'fileMenu', submenu: fileMenu }),
             new MenuItem({ label: '&Edit', role: 'editMenu', submenu: editMenu }),
             new MenuItem({ label: '&View', role: 'viewMenu', submenu: viewMenu }),
@@ -505,7 +508,7 @@ class Stingray {
             new MenuItem({ label: '&Help', role: 'help', submenu: helpMenu })
         ];
         if (process.platform === 'darwin') {
-            var appleMenu: Menu = Menu.buildFromTemplate([
+            let appleMenu: Menu = Menu.buildFromTemplate([
                 new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }),
                 new MenuItem({
                     label: 'Preferences...', submenu: [
@@ -523,7 +526,7 @@ class Stingray {
             ]);
             template.unshift(new MenuItem({ label: 'Stingray', role: 'appMenu', submenu: appleMenu }));
         } else {
-            var help: MenuItem = template.pop();
+            let help: MenuItem = template.pop();
             template.push(new MenuItem({
                 label: '&Settings', submenu: [
                     { label: 'Preferences', click: () => { Stingray.showSettings(); } }
@@ -551,7 +554,7 @@ class Stingray {
         this.currentDefaults = { width: 900, height: 700, x: 0, y: 0 };
         if (existsSync(defaultsFile)) {
             try {
-                var data: Buffer = readFileSync(defaultsFile);
+                let data: Buffer = readFileSync(defaultsFile);
                 this.currentDefaults = JSON.parse(data.toString());
             } catch (err) {
                 console.log(err);
@@ -563,7 +566,7 @@ class Stingray {
         let preferencesFile = this.path.join(app.getPath('appData'), app.name, 'preferences.json');
         if (existsSync(preferencesFile)) {
             try {
-                var data: Buffer = readFileSync(preferencesFile);
+                let data: Buffer = readFileSync(preferencesFile);
                 this.currentPreferences = JSON.parse(data.toString());
             } catch (err) {
                 console.log(err);
@@ -607,11 +610,11 @@ class Stingray {
 
     static checkUpdates(silent: boolean): void {
         session.defaultSession.clearCache().then(() => {
-            let request: Electron.ClientRequest = net.request({
+            let req: Electron.ClientRequest = net.request({
                 url: 'https://maxprograms.com/stingray.json',
                 session: session.defaultSession
             });
-            request.on('response', (response: IncomingMessage) => {
+            req.on('response', (response: IncomingMessage) => {
                 let responseData: string = '';
                 if (response.statusCode !== 200) {
                     if (!silent) {
@@ -679,7 +682,7 @@ class Stingray {
                     }
                 });
             });
-            request.on('error', (error: Error) => {
+            req.on('error', (error: Error) => {
                 if (!silent) {
                     Stingray.showMessage({
                         type: 'error',
@@ -687,7 +690,7 @@ class Stingray {
                     });
                 }
             });
-            request.end();
+            req.end();
         });
     }
 
@@ -700,13 +703,13 @@ class Stingray {
         if (existsSync(file)) {
             unlinkSync(file);
         }
-        let request: Electron.ClientRequest = net.request({
+        let req: Electron.ClientRequest = net.request({
             url: Stingray.downloadLink,
             session: session.defaultSession
         });
         Stingray.mainWindow.webContents.send('set-status', 'Downloading...');
         Stingray.updatesWindow.destroy();
-        request.on('response', (response: IncomingMessage) => {
+        req.on('response', (response: IncomingMessage) => {
             let fileSize = Number.parseInt(response.headers['content-length'] as string);
             let received: number = 0;
             response.on('data', (chunk: Buffer) => {
@@ -743,7 +746,7 @@ class Stingray {
                 }
             });
         });
-        request.end();
+        req.end();
     }
 
     static showAbout(): void {
@@ -829,8 +832,12 @@ class Stingray {
     static getSystemInformation(event: IpcMainEvent) {
         this.sendRequest('/systemInfo', {},
             (data: any) => {
-                data.electron = process.versions.electron;
-                event.sender.send('set-system-info', data);
+                if (data.status === 'Success') {
+                    data.electron = process.versions.electron;
+                    event.sender.send('set-system-info', data);
+                } else {
+                    Stingray.showMessage({ type: 'error', message: data.reason });
+                }
             },
             (reason: string) => {
                 Stingray.showMessage({ type: 'error', message: reason });
@@ -873,8 +880,8 @@ class Stingray {
     }
 
     static openLicense(type: string) {
-        var licenseFile = '';
-        var title = '';
+        let licenseFile = '';
+        let title = '';
         switch (type) {
             case 'Stingray':
                 licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'EclipsePublicLicense1.0.html');
@@ -884,7 +891,6 @@ class Stingray {
                 licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'electron.txt');
                 title = 'MIT License';
                 break;
-            case "TypeScript":
             case "MapDB":
                 licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'Apache2.0.html');
                 title = 'Apache 2.0';
@@ -894,6 +900,7 @@ class Stingray {
                 title = 'GPL2 with Classpath Exception';
                 break;
             case "OpenXLIFF":
+            case "XMLJava":
                 licenseFile = this.path.join('file://', app.getAppPath(), 'html', 'licenses', 'EclipsePublicLicense1.0.html');
                 title = 'Eclipse Public License 1.0';
                 break;
@@ -913,7 +920,7 @@ class Stingray {
                 dialog.showErrorBox('Error', 'Unknow license');
                 return;
         }
-        var licenseWindow = new BrowserWindow({
+        let licenseWindow = new BrowserWindow({
             parent: this.mainWindow,
             width: 680,
             height: 400,
@@ -938,9 +945,9 @@ class Stingray {
         shell.openExternal('https://groups.io/g/maxprograms/');
     }
 
-    static sendRequest(url: string, json: any, success: any, error: any) {
-        var postData: string = JSON.stringify(json);
-        var options = {
+    static sendRequest(url: string, json: any, success: Function, error: Function) {
+        let postData: string = JSON.stringify(json);
+        let options = {
             hostname: '127.0.0.1',
             port: 8040,
             path: url,
@@ -950,15 +957,15 @@ class Stingray {
             }
         };
         // Make a request
-        var req: ClientRequest = request(options);
+        let req: ClientRequest = request(options);
         req.on('response',
-            function (res: any) {
+            (res: any) => {
                 res.setEncoding('utf-8');
                 if (res.statusCode !== 200) {
                     error('sendRequest() error: ' + res.statusMessage);
                 }
-                var rawData: string = '';
-                res.on('data', function (chunk: string) {
+                let rawData: string = '';
+                res.on('data', (chunk: string) => {
                     rawData += chunk;
                 });
                 res.on('end', () => {
@@ -976,12 +983,16 @@ class Stingray {
 
     getLanguages(event: IpcMainEvent): void {
         Stingray.sendRequest('/getLanguages', {},
-            function success(data: any) {
-                data.srcLang = Stingray.currentPreferences.srcLang;
-                data.tgtLang = Stingray.currentPreferences.tgtLang;
-                event.sender.send('set-languages', data);
+            (data: any) => {
+                if (data.status === 'Success') {
+                    data.srcLang = Stingray.currentPreferences.srcLang;
+                    data.tgtLang = Stingray.currentPreferences.tgtLang;
+                    event.sender.send('set-languages', data);
+                } else {
+                    dialog.showErrorBox('Error', data.reason);
+                }
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -989,10 +1000,14 @@ class Stingray {
 
     getTypes(event: IpcMainEvent): void {
         Stingray.sendRequest('/getTypes', {},
-            function success(data: any) {
-                event.sender.send('set-types', data);
+            (data: any) => {
+                if (data.status === 'Success') {
+                    event.sender.send('set-types', data);
+                } else {
+                    dialog.showErrorBox('Error', data.reason);
+                }
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1000,10 +1015,14 @@ class Stingray {
 
     getCharsets(event: IpcMainEvent): void {
         Stingray.sendRequest('/getCharsets', {},
-            function success(data: any) {
-                event.sender.send('set-charsets', data);
+            (data: any) => {
+                if (data.status === 'Success') {
+                    event.sender.send('set-charsets', data);
+                } else {
+                    dialog.showErrorBox('Error', data.reason);
+                }
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1105,6 +1124,7 @@ class Stingray {
                 { name: 'Microsoft Office 2007 Document', extensions: ['docx', 'xlsx', 'pptx'] },
                 { name: 'OpenOffice 1.x Document', extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
                 { name: 'OpenOffice 2.x Document', extensions: ['odt', 'ods', 'odp', 'odg'] },
+                { name: 'PHP Arrays', extensions: ['php'] },
                 { name: 'Plain Text', extensions: ['txt'] },
                 { name: 'RC (Windows C/C++ Resources)', extensions: ['rc'] },
                 { name: 'ResX (Windows .NET Resources)', extensions: ['resx'] },
@@ -1140,6 +1160,7 @@ class Stingray {
                 { name: 'Microsoft Office 2007 Document', extensions: ['docx', 'xlsx', 'pptx'] },
                 { name: 'OpenOffice 1.x Document', extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
                 { name: 'OpenOffice 2.x Document', extensions: ['odt', 'ods', 'odp', 'odg'] },
+                { name: 'PHP Array', extensions: ['php', 'txt'] },
                 { name: 'Plain Text', extensions: ['txt'] },
                 { name: 'RC (Windows C/C++ Resources)', extensions: ['rc'] },
                 { name: 'ResX (Windows .NET Resources)', extensions: ['resx'] },
@@ -1159,10 +1180,10 @@ class Stingray {
 
     getFileType(event: IpcMainEvent, file: string, arg: string): void {
         Stingray.sendRequest('/getFileType', { file: file },
-            function success(data: any) {
+            (data: any) => {
                 event.sender.send(arg, data);
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1176,11 +1197,11 @@ class Stingray {
         params.catalog = Stingray.currentPreferences.catalog;
         params.srx = Stingray.currentPreferences.srx;
         this.sendRequest('/alignFiles', params,
-            function success(data: any) {
+            (data: any) => {
                 if (data.status === 'Success') {
                     Stingray.alignmentStatus.aligning = true;
                     Stingray.alignmentStatus.status = 'Preparing files';
-                    var intervalObject = setInterval(() => {
+                    let intervalObject = setInterval(() => {
                         if (Stingray.alignmentStatus.aligning) {
                             Stingray.contents.send('set-status', Stingray.alignmentStatus.status);
                         } else {
@@ -1201,7 +1222,7 @@ class Stingray {
                     dialog.showErrorBox('Error', data.reason);
                 }
             },
-            function error(reason: string) {
+            (reason: string) => {
                 Stingray.contents.send('end-waiting');
                 Stingray.contents.send('set-status', '');
                 dialog.showErrorBox('Error', reason);
@@ -1211,10 +1232,10 @@ class Stingray {
 
     static getAlignmentStatus(): void {
         this.sendRequest('/alignmentStatus', {},
-            function success(data: any) {
+            (data: any) => {
                 Stingray.alignmentStatus = data;
             },
-            function error(reason: string) {
+            (reason: string) => {
                 Stingray.alignmentStatus.aligning = false;
                 Stingray.alignmentStatus.alignError = reason;
                 Stingray.alignmentStatus.status = '';
@@ -1246,11 +1267,11 @@ class Stingray {
         this.contents.send('start-waiting');
         this.contents.send('set-status', 'Loading file');
         this.sendRequest('/openFile', { file: file },
-            function success(data: any) {
+            (data: any) => {
                 if (data.status === 'Success') {
                     Stingray.loadingStatus.loading = true;
                     Stingray.loadingStatus.status = 'Loading file';
-                    var intervalObject = setInterval(() => {
+                    let intervalObject = setInterval(() => {
                         if (Stingray.loadingStatus.loading) {
                             // keep waiting
                         } else {
@@ -1274,7 +1295,7 @@ class Stingray {
                     dialog.showErrorBox('Error', data.reason);
                 }
             },
-            function error(reason: string) {
+            (reason: string) => {
                 Stingray.contents.send('end-waiting');
                 Stingray.contents.send('set-status', '');
                 dialog.showErrorBox('Error', reason);
@@ -1284,10 +1305,10 @@ class Stingray {
 
     static getLoadingStatus(): void {
         this.sendRequest('/loadingStatus', {},
-            function success(data: any) {
+            (data: any) => {
                 Stingray.loadingStatus = data;
             },
-            function error(reason: string) {
+            (reason: string) => {
                 Stingray.loadingStatus.loading = false;
                 Stingray.loadingStatus.LoadError = reason;
                 Stingray.loadingStatus.status = '';
@@ -1297,12 +1318,12 @@ class Stingray {
 
     static getFileInfo(): void {
         this.sendRequest('/getFileInfo', {},
-            function success(data: any) {
+            (data: any) => {
                 Stingray.srcLang = data.srcLang.code;
                 Stingray.tgtLang = data.tgtLang.code;
                 Stingray.contents.send('file-info', data);
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1310,10 +1331,10 @@ class Stingray {
 
     static getRows(params: any): void {
         this.sendRequest('/getRows', params,
-            function success(data: any) {
+            (data: any) => {
                 Stingray.contents.send('set-rows', data);
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1365,12 +1386,12 @@ class Stingray {
         }
         if (!this.shouldQuit) {
             this.sendRequest('/closeFile', {},
-                function success(data: any) {
+                (data: any) => {
                     Stingray.saved = true;
                     Stingray.mainWindow.setDocumentEdited(false);
                     Stingray.contents.send('clear-file');
                 },
-                function error(reason: string) {
+                (reason: string) => {
                     dialog.showErrorBox('Error', reason);
                 }
             );
@@ -1384,11 +1405,11 @@ class Stingray {
         this.contents.send('start-waiting');
         this.contents.send('set-status', 'Saving file');
         this.sendRequest("/saveFile", {},
-            function success(data: any) {
+            (data: any) => {
                 if (data.status === 'Success') {
                     Stingray.savingStatus.saving = true;
                     Stingray.savingStatus.status = 'Saving file';
-                    var intervalObject = setInterval(() => {
+                    let intervalObject = setInterval(() => {
                         if (Stingray.savingStatus.saving) {
                             // keep waiting
                         } else {
@@ -1414,7 +1435,7 @@ class Stingray {
                 }
 
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1422,10 +1443,10 @@ class Stingray {
 
     static getSavingStatus(): void {
         this.sendRequest('/savingStatus', {},
-            function success(data: any) {
+            (data: any) => {
                 Stingray.savingStatus = data;
             },
-            function error(reason: string) {
+            (reason: string) => {
                 Stingray.savingStatus.saving = false;
                 Stingray.savingStatus.saveError = reason;
                 Stingray.savingStatus.status = '';
@@ -1449,12 +1470,12 @@ class Stingray {
             if (!value.canceled) {
                 this.currentFile = value.filePath;
                 this.sendRequest('/renameFile', { file: this.currentFile },
-                    function success(data: any) {
+                    (data: any) => {
                         Stingray.contents.send('file-renamed', Stingray.currentFile);
                         Stingray.saveFile();
                         Stingray.saveRecent(Stingray.currentFile);
                     },
-                    function error(reason: string) {
+                    (reason: string) => {
                         dialog.showErrorBox('Error', reason);
                     }
                 );
@@ -1478,10 +1499,10 @@ class Stingray {
         }).then((value) => {
             if (!value.canceled) {
                 this.sendRequest("/exportTMX", { file: value.filePath },
-                    function success(data: any) {
+                    (data: any) => {
                         Stingray.showMessage({ type: 'info', message: 'File exported' });
                     },
-                    function error(reason: string) {
+                    (reason: string) => {
                         dialog.showErrorBox('Error', reason);
                     }
                 );
@@ -1506,10 +1527,41 @@ class Stingray {
         }).then((value) => {
             if (!value.canceled) {
                 this.sendRequest("/exportCSV", { file: value.filePath },
-                    function success(data: any) {
+                    (data: any) => {
                         Stingray.showMessage({ type: 'info', message: 'File exported' });
                     },
-                    function error(reason: string) {
+                    (reason: string) => {
+                        dialog.showErrorBox('Error', reason);
+                    }
+                );
+            }
+        }).catch((error) => {
+            console.log(error);
+        });
+    }
+
+    static exportExcel(): void {
+        if (this.currentFile === '') {
+            return;
+        }
+        dialog.showSaveDialog(this.mainWindow, {
+            title: 'Export Excel File',
+            properties: ['createDirectory', 'showOverwriteConfirmation'],
+            filters: [
+                { name: 'Excel File', extensions: ['xlsx'] },
+                { name: 'Any File', extensions: ['*'] }
+            ]
+        }).then((value) => {
+            if (!value.canceled) {
+                this.sendRequest("/exportExcel", { file: value.filePath },
+                    (data: any) => {
+                        if (data.status === 'Success') {
+                            Stingray.showMessage({ type: 'info', message: 'File exported' });
+                        } else {
+                            dialog.showErrorBox('Error', data.reason);
+                        }
+                    },
+                    (reason: string) => {
                         dialog.showErrorBox('Error', reason);
                     }
                 );
@@ -1525,13 +1577,13 @@ class Stingray {
         }
         this.contents.send('start-waiting');
         this.sendRequest("/removeTags", {},
-            function success(data: any) {
+            (data: any) => {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('end-waiting');
                 Stingray.contents.send('refresh-page');
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1543,13 +1595,13 @@ class Stingray {
         }
         this.contents.send('start-waiting');
         this.sendRequest("/removeDuplicates", {},
-            function success(data: any) {
+            (data: any) => {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('end-waiting');
                 Stingray.getFileInfo();
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1613,12 +1665,12 @@ class Stingray {
 
     static replace(data: any): void {
         this.sendRequest('/replaceText', data,
-            function success(data: any) {
+            (data: any) => {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('refresh-page');
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1679,7 +1731,7 @@ class Stingray {
             return [];
         }
         try {
-            var data: Buffer = readFileSync(recentsFile);
+            let data: Buffer = readFileSync(recentsFile);
             let recents = JSON.parse(data.toString());
             let list: string[] = [];
             let length = recents.files.length;
@@ -1699,7 +1751,7 @@ class Stingray {
     static saveRecent(file: string) {
         let recentsFile = this.path.join(app.getPath('appData'), app.name, 'recent.json');
         let files: string[] = this.loadRecents();
-        files = files.filter(function (f: string) {
+        files = files.filter((f: string) => {
             return f !== file;
         });
         files.unshift(file);
@@ -1707,10 +1759,9 @@ class Stingray {
             files = files.slice(0, 5);
         }
         let jsonData: any = { files: files };
-        writeFile(recentsFile, JSON.stringify(jsonData), function (error) {
+        writeFile(recentsFile, JSON.stringify(jsonData), (error) => {
             if (error) {
                 Stingray.showMessage({ type: 'error', message: error.message });
-                return;
             }
         });
     }
@@ -1719,12 +1770,12 @@ class Stingray {
         this.destroyWindow(this.changeLanguagesWindow);
         Stingray.mainWindow.focus();
         this.sendRequest('/setLanguages', langs,
-            function success(data: any) {
+            (data: any) => {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.getFileInfo();
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1732,12 +1783,12 @@ class Stingray {
 
     static saveData(data: any): void {
         this.sendRequest('/saveData', data,
-            function success(data: any) {
+            (data: any) => {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('refresh-page');
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1745,12 +1796,12 @@ class Stingray {
 
     static split(data: any): void {
         this.sendRequest('/splitSegment', data,
-            function success(data: any) {
+            (data: any) => {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('refresh-page');
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1758,12 +1809,12 @@ class Stingray {
 
     static segmentDown(data: any): void {
         this.sendRequest('/segmentDown', data,
-            function success(data: any) {
+            (data: any) => {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('refresh-page');
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1771,12 +1822,12 @@ class Stingray {
 
     static segmentUp(data: any): void {
         this.sendRequest('/segmentUp', data,
-            function success(data: any) {
+            (data: any) => {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('refresh-page');
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1784,12 +1835,12 @@ class Stingray {
 
     static mergeNext(data: any): void {
         this.sendRequest('/mergeNext', data,
-            function success(data: any) {
+            (data: any) => {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('refresh-page');
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );
@@ -1797,12 +1848,12 @@ class Stingray {
 
     static removeData(data: any): void {
         this.sendRequest('/removeSegment', data,
-            function success(data: any) {
+            (data: any) => {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.contents.send('refresh-page');
             },
-            function error(reason: string) {
+            (reason: string) => {
                 dialog.showErrorBox('Error', reason);
             }
         );

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Maxprograms.
+ * Copyright (c) 2008 - 2023 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -65,10 +65,9 @@ class NewFile {
     }
 
     setLanguages(arg: any): void {
-        var array: any[] = arg.languages;
-        var languageOptions = '<option value="none">Select Language</option>';
-        for (let i = 0; i < array.length; i++) {
-            var lang = array[i];
+        let array: any[] = arg.languages;
+        let languageOptions: string = '<option value="none">Select Language</option>';
+        for (let lang of array) {
             languageOptions = languageOptions + '<option value="' + lang.code + '">' + lang.description + '</option>';
         }
         document.getElementById('srcLangSelect').innerHTML = languageOptions;
@@ -83,10 +82,9 @@ class NewFile {
     }
 
     setTypes(arg: any): void {
-        var array: any[] = arg.types;
-        var typeOptions = '<option value="none">Select Type</option>';
-        for (let i = 0; i < array.length; i++) {
-            var type = array[i];
+        let array: any[] = arg.types;
+        let typeOptions: string = '<option value="none">Select Type</option>';
+        for (let type of array) {
             typeOptions = typeOptions + '<option value="' + type.code + '">' + type.description + '</option>';
         }
         document.getElementById('srcTypeSelect').innerHTML = typeOptions;
@@ -96,10 +94,9 @@ class NewFile {
     }
 
     setCharsets(arg: any): void {
-        var array: any[] = arg.charsets;
-        var typeOptions = '<option value="none">Select Character Set</option>';
-        for (let i = 0; i < array.length; i++) {
-            var type = array[i];
+        let array: any[] = arg.charsets;
+        let typeOptions: string = '<option value="none">Select Character Set</option>';
+        for (let type of array) {
             typeOptions = typeOptions + '<option value="' + type.code + '">' + type.description + '</option>';
         }
         document.getElementById('srcEncodingSelect').innerHTML = typeOptions;
@@ -194,5 +191,3 @@ class NewFile {
         this.electron.ipcRenderer.send('create-alignment', params);
     }
 }
-
-new NewFile();

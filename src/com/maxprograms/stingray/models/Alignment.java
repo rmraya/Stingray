@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Maxprograms.
+ * Copyright (c) 2008 - 2023 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -24,14 +24,23 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.xml.sax.SAXException;
+
 import com.maxprograms.languages.Language;
 import com.maxprograms.languages.LanguageUtils;
 import com.maxprograms.stingray.Constants;
+import com.maxprograms.stingray.excel.ExcelWriter;
+import com.maxprograms.stingray.excel.Sheet;
 import com.maxprograms.xml.Document;
 import com.maxprograms.xml.Element;
 import com.maxprograms.xml.Indenter;
@@ -40,10 +49,6 @@ import com.maxprograms.xml.TextNode;
 import com.maxprograms.xml.XMLNode;
 import com.maxprograms.xml.XMLOutputter;
 import com.maxprograms.xml.XMLUtils;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.xml.sax.SAXException;
 
 public class Alignment {
 
@@ -57,7 +62,7 @@ public class Alignment {
     private static Pattern pattern;
     private static String lastTarget;
 
-    public Alignment(String source, String target) throws IOException {
+    public Alignment(String source, String target) throws IOException, SAXException, ParserConfigurationException {
         doc = new Document(null, "algnproject", null, null);
         srcLang = LanguageUtils.getLanguage(source);
         tgtLang = LanguageUtils.getLanguage(target);
@@ -102,7 +107,7 @@ public class Alignment {
         targets = doc.getRootElement().getChild("targets").getChildren();
     }
 
-    public void save() throws IOException, SAXException, ParserConfigurationException {
+    public void save() throws IOException {
         setSources(sources);
         setTargets(targets);
         XMLOutputter outputter = new XMLOutputter();
@@ -113,7 +118,7 @@ public class Alignment {
         }
     }
 
-    public JSONObject getFileInfo() {
+    public JSONObject getFileInfo() throws JSONException, SAXException, IOException, ParserConfigurationException {
         JSONObject result = new JSONObject();
         result.put("file", file);
         result.put("srcLang", jsonLang(srcLang));
@@ -123,7 +128,8 @@ public class Alignment {
         return result;
     }
 
-    private JSONObject jsonLang(Language lang) {
+    private JSONObject jsonLang(Language lang)
+            throws JSONException, SAXException, IOException, ParserConfigurationException {
         JSONObject result = new JSONObject();
         result.put("code", lang.getCode());
         result.put("description", lang.getDescription());
@@ -131,7 +137,7 @@ public class Alignment {
         return result;
     }
 
-    public JSONObject getRows(JSONObject json) {
+    public JSONObject getRows(JSONObject json) throws SAXException, IOException, ParserConfigurationException {
         JSONObject result = new JSONObject();
         JSONArray rows = new JSONArray();
         int start = json.getInt("start");
@@ -341,6 +347,43 @@ public class Alignment {
         }
     }
 
+    public void exportExcel(String excelFile) throws IOException, SAXException, ParserConfigurationException {
+        int max = sources.size();
+        if (targets.size() < max) {
+            max = targets.size();
+        }
+        List<String> languages = new ArrayList<>();
+        languages.add(srcLang.getCode());
+        languages.add(tgtLang.getCode());
+        Map<String, String> langsMap = new HashMap<>();
+        Set<String> cols = new TreeSet<>();
+        int i = 0;
+        Iterator<String> it = languages.iterator();
+        while (it.hasNext()) {
+            String lang = it.next();
+            char c = (char) (65 + i++);
+            cols.add("" + c);
+            langsMap.put(lang, "" + c);
+        }
+
+        List<Map<String, String>> rows = new ArrayList<>();
+
+        Map<String, String> firstRow = new HashMap<>();
+        firstRow.put(langsMap.get(srcLang.getCode()), srcLang.getCode());
+        firstRow.put(langsMap.get(tgtLang.getCode()), tgtLang.getCode());
+        rows.add(firstRow);
+
+        for (i = 0; i < max; i++) {
+            Map<String, String> rowMap = new HashMap<>();
+            rowMap.put(langsMap.get(srcLang.getCode()), getPureText(sources.get(i)).replace('\t', ' '));
+            rowMap.put(langsMap.get(tgtLang.getCode()), getPureText(targets.get(i)).replace('\t', ' '));
+            rows.add(rowMap);
+        }
+        Sheet sheet = new Sheet("Sheet1", cols, rows);
+        ExcelWriter writer = new ExcelWriter();
+        writer.writeFile(excelFile, sheet);
+    }
+
     private List<XMLNode> getTmxContent(Element element) {
         List<XMLNode> result = new ArrayList<>();
         List<XMLNode> nodes = element.getContent();
@@ -391,7 +434,8 @@ public class Alignment {
         }
     }
 
-    public void setLanguages(JSONObject json) throws IOException {
+    public void setLanguages(JSONObject json)
+            throws IOException, JSONException, SAXException, ParserConfigurationException {
         srcLang = LanguageUtils.getLanguage(json.getString("srcLang"));
         doc.getRootElement().getChild("sources").setAttribute("xml:lang", json.getString("srcLang"));
         tgtLang = LanguageUtils.getLanguage(json.getString("tgtLang"));

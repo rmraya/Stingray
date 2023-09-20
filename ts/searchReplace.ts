@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Maxprograms.
+ * Copyright (c) 2008 - 2023 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -37,8 +37,8 @@ class SearchReplace {
     }
 
     replace(): void {
-        var searchText: string = (document.getElementById('searchText') as HTMLInputElement).value;
-        var replaceText: string = (document.getElementById('replaceText') as HTMLInputElement).value;
+        let searchText: string = (document.getElementById('searchText') as HTMLInputElement).value;
+        let replaceText: string = (document.getElementById('replaceText') as HTMLInputElement).value;
         let inSource: boolean = (document.getElementById('source') as HTMLInputElement).checked
         if (searchText.length === 0) {
             window.alert('Enter text to search');
@@ -48,9 +48,7 @@ class SearchReplace {
             window.alert('Enter replacement text');
             return;
         }
-        var regularExpression: boolean = (document.getElementById('regularExpression') as HTMLInputElement).checked;
+        let regularExpression: boolean = (document.getElementById('regularExpression') as HTMLInputElement).checked;
         this.electron.ipcRenderer.send('replace-request', { search: searchText, replace: replaceText, inSource: inSource, regExp: regularExpression });
     }
 }
-
-new SearchReplace();
