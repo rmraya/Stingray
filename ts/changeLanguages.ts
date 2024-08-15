@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2023 Maxprograms.
+ * Copyright (c) 2008 - 2024 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -54,8 +54,9 @@ class ChangeLanguages {
     setFileLanguages(arg: any) {
         (document.getElementById('srcLangSelect') as HTMLSelectElement).value = arg.srcLang;
         (document.getElementById('tgtLangSelect') as HTMLSelectElement).value = arg.tgtLang;
-        let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-        this.electron.ipcRenderer.send('languages-height', { width: body.clientWidth, height: body.clientHeight });
+        setTimeout(() => {
+            this.electron.ipcRenderer.send('set-height', { window: 'languages', width: document.body.clientWidth, height: document.body.clientHeight });
+        }, 200);
     }
 
     saveLanguages() {

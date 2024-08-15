@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2023 Maxprograms.
+ * Copyright (c) 2008 - 2024 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -29,7 +29,6 @@ class SystemInformation {
                 this.electron.ipcRenderer.send('close-systemInfo');
             }
         });
-        this.electron.ipcRenderer.send('systemInfo-height', { width: document.body.clientWidth, height: (document.body.clientHeight + 20) });
     }
 
     setInfo(info: any) {
@@ -38,5 +37,8 @@ class SystemInformation {
         document.getElementById('xmljava').innerText = info.xmljava;
         document.getElementById('java').innerText = info.java;
         document.getElementById('electron').innerText = info.electron;
+        setTimeout(() => {
+            this.electron.ipcRenderer.send('set-height', { window: 'systemInfo', width: document.body.clientWidth, height: document.body.clientHeight });
+        }, 200);
     }
 }

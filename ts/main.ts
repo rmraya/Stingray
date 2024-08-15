@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2023 Maxprograms.
+ * Copyright (c) 2008 - 2024 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -36,6 +36,11 @@ class Main {
 
     constructor() {
 
+        this.electron.ipcRenderer.send('get-theme');
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
+            (document.getElementById('theme') as HTMLLinkElement).href = arg;
+        });
+
         this.createTopToolbar();
         this.createCenterPanel();
         this.createBottomToolbar();
@@ -46,15 +51,11 @@ class Main {
 
         window.addEventListener('resize', () => { this.resize(); });
 
-        this.electron.ipcRenderer.send('get-theme');
-        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
-            (document.getElementById('theme') as HTMLLinkElement).href = arg;
-        });
         this.electron.ipcRenderer.on('start-waiting', () => {
-            document.getElementById('body').classList.add("wait");
+            document.body.classList.add("wait");
         });
         this.electron.ipcRenderer.on('end-waiting', () => {
-            document.getElementById('body').classList.remove("wait");
+            document.body.classList.remove("wait");
         });
         this.electron.ipcRenderer.on('set-status', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setStatus(arg);
@@ -733,7 +734,7 @@ class Main {
     }
 
     fixedListener(event: MouseEvent) {
-        if (this.currentCell != null && this.currentCell.isContentEditable) {
+        if (this.currentCell?.isContentEditable) {
             this.saveEdit();
         }
         let element: Element = (event.target as Element);
@@ -764,7 +765,7 @@ class Main {
     }
 
     saveEdit(): void {
-        if (this.currentCell != null && this.currentCell.isContentEditable) {
+        if (this.currentCell?.isContentEditable) {
             if (this.currentContent === this.currentCell.innerHTML) {
                 this.cancelEdit();
                 return;

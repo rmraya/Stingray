@@ -13,6 +13,12 @@ body {
 	stroke: var(--gray190);
 }
 
+.dialogBody {
+	padding: 8px;
+	margin: 0;
+	overflow: hidden;
+}
+
 .wait {
 	cursor: wait !important;
 }
@@ -322,10 +328,9 @@ label {
 .buttonArea {
 	display: flex;
 	flex-direction: row;
-	padding: 10px;
-	padding-left: 16px;
-	padding-right: 16px;
+	padding: 8px 16px;
 	justify-content: flex-end;
+	width: calc(100% - 16px);
 }
 
 /* toolbars */

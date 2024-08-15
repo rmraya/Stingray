@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 Maxprograms.
+ * Copyright (c) 2008 - 2024 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -14,6 +14,7 @@ module stingray {
 	
 	exports com.maxprograms.stingray;
 	
+	requires javabcp47;
 	requires java.base;
 	requires java.xml;
 	requires transitive openxliff;

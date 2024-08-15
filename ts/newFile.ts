@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2023 Maxprograms.
+ * Copyright (c) 2008 - 2024 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -30,7 +30,6 @@ class NewFile {
         this.electron.ipcRenderer.on('set-charsets', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setCharsets(arg);
         });
-        document.addEventListener('keydown', (event: KeyboardEvent) => { KeyboardHandler.keyListener(event); });
         document.addEventListener('keydown', (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 this.electron.ipcRenderer.send('close-new-file');
@@ -89,8 +88,9 @@ class NewFile {
         }
         document.getElementById('srcTypeSelect').innerHTML = typeOptions;
         document.getElementById('tgtTypeSelect').innerHTML = typeOptions;
-        let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-        this.electron.ipcRenderer.send('newFile-height', { width: body.clientWidth, height: body.clientHeight });
+        setTimeout(() => {
+            this.electron.ipcRenderer.send('set-height', { window: 'newFile', width: document.body.clientWidth, height: document.body.clientHeight });
+        }, 200);
     }
 
     setCharsets(arg: any): void {

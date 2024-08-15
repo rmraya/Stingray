@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2023 Maxprograms.
+ * Copyright (c) 2008 - 2024 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -19,7 +19,6 @@ class SearchReplace {
         this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
             (document.getElementById('theme') as HTMLLinkElement).href = arg;
         });
-        document.addEventListener('keydown', (event: KeyboardEvent) => { KeyboardHandler.keyListener(event); });
         document.addEventListener('keydown', (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 this.electron.ipcRenderer.send('close-search-replace');
@@ -31,9 +30,9 @@ class SearchReplace {
         document.getElementById('replace').addEventListener('click', () => {
             this.replace();
         });
-        document.getElementById('searchText').focus();
-        let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-        this.electron.ipcRenderer.send('replacetext-height', { width: body.clientWidth, height: body.clientHeight });
+        document.getElementById('searchText').focus(); setTimeout(() => {
+            this.electron.ipcRenderer.send('set-height', { window: 'replaceText', width: document.body.clientWidth, height: document.body.clientHeight });
+        }, 200);
     }
 
     replace(): void {

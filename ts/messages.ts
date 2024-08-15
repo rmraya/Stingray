@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2023 Maxprograms.
+ * Copyright (c) 2008 - 2024 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -35,8 +35,6 @@ class Messages {
                 this.electron.ipcRenderer.send('close-messages');
             }
         });
-        let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-        this.electron.ipcRenderer.send('messages-height', { width: body.clientWidth, height: body.clientHeight });
     }
 
     setMessage(arg: any): void {
@@ -53,10 +51,9 @@ class Messages {
         if (arg.title) {
             document.getElementById('title').innerText = arg.title;
         }
-        document.getElementById('message').innerHTML = arg.message;
+        document.getElementById('message').innerHTML = arg.message;       
         setTimeout(() => {
-            let body: HTMLBodyElement = document.getElementById('body') as HTMLBodyElement;
-            this.electron.ipcRenderer.send('messages-height', { width: body.clientWidth, height: body.clientHeight });
+            this.electron.ipcRenderer.send('set-height', { window: 'messages', width: document.body.clientWidth, height: document.body.clientHeight });
         }, 200);
     }
 }

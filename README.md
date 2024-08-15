@@ -1,4 +1,4 @@
-#  Stingray Document Aligner
+# Stingray Document Aligner
 
 ![Stingray logo](https://www.maxprograms.com/images/stingray_s.png)
 
@@ -33,9 +33,10 @@ The version of Stingray included in the official installers from [Stingray's Hom
 
 Subscription Keys cannot be shared or transferred to a different machine.
 
-Subscription version includes unlimited email support at tech@maxprograms.com
+Subscription version includes unlimited email support at <tech@maxprograms.com>
 
 ### Differences sumary
+
 Differences | Source Code | Subscription Based
 -|----------- | -------------
 Ready To Use Installers| No | Yes
@@ -43,18 +44,18 @@ Notarized macOS launcher| No | Yes
 Signed launcher and installer for Windows | No | Yes
 Associate app with `.algn` extension | No | Yes
 Restricted Features | None | None
-Technical Support |  Peer support at  [Groups.io](https://groups.io/g/maxprograms/)| - Direct email at tech@maxprograms.com  <br> - Peer support at [Groups.io](https://groups.io/g/maxprograms/)
+Technical Support |  Peer support at  [Groups.io](https://groups.io/g/maxprograms/)| - Direct email at <tech@maxprograms.com>  <br> - Peer support at [Groups.io](https://groups.io/g/maxprograms/)
 
 ## Requirements
 
-- JDK 17 or newer is required for compiling and building. Get it from [Adoptium](https://adoptium.net/).
-- Apache Ant 1.10.12 or newer. Get it from [https://ant.apache.org/](https://ant.apache.org/)
-- Node.js 16.13.0 LTS or newer. Get it from [https://nodejs.org/](https://nodejs.org/)
+- JDK 21 or newer is required for compiling and building. Get it from [Adoptium](https://adoptium.net/).
+- Apache Ant 1.10.14 or newer. Get it from [https://ant.apache.org/](https://ant.apache.org/)
+- Node.js 20.16.0 LTS or newer. Get it from [https://nodejs.org/](https://nodejs.org/)
 
 ## Building
 
 - Checkout this repository.
-- Point your `JAVA_HOME` environment variable to JDK 17
+- Point your `JAVA_HOME` environment variable to JDK 21
 - Run `ant` to compile the Java code
 - Run `npm install` to download and install NodeJS dependencies
 - Run `npm start` to launch Stingray
