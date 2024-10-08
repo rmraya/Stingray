@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -197,14 +198,50 @@ public class Alignment {
                 Element e = (Element) node;
                 String type = e.getName();
                 if ("ph".equals(type)) {
-                    result.append(makeSVG(tag++));
+                    result.append(makeImg(makeSVG(tag++), e.toString()));
                 }
                 if ("g".equals(type)) {
+                    result.append(makeImg(makeSVG(tag++), e.getHead()));
                     result.append(pureText(e));
+                    result.append(makeImg(makeSVG(tag++), e.getTail()));
                 }
             }
         }
         return result.toString();
+    }
+
+    private String makeImg(String svg, String title) {
+        String src = "data:image/svg+xml," + encodeUriComponent(svg);
+        return "<img src='" + src + "' title='" + cleanAngles(title) + "'/>";
+    }
+
+    String encodeUriComponent(String data) {
+        // ignore these chars: A–Z a–z 0–9 - _ . ! ~ * ' ( )
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < data.length(); i++) {
+            char c = data.charAt(i);
+            if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9') {
+                sb.append(c);
+            } else if (c == ' ' || c == '!' || c == '~' || c == '*' || c == '\'' || c == '(' || c == ')') {
+                sb.append(c);
+            } else {
+                sb.append(URLEncoder.encode("" + c, StandardCharsets.UTF_8));
+            }
+        }
+        return sb.toString();
+    }
+
+    private String cleanAngles(String string) {
+        String res = string.replace("&", "&amp;");
+        res = res.replace("<", "\u200B\u2039");
+        res = res.replace(">", "\u200B\u203A");
+        return res;
+    }
+
+    private String restoreAngles(String string) {
+        String res = string.replace("\u200b\u2039", "<");
+        res = res.replace("\u200b\u203a", ">");
+        return res;
     }
 
     private String makeSVG(int tag) {
@@ -215,7 +252,7 @@ public class Alignment {
         if (tag >= 100) {
             width = 28;
         }
-        return "<svg width=\"" + (width + 1)
+        return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + (width + 1)
                 + "px\" height=\"17px\" version=\"1.1\"><g><rect style=\"fill:#009688\" width=\"" + width
                 + "px\" height=\"16px\" x=\"1\" y=\"1\" rx=\"3\" ry=\"3\" />"
                 + "<text style=\"font-size:12px;font-style:normal;font-weight:normal;text-align:center;\""
@@ -504,22 +541,17 @@ public class Alignment {
     }
 
     public void saveData(JSONObject json) throws SAXException, IOException, ParserConfigurationException {
-        try {
-            int row = Integer.parseInt(json.getString("id"));
-            List<Element> list = sources;
-            if (json.getString("lang").equals(tgtLang.getCode())) {
-                list = targets;
-            }
-            String data = json.getString("data");
-            if (data.indexOf("<svg") == -1) {
-                list.get(row).setText(data);
-            } else {
-                Map<String, String> tagsMap = getTags(list.get(row));
-                data = cleanSVG(data, tagsMap);
-                list.get(row).clone(rebuild(data));
-            }
-        } catch (IndexOutOfBoundsException e) {
-            // ignore
+        int row = Integer.parseInt(json.getString("id"));
+        List<Element> list = sources;
+        if (json.getString("lang").equals(tgtLang.getCode())) {
+            list = targets;
+        }
+        String data = json.getString("data").replace("&nbsp;", "\u00A0");
+        data = restoreAngles(data);
+        if (data.indexOf("<") == -1) {
+            list.get(row).setText(data);
+        } else {
+            list.get(row).clone(rebuild(data));
         }
     }
 
@@ -530,59 +562,25 @@ public class Alignment {
             if (json.getString("lang").equals(tgtLang.getCode())) {
                 list = targets;
             }
-            Map<String, String> tagsMap = getTags(list.get(row));
-            String data = json.getString("start");
-            if (data.indexOf("<svg") == -1) {
+            String data = json.getString("start").replace("&nbsp;", "\u00A0");
+            data = restoreAngles(data);
+            if (data.indexOf("<") == -1) {
                 list.get(row).setText(data);
             } else {
-                data = cleanSVG(data, tagsMap);
                 list.get(row).clone(rebuild(data));
             }
-            data = json.getString("end");
+            data = json.getString("end").replace("&nbsp;", "\u00A0");
+            data = restoreAngles(data);
             Element newSource = new Element("source");
-            if (data.indexOf("<svg") == -1) {
+            if (data.indexOf("<") == -1) {
                 newSource.setText(data);
             } else {
-                data = cleanSVG(data, tagsMap);
                 newSource.clone(rebuild(data));
             }
             list.add(row + 1, newSource);
         } catch (IndexOutOfBoundsException e) {
             // ignore
         }
-    }
-
-    private Map<String, String> getTags(Element element) {
-        Map<String, String> result = new HashMap<>();
-        List<Element> children = element.getChildren("ph");
-        Iterator<Element> it = children.iterator();
-        int count = 1;
-        while (it.hasNext()) {
-            Element child = it.next();
-            result.put("" + count++, child.toString());
-        }
-        return result;
-    }
-
-    private String cleanSVG(String data, Map<String, String> map)
-            throws SAXException, IOException, ParserConfigurationException {
-        SAXBuilder builder = new SAXBuilder();
-        String text = "<source>" + data + "</source>";
-        Element e = builder.build(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8))).getRootElement();
-        StringBuilder sb = new StringBuilder();
-        List<XMLNode> list = e.getContent();
-        Iterator<XMLNode> it = list.iterator();
-        int count = 1;
-        while (it.hasNext()) {
-            XMLNode node = it.next();
-            if (node.getNodeType() == XMLNode.TEXT_NODE) {
-                TextNode t = (TextNode) node;
-                sb.append(t.getText());
-            } else {
-                sb.append(map.get("" + count++));
-            }
-        }
-        return sb.toString();
     }
 
     private Element rebuild(String e) throws SAXException, IOException, ParserConfigurationException {
