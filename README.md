@@ -1,6 +1,6 @@
 # Stingray Document Aligner
 
-![Stingray logo](https://www.maxprograms.com/images/stingray_s.png)
+![Stingray logo](icons/icon.png)
 
 Stingray is a document aligner designed to assist professional translators in the production of translation memories from existing translated material.
 
