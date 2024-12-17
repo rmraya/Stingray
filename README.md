@@ -10,7 +10,7 @@ TAB delimited files created by Stingray can be opened in Microsoft Excel or Appl
 
 #### Align Two Word Files
 
-<a href="https://www.maxprograms.com/tutorials/AlignFiles.mp4"><img src="https://www.maxprograms.com/tutorials/alignTwoFiles.png"></a>
+ - <a href="https://www.maxprograms.com/tutorials/AlignFiles.mp4">Click here to watch a Video</a>
 
 ## Licenses
 
