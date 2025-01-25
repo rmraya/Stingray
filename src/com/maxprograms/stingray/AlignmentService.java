@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2024 Maxprograms.
+ * Copyright (c) 2008 - 2025 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -78,7 +78,7 @@ public class AlignmentService {
 			result.put("languages", array);
 			result.put(Constants.STATUS, Constants.SUCCESS);
 		} catch (SAXException | IOException | ParserConfigurationException e) {
-			logger.log(Level.ERROR, "Error getting languages", e);
+			logger.log(Level.ERROR, Messages.getString("AlignmentService.1"), e);
 			result.put(Constants.REASON, e.getMessage());
 		}
 		return result;
@@ -147,7 +147,7 @@ public class AlignmentService {
 				@Override
 				public void run() {
 					try {
-						status = "Processing source";
+						status = Messages.getString("AlignmentService.2");
 						logger.log(Level.INFO, status);
 						File srcXlf = File.createTempFile("file", ".xlf");
 						srcXlf.deleteOnExit();
@@ -171,7 +171,7 @@ public class AlignmentService {
 						}
 						Files.delete(skl.toPath());
 
-						status = "Processing target";
+						status = Messages.getString("AlignmentService.3");
 						logger.log(Level.INFO, status);
 						File tgtXlf = File.createTempFile("file", ".xlf");
 						tgtXlf.deleteOnExit();
@@ -195,7 +195,7 @@ public class AlignmentService {
 						}
 						Files.delete(skl.toPath());
 
-						status = "Aligning Files";
+						status = Messages.getString("AlignmentService.4");
 						logger.log(Level.INFO, status);
 
 						Alignment algn = new Alignment(json.getString("srcLang"), json.getString("tgtLang"));
@@ -218,7 +218,7 @@ public class AlignmentService {
 
 						status = "";
 						aligning = false;
-						logger.log(Level.INFO, "Alignment completed");
+						logger.log(Level.INFO, Messages.getString("AlignmentService.5"));
 					} catch (IOException | SAXException | ParserConfigurationException e) {
 						logger.log(Level.ERROR, e);
 						alignError = e.getMessage();
@@ -265,7 +265,7 @@ public class AlignmentService {
 		JSONObject result = new JSONObject();
 		loading = true;
 		loadError = "";
-		status = "Loading file";
+		status = Messages.getString("AlignmentService.6");
 		try {
 			new Thread() {
 
@@ -333,7 +333,7 @@ public class AlignmentService {
 		JSONObject result = new JSONObject();
 		saving = true;
 		saveError = "";
-		status = "Saving file";
+		status = Messages.getString("AlignmentService.7");
 
 		try {
 			new Thread() {

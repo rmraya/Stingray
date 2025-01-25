@@ -10,11 +10,10 @@
  *     Maxprograms - initial API and implementation
  *******************************************************************************/
 
-interface Preferences {
-    srcLang: string
-    tgtLang: string;
-    appLang: string;
-    theme: "system" | "light" | "dark" | "highcontrast";
-    catalog: string;
-    srx: string;
+export enum MessageTypes {
+    none = "none",
+    info = "info",
+    error = "error",
+    question = "question",
+    warning = "warning"
 }

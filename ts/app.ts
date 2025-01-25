@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2024 Maxprograms.
+ * Copyright (c) 2008 - 2025 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -11,16 +11,17 @@
  *******************************************************************************/
 
 import { ChildProcessWithoutNullStreams, execFileSync, spawn } from "child_process";
-import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, Menu, MenuItem, nativeTheme, net, session, Rectangle, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, IpcMainEvent, Menu, MenuItem, MessageBoxReturnValue, nativeTheme, net, Rectangle, session, shell } from "electron";
 import { IncomingMessage } from "electron/main";
-import { appendFileSync, existsSync, readFileSync, writeFile, writeFileSync, unlinkSync } from "fs";
+import { appendFileSync, existsSync, readFileSync, unlinkSync, writeFile, writeFileSync } from "fs";
 import { ClientRequest, request } from "http";
+import { I18n } from "./i18n";
 import { Locations, Point } from "./locations";
+import { MessageTypes } from "./messageTypes";
 
 class Stingray {
 
     static path = require('path');
-    static https = require('https');
 
     static mainWindow: BrowserWindow;
     static messagesWindow: BrowserWindow;
@@ -59,6 +60,9 @@ class Stingray {
     static latestVersion: string;
     static downloadLink: string;
 
+    static i18n: I18n;
+    static appLang: string = 'en';
+
     constructor(args: string[]) {
         if (!app.requestSingleInstanceLock()) {
             app.quit();
@@ -85,8 +89,11 @@ class Stingray {
         if (process.platform === 'win32') {
             this.javapath = Stingray.path.join(app.getAppPath(), 'bin', 'java.exe');
         }
+        this.loadDefaults();
+        Stingray.loadPreferences();
+        Stingray.i18n = new I18n(Stingray.path.join(app.getAppPath(), 'i18n', 'stingray_' + Stingray.appLang + '.json'));
 
-        this.ls = spawn(this.javapath, ['--module-path', 'lib', '-m', 'stingray/com.maxprograms.stingray.StingrayServer', '-port', '8040'], { cwd: app.getAppPath(), windowsHide: true });
+        this.ls = spawn(this.javapath, ['--module-path', 'lib', '-m', 'stingray/com.maxprograms.stingray.StingrayServer', '-port', '8040', '-lang', Stingray.appLang], { cwd: app.getAppPath(), windowsHide: true });
         if (!app.isPackaged) {
             this.ls.stdout.on('data', (data: Buffer | string) => {
                 console.log(data instanceof Buffer ? data.toString() : data);
@@ -98,19 +105,10 @@ class Stingray {
         execFileSync(this.javapath, ['--module-path', 'lib', '-m', 'stingray/com.maxprograms.stingray.CheckURL', 'http://localhost:8040/'], { cwd: app.getAppPath(), windowsHide: true });
 
         Stingray.locations = new Locations(Stingray.path.join(app.getPath('appData'), app.name, 'locations.json'));
-        this.loadDefaults();
-        Stingray.currentPreferences = {
-            theme: 'system',
-            srcLang: 'none',
-            tgtLang: 'none',
-            catalog: Stingray.path.join(app.getAppPath(), 'catalog', 'catalog.xml'),
-            srx: Stingray.path.join(app.getAppPath(), 'srx', 'default.srx')
-        }
         app.on('ready', () => {
             Stingray.currentFile = '';
-            Stingray.loadPreferences();
             this.createWindow();
-            Stingray.mainWindow.loadURL(Stingray.path.join('file://', app.getAppPath(), 'html/index.html'));
+            Stingray.mainWindow.loadURL(Stingray.path.join('file://', app.getAppPath(), 'html', Stingray.appLang, 'index.html'));
             Stingray.mainWindow.on('resize', () => {
                 this.saveDefaults();
             });
@@ -125,9 +123,9 @@ class Stingray {
                 Stingray.checkUpdates(true);
                 Stingray.mainLoaded();
                 if (process.platform === 'darwin' && app.runningUnderARM64Translation) {
-                    Stingray.showMessage({
-                        type: 'warning',
-                        message: 'You are running a version for Macs with Intel processors on a Mac with Apple M1 chipset.'
+                    dialog.showMessageBoxSync(Stingray.mainWindow, {
+                        type: MessageTypes.warning,
+                        message: Stingray.i18n.getString('Stingray', 'arm64')
                     });
                 }
             });
@@ -172,7 +170,7 @@ class Stingray {
             this.stopServer();
         });
 
-        app.on('window-all-closed', (ev: Event) => {
+        app.on('will-quit', (ev: Event) => {
             if (!Stingray.saved) {
                 ev.preventDefault();
                 Stingray.shouldQuit = true;
@@ -186,9 +184,6 @@ class Stingray {
         nativeTheme.on('updated', () => {
             Stingray.loadPreferences();
             Stingray.setTheme();
-        });
-        ipcMain.on('get-message-param', (event: IpcMainEvent) => {
-            event.sender.send('set-message', Stingray.messageParam);
         });
         ipcMain.on('get-theme', (event: IpcMainEvent) => {
             event.sender.send('set-theme', Stingray.currentTheme);
@@ -249,6 +244,9 @@ class Stingray {
         });
         ipcMain.on('get-languages', (event: IpcMainEvent) => {
             this.getLanguages(event);
+        });
+        ipcMain.on('get-appLanguage', (event: IpcMainEvent) => {
+            event.sender.send('set-appLanguage', Stingray.appLang);
         });
         ipcMain.on('get-types', (event: IpcMainEvent) => {
             this.getTypes(event);
@@ -430,15 +428,15 @@ class Stingray {
             icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png')
         });
         let fileMenu: Menu = Menu.buildFromTemplate([
-            { label: 'New Alignment', accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } },
-            { label: 'Open Alignment', accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openFileDialog(); } },
-            { label: 'Close Alignment', accelerator: 'CmdOrCtrl+W', click: () => { Stingray.closeFile(); } },
-            { label: 'Save Alignment', accelerator: 'CmdOrCtrl+S', click: () => { Stingray.saveFile(); } },
-            { label: 'Save Alignment As...', accelerator: 'CmdOrCtrl+Shift+S', click: () => { Stingray.saveFileAs(); } },
+            { label: Stingray.i18n.getString('menu', 'newAlignment'), accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } },
+            { label: Stingray.i18n.getString('menu', 'openAlignment'), accelerator: 'CmdOrCtrl+O', click: () => { Stingray.openFileDialog(); } },
+            { label: Stingray.i18n.getString('menu', 'closeAlignment'), accelerator: 'CmdOrCtrl+W', click: () => { Stingray.closeFile(); } },
+            { label: Stingray.i18n.getString('menu', 'saveAlignment'), accelerator: 'CmdOrCtrl+S', click: () => { Stingray.saveFile(); } },
+            { label: Stingray.i18n.getString('menu', 'saveAlignmentAs'), accelerator: 'CmdOrCtrl+Shift+S', click: () => { Stingray.saveFileAs(); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Export Aligment as TMX', click: () => { Stingray.exportTMX(); } },
-            { label: 'Export Aligment as Excel', click: () => { Stingray.exportExcel(); } },
-            { label: 'Export Alignment as TAB Delimited', click: () => { Stingray.exportCSV(); } }
+            { label: Stingray.i18n.getString('menu', 'exportTMX'), click: () => { Stingray.exportTMX(); } },
+            { label: Stingray.i18n.getString('menu', 'exportExcel'), click: () => { Stingray.exportExcel(); } },
+            { label: Stingray.i18n.getString('menu', 'exportCSV'), click: () => { Stingray.exportCSV(); } }
         ]);
         let recentFiles: string[] = Stingray.loadRecents();
         if (recentFiles.length > 0) {
@@ -450,91 +448,93 @@ class Stingray {
             }
         }
         let editMenu: Menu = Menu.buildFromTemplate([
-            { label: 'Replace Text...', accelerator: 'CmdOrCtrl+F', click: () => { Stingray.replaceText(); } },
+            { label: Stingray.i18n.getString('menu', 'replaceText'), accelerator: 'CmdOrCtrl+F', click: () => { Stingray.replaceText(); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Confirm Edit', accelerator: 'Alt+Enter', click: () => { Stingray.saveEdit(); } },
-            { label: 'Cancel Edit', accelerator: 'Esc', click: () => { Stingray.cancelEdit(); } },
+            { label: Stingray.i18n.getString('menu', 'confirmEdit'), accelerator: 'Alt+Enter', click: () => { Stingray.saveEdit(); } },
+            { label: Stingray.i18n.getString('menu', 'cancelEdit'), accelerator: 'Esc', click: () => { Stingray.cancelEdit(); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Move Segment Down', accelerator: 'Alt+CmdOrCtrl+Down', click: () => { Stingray.moveSegmentDown(); } },
-            { label: 'Move Segment Up', accelerator: 'Alt+CmdOrCtrl+Up', click: () => { Stingray.moveSegmentUp(); } },
-            { label: 'Split Segment', accelerator: 'CmdOrCtrl+L', click: () => { Stingray.splitSegment(); } },
-            { label: 'Merge With Next Segment', accelerator: 'CmdOrCtrl+M', click: () => { Stingray.mergeSegment(); } },
-            { label: 'Remove Segment', accelerator: 'CmdOrCtrl+D', click: () => { Stingray.removeSegment(); } },
+            { label: Stingray.i18n.getString('menu', 'moveDown'), accelerator: 'Alt+CmdOrCtrl+Down', click: () => { Stingray.moveSegmentDown(); } },
+            { label: Stingray.i18n.getString('menu', 'moveUp'), accelerator: 'Alt+CmdOrCtrl+Up', click: () => { Stingray.moveSegmentUp(); } },
+            { label: Stingray.i18n.getString('menu', 'splitSegment'), accelerator: 'CmdOrCtrl+L', click: () => { Stingray.splitSegment(); } },
+            { label: Stingray.i18n.getString('menu', 'mergeNext'), accelerator: 'CmdOrCtrl+M', click: () => { Stingray.mergeSegment(); } },
+            { label: Stingray.i18n.getString('menu', 'removeSegment'), accelerator: 'CmdOrCtrl+D', click: () => { Stingray.removeSegment(); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Undo', accelerator: 'CmdOrCtrl+Z', click: () => { BrowserWindow.getFocusedWindow().webContents.undo(); } },
-            { label: 'Cut', accelerator: 'CmdOrCtrl+X', click: () => { BrowserWindow.getFocusedWindow().webContents.cut(); } },
-            { label: 'Copy', accelerator: 'CmdOrCtrl+C', click: () => { BrowserWindow.getFocusedWindow().webContents.copy(); } },
-            { label: 'Paste', accelerator: 'CmdOrCtrl+V', click: () => { BrowserWindow.getFocusedWindow().webContents.paste(); } },
-            { label: 'Select All', accelerator: 'CmdOrCtrl+A', click: () => { BrowserWindow.getFocusedWindow().webContents.selectAll(); } }
+            { label: Stingray.i18n.getString('menu', 'undo'), accelerator: 'CmdOrCtrl+Z', click: () => { BrowserWindow.getFocusedWindow().webContents.undo(); } },
+            { label: Stingray.i18n.getString('menu', 'cut'), accelerator: 'CmdOrCtrl+X', click: () => { BrowserWindow.getFocusedWindow().webContents.cut(); } },
+            { label: Stingray.i18n.getString('menu', 'copy'), accelerator: 'CmdOrCtrl+C', click: () => { BrowserWindow.getFocusedWindow().webContents.copy(); } },
+            { label: Stingray.i18n.getString('menu', 'paste'), accelerator: 'CmdOrCtrl+V', click: () => { BrowserWindow.getFocusedWindow().webContents.paste(); } },
+            { label: Stingray.i18n.getString('menu', 'selectAll'), accelerator: 'CmdOrCtrl+A', click: () => { BrowserWindow.getFocusedWindow().webContents.selectAll(); } }
         ]);
         let viewMenu: Menu = Menu.buildFromTemplate([
-            { label: 'First Page', accelerator: 'CmdOrCtrl+Home', click: () => { Stingray.firstPage(); } },
-            { label: 'Previous Page', accelerator: 'CmdOrCtrl+PageUp', click: () => { Stingray.previousPage(); } },
-            { label: 'Next Page', accelerator: 'CmdOrCtrl+PageDown', click: () => { Stingray.nextPage(); } },
-            { label: 'Last Page', accelerator: 'CmdOrCtrl+End', click: () => { Stingray.lastPage(); } },
+            { label: Stingray.i18n.getString('menu', 'firstPage'), accelerator: 'CmdOrCtrl+Home', click: () => { Stingray.firstPage(); } },
+            { label: Stingray.i18n.getString('menu', 'previousPage'), accelerator: 'CmdOrCtrl+PageUp', click: () => { Stingray.previousPage(); } },
+            { label: Stingray.i18n.getString('menu', 'nextPage'), accelerator: 'CmdOrCtrl+PageDown', click: () => { Stingray.nextPage(); } },
+            { label: Stingray.i18n.getString('menu', 'lastPage'), accelerator: 'CmdOrCtrl+End', click: () => { Stingray.lastPage(); } },
             new MenuItem({ type: 'separator' }),
-            new MenuItem({ label: 'Toggle Full Screen', role: 'togglefullscreen' }),
-            new MenuItem({ label: 'Toggle Development Tools', accelerator: 'F12', role: 'toggleDevTools' })
+            new MenuItem({ label: Stingray.i18n.getString('menu', 'toggleFullScreen'), role: 'togglefullscreen' })
         ]);
+        if (!app.isPackaged) {
+            viewMenu.append(new MenuItem({ label: Stingray.i18n.getString('menu', 'toggleDevTools'), accelerator: 'F12', role: 'toggleDevTools' }));
+        }
         let tasksMenu: Menu = Menu.buildFromTemplate([
-            { label: 'Remove all Tags', click: () => { Stingray.removeTags(); } },
-            { label: 'Remove Duplicate Entries', click: () => { Stingray.removeDuplicates(); } },
-            { label: 'Change Language Codes', click: () => { Stingray.changeLanguages(); } },
+            { label: Stingray.i18n.getString('menu', 'removeAllTags'), click: () => { Stingray.removeTags(); } },
+            { label: Stingray.i18n.getString('menu', 'removeDuplicates'), click: () => { Stingray.removeDuplicates(); } },
+            { label: Stingray.i18n.getString('menu', 'changeLanguageCodes'), click: () => { Stingray.changeLanguages(); } },
         ]);
         let helpMenu: Menu = Menu.buildFromTemplate([
-            { label: 'Stingray User Guide', accelerator: 'F1', click: () => { Stingray.showHelp(); } },
+            { label: Stingray.i18n.getString('menu', 'userGuide'), accelerator: 'F1', click: () => { Stingray.showHelp(); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Check for Updates...', click: () => { Stingray.checkUpdates(false); } },
-            { label: 'View Licenses', click: () => { Stingray.showLicenses('main'); } },
+            { label: Stingray.i18n.getString('menu', 'checkUpdates'), click: () => { Stingray.checkUpdates(false); } },
+            { label: Stingray.i18n.getString('menu', 'viewLicenses'), click: () => { Stingray.showLicenses('main'); } },
             new MenuItem({ type: 'separator' }),
-            { label: 'Release History', click: () => { Stingray.showReleaseHistory(); } },
-            { label: 'Support Group', click: () => { Stingray.showSupportGroup(); } }
+            { label: Stingray.i18n.getString('menu', 'releaseHistory'), click: () => { Stingray.showReleaseHistory(); } },
+            { label: Stingray.i18n.getString('menu', 'supportGroup'), click: () => { Stingray.showSupportGroup(); } }
         ]);
         let template: MenuItem[] = [
-            new MenuItem({ label: '&File', role: 'fileMenu', submenu: fileMenu }),
-            new MenuItem({ label: '&Edit', role: 'editMenu', submenu: editMenu }),
-            new MenuItem({ label: '&View', role: 'viewMenu', submenu: viewMenu }),
-            new MenuItem({ label: '&Tasks', submenu: tasksMenu }),
-            new MenuItem({ label: '&Help', role: 'help', submenu: helpMenu })
+            new MenuItem({ label: Stingray.i18n.getString('menu', 'fileMenu'), role: 'fileMenu', submenu: fileMenu }),
+            new MenuItem({ label: Stingray.i18n.getString('menu', 'editMenu'), role: 'editMenu', submenu: editMenu }),
+            new MenuItem({ label: Stingray.i18n.getString('menu', 'viewMenu'), role: 'viewMenu', submenu: viewMenu }),
+            new MenuItem({ label: Stingray.i18n.getString('menu', 'tasksMenu'), submenu: tasksMenu }),
+            new MenuItem({ label: Stingray.i18n.getString('menu', 'helpMenu'), role: 'help', submenu: helpMenu })
         ];
         if (process.platform === 'darwin') {
             let appleMenu: Menu = Menu.buildFromTemplate([
-                new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }),
+                new MenuItem({ label: Stingray.i18n.getString('menu', 'about'), click: () => { Stingray.showAbout(); } }),
                 new MenuItem({
-                    label: 'Preferences...', submenu: [
-                        { label: 'Settings', accelerator: 'Cmd+,', click: () => { Stingray.showSettings(); } }
+                    label: Stingray.i18n.getString('menu', 'preferences'), submenu: [
+                        { label: Stingray.i18n.getString('menu', 'settingsMac'), accelerator: 'Cmd+,', click: () => { Stingray.showSettings(); } }
                     ]
                 }),
                 new MenuItem({ type: 'separator' }),
                 new MenuItem({
-                    label: 'Services', role: 'services', submenu: [
-                        { label: 'No Services Apply', enabled: false }
+                    label: Stingray.i18n.getString('menu', 'services'), role: 'services', submenu: [
+                        { label: Stingray.i18n.getString('menu', 'noServices'), enabled: false }
                     ]
                 }),
                 new MenuItem({ type: 'separator' }),
-                new MenuItem({ label: 'Quit Stingray', accelerator: 'Cmd+Q', role: 'quit', click: () => { app.quit(); } })
+                new MenuItem({ label: Stingray.i18n.getString('menu', 'quitMac'), accelerator: 'Cmd+Q', role: 'quit', click: () => { app.quit(); } })
             ]);
             template.unshift(new MenuItem({ label: 'Stingray', role: 'appMenu', submenu: appleMenu }));
         } else {
             let help: MenuItem = template.pop();
             template.push(new MenuItem({
-                label: '&Settings', submenu: [
-                    { label: 'Preferences', click: () => { Stingray.showSettings(); } }
+                label: Stingray.i18n.getString('menu', 'settingsMenu'), submenu: [
+                    { label: Stingray.i18n.getString('menu', 'preferences'), click: () => { Stingray.showSettings(); } }
                 ]
             }));
             template.push(help);
         }
         if (process.platform === 'win32') {
             template[0].submenu.append(new MenuItem({ type: 'separator' }));
-            template[0].submenu.append(new MenuItem({ label: 'Exit', accelerator: 'Alt+F4', role: 'quit', click: () => { app.quit(); } }));
+            template[0].submenu.append(new MenuItem({ label: Stingray.i18n.getString('menu', 'quitWindows'), accelerator: 'Alt+F4', role: 'quit', click: () => { app.quit(); } }));
             template[5].submenu.append(new MenuItem({ type: 'separator' }));
-            template[5].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
+            template[5].submenu.append(new MenuItem({ label: Stingray.i18n.getString('menu', 'about'), click: () => { Stingray.showAbout(); } }));
         }
         if (process.platform === 'linux') {
             template[0].submenu.append(new MenuItem({ type: 'separator' }));
-            template[0].submenu.append(new MenuItem({ label: 'Quit', accelerator: 'Ctrl+Q', role: 'quit', click: () => { app.quit(); } }));
+            template[0].submenu.append(new MenuItem({ label: Stingray.i18n.getString('menu', 'quitLinux'), accelerator: 'Ctrl+Q', role: 'quit', click: () => { app.quit(); } }));
             template[5].submenu.append(new MenuItem({ type: 'separator' }));
-            template[5].submenu.append(new MenuItem({ label: 'About...', click: () => { Stingray.showAbout(); } }));
+            template[5].submenu.append(new MenuItem({ label: Stingray.i18n.getString('menu', 'about'), click: () => { Stingray.showAbout(); } }));
         }
         Menu.setApplicationMenu(Menu.buildFromTemplate(template));
     }
@@ -558,6 +558,7 @@ class Stingray {
             this.currentPreferences = {
                 srcLang: 'none',
                 tgtLang: 'none',
+                appLang: 'en',
                 theme: 'system',
                 catalog: this.path.join(app.getAppPath(), 'catalog', 'catalog.xml'),
                 srx: this.path.join(app.getAppPath(), 'srx', 'default.srx')
@@ -570,13 +571,36 @@ class Stingray {
         } catch (err) {
             console.log(err);
         }
+
+        if (this.currentPreferences.appLang) {
+            if (app.isReady() && this.currentPreferences.appLang !== Stingray.appLang) {
+                dialog.showMessageBox({
+                    type: 'question',
+                    message: Stingray.i18n.getString('Stingray', 'languageChanged'),
+                    buttons: [Stingray.i18n.getString('Stingray', 'restart'), Stingray.i18n.getString('Stingray', 'dismiss')],
+                    cancelId: 1
+                }).then((value: MessageBoxReturnValue) => {
+                    if (value.response == 0) {
+                        app.relaunch();
+                        app.quit();
+                    }
+                });
+            }
+        } else {
+            this.currentPreferences.appLang = 'en';
+        }
+        Stingray.appLang = this.currentPreferences.appLang;
         let light = 'file://' + this.path.join(app.getAppPath(), 'css', 'light.css');
         let dark = 'file://' + this.path.join(app.getAppPath(), 'css', 'dark.css');
+        let highcontrast = 'file://' + this.path.join(app.getAppPath(), 'css', 'highcontrast.css');
         if (this.currentPreferences.theme === 'system') {
             if (nativeTheme.shouldUseDarkColors) {
                 this.currentTheme = dark;
             } else {
                 this.currentTheme = light;
+            }
+            if (nativeTheme.shouldUseHighContrastColors) {
+                this.currentTheme = highcontrast;
             }
         }
         if (this.currentPreferences.theme === 'dark') {
@@ -585,8 +609,8 @@ class Stingray {
         if (this.currentPreferences.theme === 'light') {
             this.currentTheme = light;
         }
-        if (process.platform === 'win32') {
-            nativeTheme.themeSource = this.currentPreferences.theme;
+        if (this.currentPreferences.theme === 'highcontrast') {
+            this.currentTheme = highcontrast;
         }
         this.setTheme();
     }
@@ -619,9 +643,11 @@ class Stingray {
                 let responseData: string = '';
                 if (response.statusCode !== 200) {
                     if (!silent) {
-                        Stingray.showMessage({
-                            type: 'info',
-                            message: 'Server status: ' + response.statusCode
+                        let message: string = Stingray.i18n.getString('Stingray', 'serverStatus');
+                        let formattedMessage: string = Stingray.i18n.format(message, ['' + response.statusCode]);
+                        dialog.showMessageBoxSync(Stingray.mainWindow, {
+                            type: MessageTypes.info,
+                            message: formattedMessage
                         });
                     }
                 }
@@ -659,7 +685,7 @@ class Stingray {
                                 }
                             });
                             Stingray.updatesWindow.setMenu(null);
-                            Stingray.updatesWindow.loadURL('file://' + this.path.join(app.getAppPath(), 'html', 'updates.html'));
+                            Stingray.updatesWindow.loadURL('file://' + this.path.join(app.getAppPath(), 'html', Stingray.appLang, 'updates.html'));
                             Stingray.updatesWindow.once('ready-to-show', () => {
                                 Stingray.updatesWindow.show();
                             });
@@ -668,16 +694,16 @@ class Stingray {
                             });
                         } else {
                             if (!silent) {
-                                Stingray.showMessage({
-                                    type: 'info',
-                                    message: 'There are currently no updates available'
+                                dialog.showMessageBoxSync(Stingray.mainWindow, {
+                                    type: MessageTypes.info,
+                                    message: Stingray.i18n.getString('Stingray', 'noUpdates')
                                 });
                             }
                         }
                     } catch (reason: any) {
                         if (!silent) {
-                            Stingray.showMessage({
-                                type: 'error',
+                            dialog.showMessageBoxSync(Stingray.mainWindow, {
+                                type: MessageTypes.error,
                                 message: reason.message
                             });
                         }
@@ -686,8 +712,8 @@ class Stingray {
             });
             req.on('error', (error: Error) => {
                 if (!silent) {
-                    Stingray.showMessage({
-                        type: 'error',
+                    dialog.showMessageBoxSync(Stingray.mainWindow, {
+                        type: MessageTypes.error,
                         message: error.message
                     });
                 }
@@ -714,35 +740,37 @@ class Stingray {
         req.on('response', (response: IncomingMessage) => {
             let fileSize = Number.parseInt(response.headers['content-length'] as string);
             let received: number = 0;
+            let downloadedMessage: string = Stingray.i18n.getString('Stingray', 'downloaded');
             response.on('data', (chunk: Buffer) => {
                 received += chunk.length;
                 if (process.platform === 'win32' || process.platform === 'darwin') {
                     Stingray.mainWindow.setProgressBar(received / fileSize);
                 }
-                Stingray.mainWindow.webContents.send('set-status', 'Downloaded: ' + Math.trunc(received * 100 / fileSize) + '%');
+                let message: string = Stingray.i18n.format(downloadedMessage, ['' + Math.trunc(received * 100 / fileSize)]);
+                Stingray.mainWindow.webContents.send('set-status', message);
                 appendFileSync(file, chunk);
             });
             response.on('end', () => {
                 Stingray.mainWindow.webContents.send('set-status', '');
                 dialog.showMessageBox({
-                    type: 'info',
-                    message: 'Update downloaded'
+                    type: MessageTypes.info,
+                    message: Stingray.i18n.getString('Stingray', 'updateDownloaded')
                 });
                 if (process.platform === 'win32' || process.platform === 'darwin') {
                     Stingray.mainWindow.setProgressBar(0);
                     shell.openPath(file).then(() => {
                         app.quit();
                     }).catch((reason: string) => {
-                        dialog.showErrorBox('Error', reason);
+                        dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
                     });
                 }
                 if (process.platform === 'linux') {
                     shell.showItemInFolder(file);
                 }
             });
-            response.on('error', (reason: string) => {
+            response.on('error', (error: Error) => {
                 Stingray.mainWindow.webContents.send('set-status', '');
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), error.message);
                 if (process.platform === 'win32' || process.platform === 'darwin') {
                     Stingray.mainWindow.setProgressBar(0);
                 }
@@ -770,8 +798,8 @@ class Stingray {
         this.aboutWindow.on('closed', () => {
             this.mainWindow.focus();
         });
-        this.aboutWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'about.html'));
-        this.aboutWindow.once('ready-to-show', (event: IpcMainEvent) => {
+        this.aboutWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', Stingray.appLang, 'about.html'));
+        this.aboutWindow.once('ready-to-show', () => {
             this.aboutWindow.show();
         });
         Stingray.setLocation(this.aboutWindow, 'about.html');
@@ -796,15 +824,15 @@ class Stingray {
         this.settingsWindow.on('closed', () => {
             this.mainWindow.focus();
         });
-        this.settingsWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'preferences.html'));
-        this.settingsWindow.once('ready-to-show', (event: IpcMainEvent) => {
+        this.settingsWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', Stingray.appLang, 'preferences.html'));
+        this.settingsWindow.once('ready-to-show', () => {
             this.settingsWindow.show();
         });
         Stingray.setLocation(this.settingsWindow, 'preferences.html');
     }
 
     static showHelp(): void {
-        shell.openExternal(this.path.join('file://', app.getAppPath(), 'stingray.pdf'));
+        shell.openExternal(this.path.join('file://', app.getAppPath(), 'stingray_' + Stingray.appLang + '.pdf'));
     }
 
     static showSystemInfo() {
@@ -823,7 +851,7 @@ class Stingray {
             }
         });
         this.systemInfoWindow.setMenu(null);
-        this.systemInfoWindow.loadURL('file://' + this.path.join(app.getAppPath(), 'html', 'systemInfo.html'));
+        this.systemInfoWindow.loadURL('file://' + this.path.join(app.getAppPath(), 'html', Stingray.appLang, 'systemInfo.html'));
         this.systemInfoWindow.once('ready-to-show', () => {
             this.systemInfoWindow.show();
         });
@@ -840,11 +868,11 @@ class Stingray {
                     data.electron = process.versions.electron;
                     event.sender.send('set-system-info', data);
                 } else {
-                    Stingray.showMessage({ type: 'error', message: data.reason });
+                    dialog.showMessageBoxSync(Stingray.mainWindow, { type: MessageTypes.error, message: data.reason });
                 }
             },
             (reason: string) => {
-                Stingray.showMessage({ type: 'error', message: reason });
+                dialog.showMessageBoxSync(Stingray.mainWindow, { type: MessageTypes.error, message: reason });
             }
         );
     }
@@ -878,7 +906,7 @@ class Stingray {
         });
         this.licensesWindow.setMenu(null);
         this.licensesWindow.loadURL('file://' + app.getAppPath() + '/html/licenses.html');
-        this.licensesWindow.once('ready-to-show', (event: IpcMainEvent) => {
+        this.licensesWindow.once('ready-to-show', () => {
             this.licensesWindow.show();
         });
         Stingray.setLocation(this.licensesWindow, 'licenses.html');
@@ -922,7 +950,7 @@ class Stingray {
                 title = 'LGPL 2.1';
                 break;
             default:
-                dialog.showErrorBox('Error', 'Unknow license');
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), 'Unknow license');
                 return;
         }
         let licenseWindow = new BrowserWindow({
@@ -992,13 +1020,14 @@ class Stingray {
                 if (data.status === 'Success') {
                     data.srcLang = Stingray.currentPreferences.srcLang;
                     data.tgtLang = Stingray.currentPreferences.tgtLang;
+                    data.appLang = Stingray.currentPreferences.appLang;
                     event.sender.send('set-languages', data);
                 } else {
-                    dialog.showErrorBox('Error', data.reason);
+                    dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), data.reason);
                 }
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1009,11 +1038,11 @@ class Stingray {
                 if (data.status === 'Success') {
                     event.sender.send('set-types', data);
                 } else {
-                    dialog.showErrorBox('Error', data.reason);
+                    dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), data.reason);
                 }
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1024,11 +1053,11 @@ class Stingray {
                 if (data.status === 'Success') {
                     event.sender.send('set-charsets', data);
                 } else {
-                    dialog.showErrorBox('Error', data.reason);
+                    dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), data.reason);
                 }
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1052,8 +1081,8 @@ class Stingray {
             this.mainWindow.focus();
         });
         this.newFileWindow.setMenu(null);
-        this.newFileWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'newFile.html'));
-        this.newFileWindow.once('ready-to-show', (event: IpcMainEvent) => {
+        this.newFileWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', Stingray.appLang, 'newFile.html'));
+        this.newFileWindow.once('ready-to-show', () => {
             this.newFileWindow.show();
         });
         Stingray.setLocation(this.newFileWindow, 'newFile.html');
@@ -1065,8 +1094,8 @@ class Stingray {
             defaultPath: Stingray.currentPreferences.srx,
             properties: ['openFile'],
             filters: [
-                { name: 'SRX File', extensions: ['srx'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: Stingray.i18n.getString('Stingray', 'srxFile'), extensions: ['srx'] },
+                { name: Stingray.i18n.getString('Stingray', 'anyFile'), extensions: [''] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -1083,8 +1112,8 @@ class Stingray {
             defaultPath: Stingray.currentPreferences.catalog,
             properties: ['openFile'],
             filters: [
-                { name: 'XML File', extensions: ['xml'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: Stingray.i18n.getString('Stingray', 'xmlFile'), extensions: ['xml'] },
+                { name: Stingray.i18n.getString('Stingray', 'anyFile'), extensions: [''] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -1097,11 +1126,11 @@ class Stingray {
 
     browseAlignment(event: IpcMainEvent): void {
         dialog.showSaveDialog({
-            title: 'New Alignment File',
+            title: Stingray.i18n.getString('Stingray', 'newAlignmentFile'),
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
-                { name: 'Alignment File', extensions: ['algn'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: Stingray.i18n.getString('Stingray', 'algnFile'), extensions: ['algn'] },
+                { name: Stingray.i18n.getString('Stingray', 'anyFile'), extensions: [''] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -1114,34 +1143,30 @@ class Stingray {
 
     browseSource(event: IpcMainEvent): void {
         let filters: any[] = [
-            { name: 'Any File', extensions: [] },
-            { name: 'Adobe InCopy ICML', extensions: ['icml'] },
-            { name: 'Adobe InDesign Interchange', extensions: ['inx'] },
-            { name: 'Adobe InDesign IDML', extensions: ['idml'] },
-            { name: 'DITA Map', extensions: ['ditamap', 'dita', 'xml'] },
-            { name: 'HTML Page', extensions: ['html', 'htm'] },
-            { name: 'JavaScript', extensions: ['js'] },
-            { name: 'Java Properties', extensions: ['properties'] },
-            { name: 'JSON', extensions: ['json'] },
-            { name: 'MIF (Maker Interchange Format)', extensions: ['mif'] },
-            { name: 'Microsoft Office 2007 Document', extensions: ['docx', 'xlsx', 'pptx'] },
-            { name: 'OpenOffice 1.x Document', extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
-            { name: 'OpenOffice 2.x Document', extensions: ['odt', 'ods', 'odp', 'odg'] },
-            { name: 'PHP Arrays', extensions: ['php'] },
-            { name: 'Plain Text', extensions: ['txt'] },
-            { name: 'RC (Windows C/C++ Resources)', extensions: ['rc'] },
-            { name: 'ResX (Windows .NET Resources)', extensions: ['resx'] },
-            { name: 'SRT Subtitles', extensions: ['srt'] },
-            { name: 'SVG (Scalable Vector Graphics)', extensions: ['svg'] },
-            { name: 'Visio XML Drawing', extensions: ['vsdx'] },
-            { name: 'XML Document', extensions: ['xml'] }
+            { name: Stingray.i18n.getString('FileFormats', 'anyFile'), extensions: [] },
+            { name: Stingray.i18n.getString('FileFormats', 'icml'), extensions: ['icml'] },
+            { name: Stingray.i18n.getString('FileFormats', 'inx'), extensions: ['inx'] },
+            { name: Stingray.i18n.getString('FileFormats', 'idml'), extensions: ['idml'] },
+            { name: Stingray.i18n.getString('FileFormats', 'ditamap'), extensions: ['ditamap', 'dita', 'xml'] },
+            { name: Stingray.i18n.getString('FileFormats', 'html'), extensions: ['html', Stingray.appLang, 'htm'] },
+            { name: Stingray.i18n.getString('FileFormats', 'javascript'), extensions: ['js'] },
+            { name: Stingray.i18n.getString('FileFormats', 'properties'), extensions: ['properties'] },
+            { name: Stingray.i18n.getString('FileFormats', 'json'), extensions: ['json'] },
+            { name: Stingray.i18n.getString('FileFormats', 'mif'), extensions: ['mif'] },
+            { name: Stingray.i18n.getString('FileFormats', 'office'), extensions: ['docx', 'xlsx', 'pptx'] },
+            { name: Stingray.i18n.getString('FileFormats', 'openOffice1'), extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
+            { name: Stingray.i18n.getString('FileFormats', 'openOffice2'), extensions: ['odt', 'ods', 'odp', 'odg'] },
+            { name: Stingray.i18n.getString('FileFormats', 'php'), extensions: ['php'] },
+            { name: Stingray.i18n.getString('FileFormats', 'plainText'), extensions: ['txt'] },
+            { name: Stingray.i18n.getString('FileFormats', 'rc'), extensions: ['rc'] },
+            { name: Stingray.i18n.getString('FileFormats', 'resx'), extensions: ['resx'] },
+            { name: Stingray.i18n.getString('FileFormats', 'srt'), extensions: ['srt'] },
+            { name: Stingray.i18n.getString('FileFormats', 'svg'), extensions: ['svg'] },
+            { name: Stingray.i18n.getString('FileFormats', 'visio'), extensions: ['vsdx'] },
+            { name: Stingray.i18n.getString('FileFormats', 'xml'), extensions: ['xml'] }
         ];
-        if (process.platform === 'linux') {
-            filters.splice(0, 1);
-            filters.push({ name: 'Any File', extensions: ['*'] });
-        }
         dialog.showOpenDialog({
-            title: 'Source File',
+            title: Stingray.i18n.getString('Stingray', 'sourceFile'),
             properties: ['openFile'],
             filters: filters
         }).then((value) => {
@@ -1155,34 +1180,30 @@ class Stingray {
 
     browseTarget(event: IpcMainEvent): void {
         let filters: any[] = [
-            { name: 'Any File', extensions: [] },
-            { name: 'Adobe InCopy ICML', extensions: ['icml'] },
-            { name: 'Adobe InDesign Interchange', extensions: ['inx'] },
-            { name: 'Adobe InDesign IDML', extensions: ['idml'] },
-            { name: 'DITA Map', extensions: ['ditamap', 'dita', 'xml'] },
-            { name: 'HTML Page', extensions: ['html', 'htm'] },
-            { name: 'JavaScript', extensions: ['js'] },
-            { name: 'Java Properties', extensions: ['properties'] },
-            { name: 'JSON', extensions: ['json'] },
-            { name: 'MIF (Maker Interchange Format)', extensions: ['mif'] },
-            { name: 'Microsoft Office 2007 Document', extensions: ['docx', 'xlsx', 'pptx'] },
-            { name: 'OpenOffice 1.x Document', extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
-            { name: 'OpenOffice 2.x Document', extensions: ['odt', 'ods', 'odp', 'odg'] },
-            { name: 'PHP Arrays', extensions: ['php'] },
-            { name: 'Plain Text', extensions: ['txt'] },
-            { name: 'RC (Windows C/C++ Resources)', extensions: ['rc'] },
-            { name: 'ResX (Windows .NET Resources)', extensions: ['resx'] },
-            { name: 'SRT Subtitles', extensions: ['srt'] },
-            { name: 'SVG (Scalable Vector Graphics)', extensions: ['svg'] },
-            { name: 'Visio XML Drawing', extensions: ['vsdx'] },
-            { name: 'XML Document', extensions: ['xml'] }
+            { name: Stingray.i18n.getString('FileFormats', 'anyFile'), extensions: [] },
+            { name: Stingray.i18n.getString('FileFormats', 'icml'), extensions: ['icml'] },
+            { name: Stingray.i18n.getString('FileFormats', 'inx'), extensions: ['inx'] },
+            { name: Stingray.i18n.getString('FileFormats', 'idml'), extensions: ['idml'] },
+            { name: Stingray.i18n.getString('FileFormats', 'ditamap'), extensions: ['ditamap', 'dita', 'xml'] },
+            { name: Stingray.i18n.getString('FileFormats', 'html'), extensions: ['html', Stingray.appLang, 'htm'] },
+            { name: Stingray.i18n.getString('FileFormats', 'javascript'), extensions: ['js'] },
+            { name: Stingray.i18n.getString('FileFormats', 'properties'), extensions: ['properties'] },
+            { name: Stingray.i18n.getString('FileFormats', 'json'), extensions: ['json'] },
+            { name: Stingray.i18n.getString('FileFormats', 'mif'), extensions: ['mif'] },
+            { name: Stingray.i18n.getString('FileFormats', 'office'), extensions: ['docx', 'xlsx', 'pptx'] },
+            { name: Stingray.i18n.getString('FileFormats', 'openOffice1'), extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
+            { name: Stingray.i18n.getString('FileFormats', 'openOffice2'), extensions: ['odt', 'ods', 'odp', 'odg'] },
+            { name: Stingray.i18n.getString('FileFormats', 'php'), extensions: ['php'] },
+            { name: Stingray.i18n.getString('FileFormats', 'plainText'), extensions: ['txt'] },
+            { name: Stingray.i18n.getString('FileFormats', 'rc'), extensions: ['rc'] },
+            { name: Stingray.i18n.getString('FileFormats', 'resx'), extensions: ['resx'] },
+            { name: Stingray.i18n.getString('FileFormats', 'srt'), extensions: ['srt'] },
+            { name: Stingray.i18n.getString('FileFormats', 'svg'), extensions: ['svg'] },
+            { name: Stingray.i18n.getString('FileFormats', 'visio'), extensions: ['vsdx'] },
+            { name: Stingray.i18n.getString('FileFormats', 'xml'), extensions: ['xml'] }
         ];
-        if (process.platform === 'linux') {
-            filters.splice(0, 1);
-            filters.push({ name: 'Any File', extensions: ['*'] });
-        }
         dialog.showOpenDialog({
-            title: 'Target File',
+            title: Stingray.i18n.getString('Stingray', 'targetFile'),
             properties: ['openFile'],
             filters: filters
         }).then((value) => {
@@ -1200,7 +1221,7 @@ class Stingray {
                 event.sender.send(arg, data);
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1209,14 +1230,14 @@ class Stingray {
         this.destroyWindow(this.newFileWindow);
         this.mainWindow.focus();
         Stingray.mainWindow.webContents.send('start-waiting');
-        Stingray.mainWindow.webContents.send('set-status', 'Preparing files');
+        Stingray.mainWindow.webContents.send('set-status', Stingray.i18n.getString('Stingray', 'preparingFiles'));
         params.catalog = Stingray.currentPreferences.catalog;
         params.srx = Stingray.currentPreferences.srx;
         this.sendRequest('/alignFiles', params,
             (data: any) => {
                 if (data.status === 'Success') {
                     Stingray.alignmentStatus.aligning = true;
-                    Stingray.alignmentStatus.status = 'Preparing files';
+                    Stingray.alignmentStatus.status = Stingray.i18n.getString('Stingray', 'preparingFiles');
                     let intervalObject = setInterval(() => {
                         if (Stingray.alignmentStatus.aligning) {
                             Stingray.mainWindow.webContents.send('set-status', Stingray.alignmentStatus.status);
@@ -1225,7 +1246,7 @@ class Stingray {
                             Stingray.mainWindow.webContents.send('end-waiting');
                             Stingray.mainWindow.webContents.send('set-status', '');
                             if (Stingray.alignmentStatus.alignError !== '') {
-                                dialog.showErrorBox('Error', Stingray.alignmentStatus.alignError);
+                                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), Stingray.alignmentStatus.alignError);
                             } else {
                                 Stingray.openFile(params.alignmentFile);
                                 let save: boolean = false;
@@ -1247,13 +1268,13 @@ class Stingray {
                 } else {
                     Stingray.mainWindow.webContents.send('end-waiting');
                     Stingray.mainWindow.webContents.send('set-status', '');
-                    dialog.showErrorBox('Error', data.reason);
+                    dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), data.reason);
                 }
             },
             (reason: string) => {
                 Stingray.mainWindow.webContents.send('end-waiting');
                 Stingray.mainWindow.webContents.send('set-status', '');
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1273,11 +1294,11 @@ class Stingray {
 
     static openFileDialog(): void {
         dialog.showOpenDialog({
-            title: 'Alignment File',
+            title: Stingray.i18n.getString('Stingray', 'alignmentFile'),
             properties: ['openFile'],
             filters: [
-                { name: 'Alignment File', extensions: ['algn'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: Stingray.i18n.getString('Stingray', 'algnFile'), extensions: ['algn'] },
+                { name: Stingray.i18n.getString('Stingray', 'anyFile'), extensions: [''] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -1293,12 +1314,12 @@ class Stingray {
             this.closeFile();
         }
         Stingray.mainWindow.webContents.send('start-waiting');
-        Stingray.mainWindow.webContents.send('set-status', 'Loading file');
+        Stingray.mainWindow.webContents.send('set-status', Stingray.i18n.getString('Stingray', 'loadingFile'));
         this.sendRequest('/openFile', { file: file },
             (data: any) => {
                 if (data.status === 'Success') {
                     Stingray.loadingStatus.loading = true;
-                    Stingray.loadingStatus.status = 'Loading file';
+                    Stingray.loadingStatus.status = Stingray.i18n.getString('Stingray', 'loadingFile');
                     let intervalObject = setInterval(() => {
                         if (Stingray.loadingStatus.loading) {
                             // keep waiting
@@ -1307,7 +1328,7 @@ class Stingray {
                             Stingray.mainWindow.webContents.send('end-waiting');
                             Stingray.mainWindow.webContents.send('set-status', '');
                             if (Stingray.loadingStatus.loadError !== '') {
-                                dialog.showErrorBox('Error', Stingray.loadingStatus.loadError);
+                                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), Stingray.loadingStatus.loadError);
                             } else {
                                 Stingray.currentFile = file;
                                 Stingray.saved = true;
@@ -1320,13 +1341,13 @@ class Stingray {
                 } else {
                     Stingray.mainWindow.webContents.send('end-waiting');
                     Stingray.mainWindow.webContents.send('set-status', '');
-                    dialog.showErrorBox('Error', data.reason);
+                    dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), data.reason);
                 }
             },
             (reason: string) => {
                 Stingray.mainWindow.webContents.send('end-waiting');
                 Stingray.mainWindow.webContents.send('set-status', '');
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1352,7 +1373,7 @@ class Stingray {
                 Stingray.mainWindow.webContents.send('file-info', data);
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1363,7 +1384,7 @@ class Stingray {
                 Stingray.mainWindow.webContents.send('set-rows', data);
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1391,9 +1412,12 @@ class Stingray {
         if (!this.saved) {
             let clicked: number = dialog.showMessageBoxSync(Stingray.mainWindow, {
                 type: 'question',
-                title: 'Save changes?',
-                message: 'Your changes  will be lost if you don\'t save them',
-                buttons: ['Don\'t Save', 'Cancel', 'Save'],
+                title: Stingray.i18n.getString('Stingray', 'saveChanges'),
+                message: Stingray.i18n.getString('Stingray', 'unsavedChanges'),
+                buttons: [
+                    Stingray.i18n.getString('Stingray', 'dontSave'),
+                    Stingray.i18n.getString('Stingray', 'cancel'),
+                    Stingray.i18n.getString('Stingray', 'save')],
                 defaultId: 2
             });
             if (clicked === 0) {
@@ -1420,7 +1444,7 @@ class Stingray {
                     Stingray.mainWindow.webContents.send('clear-file');
                 },
                 (reason: string) => {
-                    dialog.showErrorBox('Error', reason);
+                    dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
                 }
             );
         }
@@ -1431,12 +1455,12 @@ class Stingray {
             return;
         }
         Stingray.mainWindow.webContents.send('start-waiting');
-        Stingray.mainWindow.webContents.send('set-status', 'Saving file');
+        Stingray.mainWindow.webContents.send('set-status', Stingray.i18n.getString('Stingray', 'savingFile'));
         this.sendRequest("/saveFile", {},
             (data: any) => {
                 if (data.status === 'Success') {
                     Stingray.savingStatus.saving = true;
-                    Stingray.savingStatus.status = 'Saving file';
+                    Stingray.savingStatus.status = Stingray.i18n.getString('Stingray', 'savingFile');
                     let intervalObject = setInterval(() => {
                         if (Stingray.savingStatus.saving) {
                             // keep waiting
@@ -1445,7 +1469,7 @@ class Stingray {
                             Stingray.mainWindow.webContents.send('end-waiting');
                             Stingray.mainWindow.webContents.send('set-status', '');
                             if (Stingray.savingStatus.saveError !== '') {
-                                dialog.showErrorBox('Error', Stingray.savingStatus.saveError);
+                                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), Stingray.savingStatus.saveError);
                             } else {
                                 Stingray.saved = true;
                                 Stingray.mainWindow.setDocumentEdited(false);
@@ -1459,12 +1483,12 @@ class Stingray {
                 } else {
                     Stingray.mainWindow.webContents.send('end-waiting');
                     Stingray.mainWindow.webContents.send('set-status', '');
-                    dialog.showErrorBox('Error', data.reason);
+                    dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), data.reason);
                 }
 
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1487,11 +1511,11 @@ class Stingray {
             return;
         }
         dialog.showSaveDialog(this.mainWindow, {
-            title: 'Save Alignment As...',
+            title: Stingray.i18n.getString('Stingray', 'saveFileAs'),
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
-                { name: 'Alignment File', extensions: ['algn'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: Stingray.i18n.getString('Stingray', 'algnFile'), extensions: ['algn'] },
+                { name: Stingray.i18n.getString('Stingray', 'anyFile'), extensions: [''] }
             ],
             defaultPath: Stingray.currentFile
         }).then((value) => {
@@ -1504,7 +1528,7 @@ class Stingray {
                         Stingray.saveRecent(Stingray.currentFile);
                     },
                     (reason: string) => {
-                        dialog.showErrorBox('Error', reason);
+                        dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
                     }
                 );
             }
@@ -1518,20 +1542,20 @@ class Stingray {
             return;
         }
         dialog.showSaveDialog(this.mainWindow, {
-            title: 'Export TMX',
+            title: Stingray.i18n.getString('Stingray', 'exportTMX'),
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
-                { name: 'TMX File', extensions: ['tmx'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: Stingray.i18n.getString('Stingray', 'tmxFile'), extensions: ['tmx'] },
+                { name: Stingray.i18n.getString('Stingray', 'anyFile'), extensions: [''] }
             ]
         }).then((value) => {
             if (!value.canceled) {
                 this.sendRequest("/exportTMX", { file: value.filePath },
                     (data: any) => {
-                        Stingray.showMessage({ type: 'info', message: 'File exported' });
+                        dialog.showMessageBoxSync(Stingray.mainWindow, { type: MessageTypes.info, message: Stingray.i18n.getString('Stingray', 'fileExported') });
                     },
                     (reason: string) => {
-                        dialog.showErrorBox('Error', reason);
+                        dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
                     }
                 );
             }
@@ -1545,21 +1569,22 @@ class Stingray {
             return;
         }
         dialog.showSaveDialog(this.mainWindow, {
-            title: 'Export TAB Delimited',
+            title: Stingray.i18n.getString('Stingray', 'exportTabDelimited'),
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
-                { name: 'CSV File', extensions: ['csv'] },
-                { name: 'Text File', extensions: ['txt'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: Stingray.i18n.getString('Stingray', 'tsvFile'), extensions: ['tsv'] },
+                { name: Stingray.i18n.getString('Stingray', 'csvFile'), extensions: ['csv'] },
+                { name: Stingray.i18n.getString('Stingray', 'textFile'), extensions: ['txt'] },
+                { name: Stingray.i18n.getString('Stingray', 'anyFile'), extensions: [''] }
             ]
         }).then((value) => {
             if (!value.canceled) {
                 this.sendRequest("/exportCSV", { file: value.filePath },
                     (data: any) => {
-                        Stingray.showMessage({ type: 'info', message: 'File exported' });
+                        dialog.showMessageBoxSync(Stingray.mainWindow, { type: MessageTypes.info, message: Stingray.i18n.getString('Stingray', 'fileExported') });
                     },
                     (reason: string) => {
-                        dialog.showErrorBox('Error', reason);
+                        dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
                     }
                 );
             }
@@ -1573,24 +1598,24 @@ class Stingray {
             return;
         }
         dialog.showSaveDialog(this.mainWindow, {
-            title: 'Export Excel File',
+            title: Stingray.i18n.getString('Stingray', 'exportExcel'),
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
-                { name: 'Excel File', extensions: ['xlsx'] },
-                { name: 'Any File', extensions: ['*'] }
+                { name: Stingray.i18n.getString('Stingray', 'excelFile'), extensions: ['xlsx'] },
+                { name: Stingray.i18n.getString('Stingray', 'anyFile'), extensions: [''] }
             ]
         }).then((value) => {
             if (!value.canceled) {
                 this.sendRequest("/exportExcel", { file: value.filePath },
                     (data: any) => {
                         if (data.status === 'Success') {
-                            Stingray.showMessage({ type: 'info', message: 'File exported' });
+                            dialog.showMessageBoxSync(Stingray.mainWindow, { type: MessageTypes.info, message: Stingray.i18n.getString('Stingray', 'fileExported') });
                         } else {
-                            dialog.showErrorBox('Error', data.reason);
+                            dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), data.reason);
                         }
                     },
                     (reason: string) => {
-                        dialog.showErrorBox('Error', reason);
+                        dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
                     }
                 );
             }
@@ -1612,7 +1637,7 @@ class Stingray {
                 Stingray.mainWindow.webContents.send('refresh-page');
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1630,7 +1655,7 @@ class Stingray {
                 Stingray.getFileInfo();
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1657,8 +1682,8 @@ class Stingray {
         this.changeLanguagesWindow.on('closed', () => {
             this.mainWindow.focus();
         });
-        this.changeLanguagesWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'changeLanguages.html'));
-        this.changeLanguagesWindow.once('ready-to-show', (event: IpcMainEvent) => {
+        this.changeLanguagesWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', Stingray.appLang, 'changeLanguages.html'));
+        this.changeLanguagesWindow.once('ready-to-show', () => {
             this.changeLanguagesWindow.show();
         });
         Stingray.setLocation(this.changeLanguagesWindow, 'changeLanguages.html');
@@ -1686,8 +1711,8 @@ class Stingray {
         this.replaceTextWindow.on('closed', () => {
             this.mainWindow.focus();
         });
-        this.replaceTextWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', 'searchReplace.html'));
-        this.replaceTextWindow.once('ready-to-show', (event: IpcMainEvent) => {
+        this.replaceTextWindow.loadURL(this.path.join('file://', app.getAppPath(), 'html', Stingray.appLang, 'searchReplace.html'));
+        this.replaceTextWindow.once('ready-to-show', () => {
             this.replaceTextWindow.show();
         });
         Stingray.setLocation(this.replaceTextWindow, 'searchReplace.html');
@@ -1701,7 +1726,7 @@ class Stingray {
                 Stingray.mainWindow.webContents.send('refresh-page');
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1791,7 +1816,7 @@ class Stingray {
         let jsonData: any = { files: files };
         writeFile(recentsFile, JSON.stringify(jsonData), (error) => {
             if (error) {
-                Stingray.showMessage({ type: 'error', message: error.message });
+                dialog.showMessageBoxSync(Stingray.mainWindow, { type: MessageTypes.error, message: error.message });
             }
         });
     }
@@ -1806,7 +1831,7 @@ class Stingray {
                 Stingray.getFileInfo();
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1819,7 +1844,7 @@ class Stingray {
                 Stingray.mainWindow.webContents.send('refresh-page');
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1832,7 +1857,7 @@ class Stingray {
                 Stingray.mainWindow.webContents.send('refresh-page');
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1845,7 +1870,7 @@ class Stingray {
                 Stingray.mainWindow.webContents.send('refresh-page');
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1858,7 +1883,7 @@ class Stingray {
                 Stingray.mainWindow.webContents.send('refresh-page');
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1871,7 +1896,7 @@ class Stingray {
                 Stingray.mainWindow.webContents.send('refresh-page');
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
@@ -1884,36 +1909,12 @@ class Stingray {
                 Stingray.mainWindow.webContents.send('refresh-page');
             },
             (reason: string) => {
-                dialog.showErrorBox('Error', reason);
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
     }
 
-    static showMessage(arg: any): void {
-        Stingray.messagesWindow = new BrowserWindow({
-            parent: this.mainWindow,
-            width: 600,
-            minimizable: false,
-            maximizable: false,
-            resizable: false,
-            modal: true,
-            show: false,
-            icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png'),
-            webPreferences: {
-                nodeIntegration: true,
-                contextIsolation: false
-            }
-        });
-        Stingray.messageParam = arg;
-        Stingray.messagesWindow.setMenu(null);
-        Stingray.messagesWindow.loadURL('file://' + this.path.join(app.getAppPath(), 'html', 'messages.html'));
-        Stingray.messagesWindow.once('ready-to-show', (event: IpcMainEvent) => {
-            Stingray.messagesWindow.show();
-        });
-        Stingray.setLocation(this.messagesWindow, 'messages.html');
-    }
 }
-
 try {
     new Stingray(process.argv);
 } catch (error) {

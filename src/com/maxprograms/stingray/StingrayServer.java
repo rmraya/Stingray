@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2024 Maxprograms.
+ * Copyright (c) 2008 - 2025 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -22,45 +22,53 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
+import java.util.Locale;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.xml.sax.SAXException;
+
+import com.maxprograms.languages.LanguageUtils;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
 
 public class StingrayServer implements HttpHandler {
 
 	private static Logger logger = System.getLogger(StingrayServer.class.getName());
 	private HttpServer server;
 	private AlignmentService service;
-	private boolean debug;
 
 	public static void main(String[] args) {
 		String port = "8040";
-		boolean shouldDebug = false;
 		for (int i = 0; i < args.length; i++) {
-			String arg = args[i];
+			String arg = args[i];			
 			if (arg.equals("-port") && (i + 1) < args.length) {
 				port = args[i + 1];
 			}
-			if (arg.equals("-debug")) {
-				shouldDebug = true;
+			if (arg.equals("-lang") && (i + 1) < args.length) {
+				String lang = args[i + 1];
+				try {
+					if (LanguageUtils.getLanguage(lang) != null) {
+						Locale locale = Locale.forLanguageTag(lang);
+						Locale.setDefault(locale);
+					}
+				} catch (IOException | SAXException | ParserConfigurationException e) {
+					logger.log(Level.WARNING, e);
+				}
 			}
 		}
 		try {
 			StingrayServer instance = new StingrayServer(Integer.valueOf(port));
-			instance.setDebug(shouldDebug);
 			instance.run();
 		} catch (Exception e) {
-			logger.log(Level.ERROR, "Server error", e);
+			logger.log(Level.ERROR, Messages.getString("StingrayServer.1"), e);
 		}
 	}
 
@@ -79,13 +87,10 @@ public class StingrayServer implements HttpHandler {
 			try (InputStream is = exchange.getRequestBody()) {
 				request = readRequestBody(is);
 			}
-			if (debug) {
-				logger.log(Level.INFO, request);
-			}
 			String response = "{}";
 			switch (url) {
 				case "/stop":
-					logger.log(Level.INFO, "Stop requested");
+					logger.log(Level.INFO, Messages.getString("StingrayServer.2"));
 					response = stop();
 					break;
 				case "/getLanguages":
@@ -175,12 +180,9 @@ public class StingrayServer implements HttpHandler {
 				default:
 					JSONObject unknown = new JSONObject();
 					unknown.put(Constants.STATUS, Constants.ERROR);
-					unknown.put(Constants.REASON, "Unknown request");
+					unknown.put(Constants.REASON, Messages.getString("StingrayServer.3"));
 					unknown.put("received", url);
 					response = unknown.toString();
-			}
-			if (debug) {
-				logger.log(Level.INFO, response);
 			}
 			exchange.getResponseHeaders().add("content-type", "application/json; charset=utf-8");
 			byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
@@ -206,7 +208,7 @@ public class StingrayServer implements HttpHandler {
 
 	private void run() {
 		server.start();
-		logger.log(Level.INFO, "StingrayServer started");
+		logger.log(Level.INFO, Messages.getString("StingrayServer.4"));
 	}
 
 	protected static String readRequestBody(InputStream is) throws IOException {
@@ -218,10 +220,6 @@ public class StingrayServer implements HttpHandler {
 			}
 		}
 		return request.toString();
-	}
-
-	private void setDebug(boolean value) {
-		debug = value;
 	}
 
 	private String getLanguages() {
@@ -334,18 +332,21 @@ public class StingrayServer implements HttpHandler {
 
 	private static String getSystemInformation() {
 		JSONObject result = new JSONObject();
-		result.put("stingray", Constants.VERSION + " Build: " + Constants.BUILD);
-		result.put("openxliff",
-				com.maxprograms.converters.Constants.VERSION + " Build: " + com.maxprograms.converters.Constants.BUILD);
+		MessageFormat mf = new MessageFormat(Messages.getString("StingrayServer.5"));
+		result.put("stingray", mf.format(new String[] { Constants.VERSION, Constants.BUILD }));
+		result.put("openxliff", mf.format(new String[] { com.maxprograms.converters.Constants.VERSION,
+				com.maxprograms.converters.Constants.BUILD }));
 		result.put("xmljava",
-				com.maxprograms.xml.Constants.VERSION + " Build: " + com.maxprograms.xml.Constants.BUILD);
-		result.put("java", System.getProperty("java.version") + " Vendor: " + System.getProperty("java.vendor"));
+				mf.format(new String[] { com.maxprograms.xml.Constants.VERSION, com.maxprograms.xml.Constants.BUILD }));
+		mf = new MessageFormat(Messages.getString("StingrayServer.6"));
+		result.put("java",
+				mf.format(new String[] { System.getProperty("java.version"), System.getProperty("java.vendor") }));
 		result.put(Constants.STATUS, Constants.SUCCESS);
 		return result.toString();
 	}
 
 	private String stop() {
-		logger.log(Level.INFO, "Stopping server");
+		logger.log(Level.INFO, Messages.getString("StingrayServer.9"));
 		JSONObject result = new JSONObject();
 		JSONObject status = service.savingStatus();
 		while (status.getBoolean("saving")) {

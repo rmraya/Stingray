@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>New Alignment</title>
+    <link id="theme" rel="stylesheet" type="text/css" href="../../css/light.css">
+    <link rel="stylesheet" type="text/css" href="../../css/fonts.css">
+</head>
+
+<body class="dialogBody" onload="new NewFile();">
+
+    <table class="fill_width" style="margin-left: 4px; margin-right: 4px; margin-top: 0px;margin-bottom: 0px;">
+        <tr>
+            <td class="noWrap middle"><label for="alignmentInput">Alignment File</label></td>
+            <td class="fill_width middle"><input id="alignmentInput" class="fill_width" type="text"></td>
+            <td class="middle"><button id="browseAlignment">Browse...</button></td>
+        </tr>
+    </table>
+
+    <table class="fill_width">
+        <tr>
+            <td width="50%" style="padding: 0px;">
+                <div class="fill_width ">
+                    <table class="fill_width"
+                        style="margin-left: 4px; margin-right: 4px; margin-top: 0px;margin-bottom: 0px;">
+                        <tr>
+                            <td class="noWrap middle"><label for="sourceInput">Source File</label></td>
+                            <td class="fill_width middle"><input id="sourceInput" class="fill_width" type="text"></td>
+                            <td class="middle"><button id="browseSource">Browse...</button></td>
+                        </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="srcLangSelect">Language</label></td>
+                            <td class="fill_width middle" colspan="2">
+                                <select id="srcLangSelect" class="table_select"></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="srcTypeSelect">File Type</label></td>
+                            <td class="fill_width middle" colspan="2">
+                                <select id="srcTypeSelect" class="table_select"></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="srcEncodingSelect">Character Set</label></td>
+                            <td class="fill_width middle" colspan="2">
+                                <select id="srcEncodingSelect" class="table_select"></select>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+            <td width="50%" style="padding: 0px;">
+                <div class="fill_width ">
+                    <table class="fill_width"
+                        style="margin-left: 4px; margin-right: 4px; margin-top: 0px;margin-bottom: 0px;">
+                        <tr>
+                            <td class="noWrap middle"><label for="targetInput">Target File</label></td>
+                            <td class="fill_width middle"><input id="targetInput" class="fill_width" type="text"></td>
+                            <td class="middle"><button id="browseTarget">Browse...</button></td>
+                        </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="tgtLangSelect">Language</label></td>
+                            <td class="fill_width middle" colspan="2">
+                                <select id="tgtLangSelect" class="table_select"></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="tgtTypeSelect">File Type</label></td>
+                            <td class="fill_width middle" colspan="2">
+                                <select id="tgtTypeSelect" class="table_select"></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="noWrap middle"><label for="tgtEncodingSelect">Character Set</label></td>
+                            <td class="fill_width middle" colspan="2">
+                                <select id="tgtEncodingSelect" class="table_select"></select>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2" style="padding-left: 8px;" class="middle">
+                <input type="checkbox" id="paragraph" class="middle" >
+                <label for="paragraph" class="noWrap middle">Paragraph Segmentation</label>
+            </td>
+        </tr>
+    </table>
+    <div class="buttonArea">
+        <button id="create">Align Files</button>
+    </div>
+    <script src="../../js/newFile.js"></script>
+</body>
+
+</html>

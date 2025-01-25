@@ -3,8 +3,8 @@
 
 <head>
     <title>Preferences</title>
-    <link id="theme" rel="stylesheet" type="text/css" href="../css/light.css">
-    <link rel="stylesheet" type="text/css" href="../css/fonts.css">
+    <link id="theme" rel="stylesheet" type="text/css" href="../../css/light.css">
+    <link rel="stylesheet" type="text/css" href="../../css/fonts.css">
 </head>
 
 <body class="dialogBody" onload="new PreferencesDialog();">
@@ -18,6 +18,15 @@
             <td class="noWrap middle"><label for="tgtLangSelect">Default Target Language</label></td>
             <td class="fill_width middle"><select id="tgtLangSelect" class="table_select"></select></td>
         </tr>
+        <tr>
+            <td class="noWrap middle"><label for="appLangSelect">Application Language</label></td>
+            <td class="fill_width middle">
+                <select id="appLangSelect" class="table_select">
+                    <option value="en">English</option>
+                    <option value="es">Spanish</option>
+                </select>
+            </td>
+        </tr>
     </table>
 
     <table class="fill_width">
@@ -27,7 +36,7 @@
             <td class="middle"><button id="browseSRX" class="dark">Browse...</button></td>
         </tr>
         <tr>
-            <td class="noWrap middle"><label for="defaultCatalog">Default Catalog</label></td>
+            <td class="noWrap middle"><label for="defaultCatalog">System Catalog</label></td>
             <td class="fill_width middle"><input id="defaultCatalog" type="text" class="fill_width"></td>
             <td class="middle"><button id="browseCatalog" class="dark">Browse...</button></td>
         </tr>
@@ -38,6 +47,7 @@
                     <option value="system">System Default</option>
                     <option value="dark">Dark</option>
                     <option value="light">Light</option>
+                    <option value="highcontrast">High Contrast</option>
                 </select>
             </td>
         </tr>
@@ -45,7 +55,7 @@
     <div class="buttonArea">
         <button id="save">Save Preferences</button>
     </div>
-    <script src="../js/preferencesDialog.js"></script>
+    <script src="../../js/preferencesDialog.js"></script>
 </body>
 
 </html>

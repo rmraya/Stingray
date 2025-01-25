@@ -10,7 +10,7 @@ TAB delimited files created by Stingray can be opened in Microsoft Excel or Appl
 
 #### Align Two Word Files
 
- - <a href="https://www.maxprograms.com/tutorials/AlignFiles.mp4">Click here to watch a Video</a>
+- <a href="https://www.maxprograms.com/tutorials/AlignFiles.mp4">Click here to watch a Video</a>
 
 ## Licenses
 
@@ -50,7 +50,7 @@ Technical Support |  Peer support at  [Groups.io](https://groups.io/g/maxprogram
 
 - JDK 21 or newer is required for compiling and building. Get it from [Adoptium](https://adoptium.net/).
 - Apache Ant 1.10.14 or newer. Get it from [https://ant.apache.org/](https://ant.apache.org/)
-- Node.js 20.16.0 LTS or newer. Get it from [https://nodejs.org/](https://nodejs.org/)
+- Node.js 22.13.0 LTS or newer. Get it from [https://nodejs.org/](https://nodejs.org/)
 
 ## Building
 

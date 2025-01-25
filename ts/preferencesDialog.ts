@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008 - 2024 Maxprograms.
+ * Copyright (c) 2008 - 2025 Maxprograms.
  *
  * This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License 1.0
@@ -19,6 +19,10 @@ class PreferencesDialog {
         this.electron.ipcRenderer.send('get-languages');
         this.electron.ipcRenderer.on('set-languages', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setLanguages(arg);
+        });
+        this.electron.ipcRenderer.send('get-appLanguage');
+        this.electron.ipcRenderer.on('set-appLanguage', (event: Electron.IpcRendererEvent, arg: any) => {
+            (document.getElementById('appLangSelect') as HTMLSelectElement).value = arg;
         });
         this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
             (document.getElementById('theme') as HTMLLinkElement).href = arg;
@@ -73,6 +77,7 @@ class PreferencesDialog {
         let prefs: Preferences = {
             srcLang: (document.getElementById('srcLangSelect') as HTMLSelectElement).value,
             tgtLang: (document.getElementById('tgtLangSelect') as HTMLSelectElement).value,
+            appLang: (document.getElementById('appLangSelect') as HTMLSelectElement).value,
             theme: ((document.getElementById('themeColor') as HTMLSelectElement).value as "system" | "light" | "dark"),
             catalog: (document.getElementById('defaultCatalog') as HTMLInputElement).value,
             srx: (document.getElementById('defaultSRX') as HTMLInputElement).value
