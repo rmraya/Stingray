@@ -19,8 +19,8 @@ public class Constants {
     }
 
     public static final String APPNAME = "Stingray";
-    public static final String VERSION = "2.10.0";
-    public static final String BUILD = "20250125_1155";
+    public static final String VERSION = "2.11.0";
+    public static final String BUILD = "20250305_2107";
 
     public static final String REASON = "reason";
 	public static final String STATUS = "status";

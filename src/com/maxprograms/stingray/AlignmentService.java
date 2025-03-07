@@ -162,6 +162,7 @@ public class AlignmentService {
 						params.put("srcEncoding", json.getString("srcEnc"));
 						params.put("paragraph", json.getBoolean("paragraph") ? "yes" : "no");
 						params.put("srxFile", json.getString("srx"));
+						params.put("xmlfilter", json.getString("xmlfilter"));
 						List<String> res = Convert.run(params);
 						if (!com.maxprograms.converters.Constants.SUCCESS.equals(res.get(0))) {
 							alignError = res.get(1);
@@ -186,6 +187,7 @@ public class AlignmentService {
 						params.put("srcEncoding", json.getString("tgtEnc"));
 						params.put("paragraph", json.getBoolean("paragraph") ? "yes" : "no");
 						params.put("srxFile", json.getString("srx"));
+						params.put("xmlfilter", json.getString("xmlfilter"));
 						res = Convert.run(params);
 						if (!com.maxprograms.converters.Constants.SUCCESS.equals(res.get(0))) {
 							alignError = res.get(1);
