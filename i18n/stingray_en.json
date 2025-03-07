@@ -55,6 +55,8 @@
         "openOffice2": "OpenOffice 2.x Document",
         "php": "PHP Arrays",
         "plainText": "Plain Text",
+        "qti": "QTI (IMS Question and Test Interoperability)",
+        "qtipackage": "QTI Package",
         "rc": "RC (Windows C/C++ Resources)",
         "resx": "ResX (Windows .NET Resources)",
         "srt": "SRT Subtitle",
@@ -65,7 +67,7 @@
     "menu": {
         "newAlignment": "New Alignment",
         "openAlignment": "Open Alignment",
-        "closeAlignment": "Open Alignment",
+        "closeAlignment": "Close Alignment",
         "saveAlignment": "Save Alignment",
         "saveAlignmentAs": "Save Alignment As...",
         "exportTMX": "Export as TMX 1.4 File",
