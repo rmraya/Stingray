@@ -12,5 +12,7 @@
 /Stingray-win32-x64/
 .scannerwork
 .gradle/
+.github/
+.vscode/
 sonarqube.sh
 sonar-project.properties
