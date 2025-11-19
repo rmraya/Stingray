@@ -16,8 +16,8 @@ class Licenses {
 
     constructor() {
         this.electron.ipcRenderer.send('get-theme');
-        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
-            (document.getElementById('theme') as HTMLLinkElement).href = arg;
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, theme: string) => {
+            (document.getElementById('theme') as HTMLLinkElement).href = theme;
         });
         document.addEventListener('keydown', (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
@@ -36,6 +36,9 @@ class Licenses {
         document.getElementById('OpenXLIFF').addEventListener('click', () => {
             this.openLicense('OpenXLIFF');
         });
+        document.getElementById('BCP47J').addEventListener('click', () => {
+            this.openLicense('BCP47J');
+        });
         document.getElementById('XMLJava').addEventListener('click', () => {
             this.openLicense('XMLJava');
         });
@@ -47,9 +50,6 @@ class Licenses {
         });
         document.getElementById('jsoup').addEventListener('click', () => {
             this.openLicense('jsoup');
-        });
-        document.getElementById('DTDParser').addEventListener('click', () => {
-            this.openLicense('DTDParser');
         });
         setTimeout(() => {
             this.electron.ipcRenderer.send('set-height', { window: 'licenses', width: document.body.clientWidth, height: document.body.clientHeight });

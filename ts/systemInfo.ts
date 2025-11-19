@@ -17,12 +17,15 @@ class SystemInformation {
     constructor() {
         this.electron.ipcRenderer.send('get-theme');
         this.electron.ipcRenderer.send('get-version');
-        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
-            (document.getElementById('theme') as HTMLLinkElement).href = arg;
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, theme: string) => {
+            (document.getElementById('theme') as HTMLLinkElement).href = theme;
         });
         this.electron.ipcRenderer.send('get-system-info');
         this.electron.ipcRenderer.on('set-system-info', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setInfo(arg);
+            setTimeout(() => {
+                this.electron.ipcRenderer.send('set-height', { window: 'systemInfo', width: document.body.clientWidth, height: document.body.clientHeight });
+            }, 200);
         });
         document.addEventListener('keydown', (event: KeyboardEvent) => {
             if (event.code === 'Escape') {
@@ -34,6 +37,7 @@ class SystemInformation {
     setInfo(info: any) {
         document.getElementById('stingray').innerText = info.stingray;
         document.getElementById('openxliff').innerText = info.openxliff;
+        document.getElementById('bcp47j').innerText = info.bcp47j;
         document.getElementById('xmljava').innerText = info.xmljava;
         document.getElementById('java').innerText = info.java;
         document.getElementById('electron').innerText = info.electron;

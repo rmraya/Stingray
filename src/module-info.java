@@ -14,7 +14,7 @@ module stingray {
 	
 	exports com.maxprograms.stingray;
 	
-	requires javabcp47;
+	requires bcp47j;
 	requires java.base;
 	requires java.xml;
 	requires transitive openxliff;

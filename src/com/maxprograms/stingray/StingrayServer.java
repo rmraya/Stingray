@@ -336,6 +336,8 @@ public class StingrayServer implements HttpHandler {
 		result.put("stingray", mf.format(new String[] { Constants.VERSION, Constants.BUILD }));
 		result.put("openxliff", mf.format(new String[] { com.maxprograms.converters.Constants.VERSION,
 				com.maxprograms.converters.Constants.BUILD }));
+		result.put("bcp47j",
+				mf.format(new String[] { com.maxprograms.languages.Constants.VERSION, com.maxprograms.languages.Constants.BUILD }));
 		result.put("xmljava",
 				mf.format(new String[] { com.maxprograms.xml.Constants.VERSION, com.maxprograms.xml.Constants.BUILD }));
 		mf = new MessageFormat(Messages.getString("StingrayServer.6"));

@@ -75,6 +75,9 @@ class Stingray {
                 Stingray.mainWindow.focus();
             }
         }
+        if (process.platform === 'linux') {
+            app.commandLine.appendSwitch('gtk-version', '3');
+        }
         if (process.platform === 'win32' && args.length > 1 && args[1] !== '.') {
             Stingray.argFile = ''
             for (let i = 1; i < args.length; i++) {
@@ -347,24 +350,6 @@ class Stingray {
         });
     }
 
-    static destroyWindow(window: BrowserWindow): void {
-        if (window) {
-            try {
-                let parent: BrowserWindow = window.getParentWindow();
-                window.hide();
-                window.destroy();
-                window = undefined;
-                if (parent) {
-                    parent.focus();
-                } else {
-                    Stingray.mainWindow.focus();
-                }
-            } catch (e) {
-                console.log(e);
-            }
-        }
-    }
-
     stopServer(): void {
         if (!this.stopping) {
             this.stopping = true;
@@ -426,7 +411,7 @@ class Stingray {
                 contextIsolation: false
             },
             show: false,
-            icon: Stingray.path.join(app.getAppPath(), 'icons', 'icon.png')
+            icon: Stingray.path.join(app.getAppPath(), 'images','Stingray.png')
         });
         let fileMenu: Menu = Menu.buildFromTemplate([
             { label: Stingray.i18n.getString('menu', 'newAlignment'), accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } },
@@ -467,11 +452,6 @@ class Stingray {
             { label: Stingray.i18n.getString('menu', 'selectAll'), accelerator: 'CmdOrCtrl+A', click: () => { BrowserWindow.getFocusedWindow().webContents.selectAll(); } }
         ]);
         let viewMenu: Menu = Menu.buildFromTemplate([
-            { label: Stingray.i18n.getString('menu', 'firstPage'), accelerator: 'CmdOrCtrl+Home', click: () => { Stingray.firstPage(); } },
-            { label: Stingray.i18n.getString('menu', 'previousPage'), accelerator: 'CmdOrCtrl+PageUp', click: () => { Stingray.previousPage(); } },
-            { label: Stingray.i18n.getString('menu', 'nextPage'), accelerator: 'CmdOrCtrl+PageDown', click: () => { Stingray.nextPage(); } },
-            { label: Stingray.i18n.getString('menu', 'lastPage'), accelerator: 'CmdOrCtrl+End', click: () => { Stingray.lastPage(); } },
-            new MenuItem({ type: 'separator' }),
             new MenuItem({ label: Stingray.i18n.getString('menu', 'toggleFullScreen'), role: 'togglefullscreen' })
         ]);
         if (!app.isPackaged) {
@@ -679,7 +659,7 @@ class Stingray {
                                 maximizable: false,
                                 resizable: false,
                                 show: false,
-                                icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+                                icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
                                 webPreferences: {
                                     nodeIntegration: true,
                                     contextIsolation: false
@@ -791,7 +771,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -819,7 +799,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -853,7 +833,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -904,12 +884,12 @@ class Stingray {
         this.licensesWindow = new BrowserWindow({
             parent: parent,
             width: 420,
-            height: 390,
+            height: 350,
             minimizable: false,
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -949,6 +929,7 @@ class Stingray {
                 title = 'GPL2 with Classpath Exception';
                 break;
             case "OpenXLIFF":
+            case "BCP47J":
             case "XMLJava":
                 licenseFile = 'EclipsePublicLicense1.0.html';
                 title = 'Eclipse Public License 1.0';
@@ -960,10 +941,6 @@ class Stingray {
             case "jsoup":
                 licenseFile = 'jsoup.txt';
                 title = 'MIT License';
-                break;
-            case "DTDParser":
-                licenseFile = 'LGPL2.1.txt';
-                title = 'LGPL 2.1';
                 break;
             default:
                 dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), 'Unknow license');
@@ -978,7 +955,7 @@ class Stingray {
             height: 400,
             show: false,
             title: title,
-            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -1093,7 +1070,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -1154,7 +1131,7 @@ class Stingray {
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
                 { name: Stingray.i18n.getString('Stingray', 'algnFile'), extensions: ['algn'] },
-                { name: Stingray.i18n.getString('Stingray', 'anyFile'), extensions: [''] }
+                { name: Stingray.i18n.getString('Stingray', 'anyFile'), extensions: ['*'] }
             ]
         }).then((value) => {
             if (!value.canceled) {
@@ -1165,31 +1142,12 @@ class Stingray {
         });
     }
 
+
     browseSource(event: IpcMainEvent): void {
+        let extensions: string[] = ['icml', 'inx', 'idml', 'ditamap', 'dita', 'xml', 'htm', 'html', 'js', 'properties', 'json', 'mif', 'docx', 'xlsx', 'pptx', 'sxw', 'sxc', 'sxi', 'sxd', 'odt', 'ods', 'odp', 'odg', 'php', 'txt', 'zip', 'rc', 'resx', 'srt', 'svg', 'vsdx'];
         let filters: any[] = [
-            { name: Stingray.i18n.getString('FileFormats', 'anyFile'), extensions: ['*'] },
-            { name: Stingray.i18n.getString('FileFormats', 'icml'), extensions: ['icml'] },
-            { name: Stingray.i18n.getString('FileFormats', 'inx'), extensions: ['inx'] },
-            { name: Stingray.i18n.getString('FileFormats', 'idml'), extensions: ['idml'] },
-            { name: Stingray.i18n.getString('FileFormats', 'ditamap'), extensions: ['ditamap', 'dita', 'xml'] },
-            { name: Stingray.i18n.getString('FileFormats', 'html'), extensions: ['html', Stingray.appLang, 'htm'] },
-            { name: Stingray.i18n.getString('FileFormats', 'javascript'), extensions: ['js'] },
-            { name: Stingray.i18n.getString('FileFormats', 'properties'), extensions: ['properties'] },
-            { name: Stingray.i18n.getString('FileFormats', 'json'), extensions: ['json'] },
-            { name: Stingray.i18n.getString('FileFormats', 'mif'), extensions: ['mif'] },
-            { name: Stingray.i18n.getString('FileFormats', 'office'), extensions: ['docx', 'xlsx', 'pptx'] },
-            { name: Stingray.i18n.getString('FileFormats', 'openOffice1'), extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
-            { name: Stingray.i18n.getString('FileFormats', 'openOffice2'), extensions: ['odt', 'ods', 'odp', 'odg'] },
-            { name: Stingray.i18n.getString('FileFormats', 'php'), extensions: ['php'] },
-            { name: Stingray.i18n.getString('FileFormats', 'plainText'), extensions: ['txt'] },
-            { name: Stingray.i18n.getString('FileFormats', 'qti'), extensions: ['xml'] },
-            { name: Stingray.i18n.getString('FileFormats', 'qtipackage'), extensions: ['zip'] },
-            { name: Stingray.i18n.getString('FileFormats', 'rc'), extensions: ['rc'] },
-            { name: Stingray.i18n.getString('FileFormats', 'resx'), extensions: ['resx'] },
-            { name: Stingray.i18n.getString('FileFormats', 'srt'), extensions: ['srt'] },
-            { name: Stingray.i18n.getString('FileFormats', 'svg'), extensions: ['svg'] },
-            { name: Stingray.i18n.getString('FileFormats', 'visio'), extensions: ['vsdx'] },
-            { name: Stingray.i18n.getString('FileFormats', 'xml'), extensions: ['xml'] }
+            { name: Stingray.i18n.getString('FileFormats', 'supportedFiles'), extensions: extensions },
+            { name: Stingray.i18n.getString('FileFormats', 'anyFile'), extensions: ['*'] }
         ];
         dialog.showOpenDialog({
             title: Stingray.i18n.getString('Stingray', 'sourceFile'),
@@ -1205,31 +1163,12 @@ class Stingray {
     }
 
     browseTarget(event: IpcMainEvent): void {
+        let extensions: string[] = ['icml', 'inx', 'idml', 'ditamap', 'dita', 'xml', 'htm', 'html', 'js', 'properties', 'json', 'mif', 'docx', 'xlsx', 'pptx', 'sxw', 'sxc', 'sxi', 'sxd', 'odt', 'ods', 'odp', 'odg', 'php', 'txt', 'zip', 'rc', 'resx', 'srt', 'svg', 'vsdx'];
         let filters: any[] = [
-            { name: Stingray.i18n.getString('FileFormats', 'anyFile'), extensions: ['*'] },
-            { name: Stingray.i18n.getString('FileFormats', 'icml'), extensions: ['icml'] },
-            { name: Stingray.i18n.getString('FileFormats', 'inx'), extensions: ['inx'] },
-            { name: Stingray.i18n.getString('FileFormats', 'idml'), extensions: ['idml'] },
-            { name: Stingray.i18n.getString('FileFormats', 'ditamap'), extensions: ['ditamap', 'dita', 'xml'] },
-            { name: Stingray.i18n.getString('FileFormats', 'html'), extensions: ['html', Stingray.appLang, 'htm'] },
-            { name: Stingray.i18n.getString('FileFormats', 'javascript'), extensions: ['js'] },
-            { name: Stingray.i18n.getString('FileFormats', 'properties'), extensions: ['properties'] },
-            { name: Stingray.i18n.getString('FileFormats', 'json'), extensions: ['json'] },
-            { name: Stingray.i18n.getString('FileFormats', 'mif'), extensions: ['mif'] },
-            { name: Stingray.i18n.getString('FileFormats', 'office'), extensions: ['docx', 'xlsx', 'pptx'] },
-            { name: Stingray.i18n.getString('FileFormats', 'openOffice1'), extensions: ['sxw', 'sxc', 'sxi', 'sxd'] },
-            { name: Stingray.i18n.getString('FileFormats', 'openOffice2'), extensions: ['odt', 'ods', 'odp', 'odg'] },
-            { name: Stingray.i18n.getString('FileFormats', 'php'), extensions: ['php'] },
-            { name: Stingray.i18n.getString('FileFormats', 'plainText'), extensions: ['txt'] },
-            { name: Stingray.i18n.getString('FileFormats', 'qti'), extensions: ['xml'] },
-            { name: Stingray.i18n.getString('FileFormats', 'qtipackage'), extensions: ['zip'] },
-            { name: Stingray.i18n.getString('FileFormats', 'rc'), extensions: ['rc'] },
-            { name: Stingray.i18n.getString('FileFormats', 'resx'), extensions: ['resx'] },
-            { name: Stingray.i18n.getString('FileFormats', 'srt'), extensions: ['srt'] },
-            { name: Stingray.i18n.getString('FileFormats', 'svg'), extensions: ['svg'] },
-            { name: Stingray.i18n.getString('FileFormats', 'visio'), extensions: ['vsdx'] },
-            { name: Stingray.i18n.getString('FileFormats', 'xml'), extensions: ['xml'] }
+            { name: Stingray.i18n.getString('FileFormats', 'supportedFiles'), extensions: extensions },
+            { name: Stingray.i18n.getString('FileFormats', 'anyFile'), extensions: ['*'] }
         ];
+
         dialog.showOpenDialog({
             title: Stingray.i18n.getString('Stingray', 'targetFile'),
             properties: ['openFile'],
@@ -1409,28 +1348,13 @@ class Stingray {
     static getRows(params: any): void {
         this.sendRequest('/getRows', params,
             (data: any) => {
+                data.scroll = params.scroll;
                 Stingray.mainWindow.webContents.send('set-rows', data);
             },
             (reason: string) => {
                 dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
             }
         );
-    }
-
-    static firstPage(): void {
-        Stingray.mainWindow.webContents.send('first-page');
-    }
-
-    static previousPage(): void {
-        Stingray.mainWindow.webContents.send('previous-page');
-    }
-
-    static nextPage(): void {
-        Stingray.mainWindow.webContents.send('next-page');
-    }
-
-    static lastPage(): void {
-        Stingray.mainWindow.webContents.send('last-page');
     }
 
     static closeFile(): void {
@@ -1569,9 +1493,11 @@ class Stingray {
         if (this.currentFile === '') {
             return;
         }
+        let tmxName = Stingray.currentFile.replace(/\.algn$/, '.tmx');
         dialog.showSaveDialog(this.mainWindow, {
             title: Stingray.i18n.getString('Stingray', 'exportTMX'),
             properties: ['createDirectory', 'showOverwriteConfirmation'],
+            defaultPath: tmxName,
             filters: [
                 { name: Stingray.i18n.getString('Stingray', 'tmxFile'), extensions: ['tmx'] },
                 { name: Stingray.i18n.getString('Stingray', 'anyFile'), extensions: ['*'] }
@@ -1596,8 +1522,10 @@ class Stingray {
         if (this.currentFile === '') {
             return;
         }
+        let tsvName = Stingray.currentFile.replace(/\.algn$/, '.tsv');
         dialog.showSaveDialog(this.mainWindow, {
             title: Stingray.i18n.getString('Stingray', 'exportTabDelimited'),
+            defaultPath: tsvName,
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
                 { name: Stingray.i18n.getString('Stingray', 'tsvFile'), extensions: ['tsv'] },
@@ -1625,8 +1553,10 @@ class Stingray {
         if (this.currentFile === '') {
             return;
         }
+        let excelName = Stingray.currentFile.replace(/\.algn$/, '.xlsx');
         dialog.showSaveDialog(this.mainWindow, {
             title: Stingray.i18n.getString('Stingray', 'exportExcel'),
+            defaultPath: excelName,
             properties: ['createDirectory', 'showOverwriteConfirmation'],
             filters: [
                 { name: Stingray.i18n.getString('Stingray', 'excelFile'), extensions: ['xlsx'] },
@@ -1680,7 +1610,7 @@ class Stingray {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
                 Stingray.mainWindow.webContents.send('end-waiting');
-                Stingray.getFileInfo();
+                Stingray.mainWindow.webContents.send('refresh-page');
             },
             (reason: string) => {
                 dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
@@ -1700,7 +1630,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -1731,7 +1661,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'icons', 'icon.png'),
+            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false

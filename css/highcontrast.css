@@ -8,6 +8,9 @@
 	--orange: #ff9100;
 	--teal: #8bc34a;
 	font-size: 16px;
+
+	scrollbar-color: var(--ClassicBlue30) var(--gray160);
+	scrollbar-width: thin;
 }
 
 body {
@@ -15,12 +18,13 @@ body {
 	color: var(--white);
 	fill: var(--white);
 	stroke: var(--white);
+	padding: 0;
+	margin: 0;
+	overflow: hidden;
 }
 
 .dialogBody {
 	padding: 8px;
-	margin:0;
-	overflow: hidden;
 }
 
 .wait {
@@ -77,7 +81,11 @@ thead tr {
 
 tbody {
 	overflow-y: scroll;
-	overflow-x: scroll;
+	overflow-x: hidden;
+}
+
+tbody.td {
+	word-wrap: break-word;
 }
 
 td {
@@ -332,8 +340,10 @@ label {
 	display: flex;
 	flex-direction: row;
 	padding: 8px 16px;
+	margin: 0;
 	justify-content: flex-end;
-	width: calc(100% - 16px);
+	background-color: var(--gray190);
+	border-top: 1px solid var(--white);
 }
 
 /* toolbars */
@@ -437,35 +447,46 @@ th svg {
 }
 
 .tooltip .tooltiptext {
-	background-color: var(--ClassicBlue30);
+	background-color: var(--ClassicBlue10);
 	color: var(--black);
 	visibility: hidden;
 	padding: 4px;
-	border-radius: 2px;
+	border-radius: 4px;
 	white-space: nowrap;
 	/* Position the tooltip */
 	position: absolute;
 	z-index: 100;
 }
 
-.topTooltip {
-	bottom: 120%;
-	left: 20px;
+/* Tooltip arrow */
+.bottomTooltip .tooltiptext::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 8px;
+  border-width: 8px;
+  border-style: solid;
+  border-color: transparent transparent var(--ClassicBlue10) transparent;
 }
 
-.bottomTooltip {
-	top: 120%;
-	left: 20px;
+.bottomRightTooltip .tooltiptext::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  right: 8px;
+  border-width: 8px;
+  border-style: solid;
+  border-color: transparent transparent var(--ClassicBlue10) transparent;
 }
 
-.bottomCenterTooltip {
-	top: 120%;
-	left: -80px;
+.bottomTooltip .tooltiptext{
+	top: 130%;
+	left: 0px;
 }
 
-.bottomRightTooltip {
-	top: 120%;
-	right: 20px;
+.bottomRightTooltip .tooltiptext{
+	top: 130%;
+	right: 0px;
 }
 
 .tooltip:hover .tooltiptext {
@@ -530,31 +551,38 @@ span.stats {
 	border-radius: 4px;
 	width: calc(100% - 16px);
 	height: calc(100% - 16px);
-	overflow: auto;
+	overflow-y: auto;
+	overflow-x: hidden;
 	background: var(--gray190);
 }
 
+.paddedPanel:focus {
+	outline: none !important;
+}
+
 ::-webkit-scrollbar {
-	mix-blend-mode: darken;
-	width: 12px;
-	height: 12px;
+	width: 8px;
+	height: 8%;
+}
+
+::-webkit-scrollbar-track-piece {
+	background: var(--gray160);
+	border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-	min-height: 30px !important;
-	background-color: var(--ClassicBlue90);
-	border-radius: 6px;
+	background-color: var(--ClassicBlue30);
+	border-radius: 4px;
 }
 
 ::-webkit-scrollbar-corner {
-	background-color: inherit;
-	border-radius: inherit;
+	background-color: var(--ClassicBlue30);
 }
 
 ::-webkit-scrollbar-button {
-	border-radius: inherit;
+	background-color: var(--ClassicBlue30);
 }
 
-::-webkit-scrollbar-button {
-	border-radius: inherit;
+.diffColor {
+	color: #f9f29d;
 }

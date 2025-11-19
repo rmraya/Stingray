@@ -17,11 +17,11 @@ class About {
     constructor() {
         this.electron.ipcRenderer.send('get-theme');
         this.electron.ipcRenderer.send('get-version');
-        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
-            (document.getElementById('theme') as HTMLLinkElement).href = arg;
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, theme: string) => {
+            (document.getElementById('theme') as HTMLLinkElement).href = theme;
         });
-        this.electron.ipcRenderer.on('set-version', (event: Electron.IpcRendererEvent, arg: any) => {
-            document.getElementById('version').innerHTML = arg;
+        this.electron.ipcRenderer.on('set-version', (event: Electron.IpcRendererEvent, version: string) => {
+            document.getElementById('version').innerHTML = version;
         });
         document.getElementById('system').addEventListener('click', () => {
             this.electron.ipcRenderer.send('system-info-clicked');

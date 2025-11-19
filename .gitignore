@@ -1,5 +1,4 @@
 .DS_Store
-package-lock.json
 /node_modules/
 /bin/
 /conf/
@@ -12,5 +11,6 @@ package-lock.json
 /Stingray-darwin-x64/
 /Stingray-win32-x64/
 .scannerwork
+.gradle/
 sonarqube.sh
 sonar-project.properties

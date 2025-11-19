@@ -14,12 +14,22 @@ class Main {
 
     electron = require('electron');
 
-    maxPage: number;
-    currentPage: number;
-    rowsPage: number = 500;
+    ROWSLOAD: number = 300;
+    SAFETYROWS: number = 60;
+    AVERAGE: number;
+
     sourceRows: number;
     targetRows: number;
     maxRows: number;
+    diffRows: number;
+
+    fetchingData: boolean;
+    fetchingTop: boolean;
+    fetchingBottom: boolean;
+    checkingScroll: boolean;
+
+    scrollToFirst: boolean = false;
+    scrollToLast: boolean = false;
 
     currentId: string = null;
     currentLang: string = null;
@@ -33,12 +43,14 @@ class Main {
     topBar: HTMLDivElement;
     mainPanel: HTMLDivElement;
     bottomBar: HTMLDivElement;
+    tbody: HTMLTableSectionElement;
+
 
     constructor() {
 
         this.electron.ipcRenderer.send('get-theme');
-        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
-            (document.getElementById('theme') as HTMLLinkElement).href = arg;
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, theme: string) => {
+            (document.getElementById('theme') as HTMLLinkElement).href = theme;
         });
 
         this.createTopToolbar();
@@ -84,37 +96,51 @@ class Main {
         this.electron.ipcRenderer.on('file-info', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setFileInfo(arg);
         });
-        this.electron.ipcRenderer.on('first-page', () => {
-            this.firstPage();
-        });
-        this.electron.ipcRenderer.on('previous-page', () => {
-            this.previousPage();
-        });
-        this.electron.ipcRenderer.on('next-page', () => {
-            this.nextPage();
-        });
-        this.electron.ipcRenderer.on('last-page', () => {
-            this.lastPage();
-        });
         this.electron.ipcRenderer.on('clear-file', () => {
             this.clearFile();
         });
-        this.electron.ipcRenderer.on('set-first-page', () => {
-            this.currentPage = 0;
-            (document.getElementById('page') as HTMLInputElement).value = '1';
-        });
-        (document.getElementById('rows_page') as HTMLInputElement).addEventListener('keydown', (ev: KeyboardEvent) => {
-            this.rowsPageKeyboardListener(ev);
-        });
+
         this.electron.ipcRenderer.on('set-rows', (event: Electron.IpcRendererEvent, arg: any) => {
             this.setRows(arg);
         });
+
         this.electron.ipcRenderer.on('refresh-page', () => {
-            this.getRows();
+            let tableRows: HTMLCollectionOf<HTMLTableRowElement> = this.tbody.getElementsByTagName('tr');
+            let start: number = parseInt(tableRows[1].id);
+            let count: number = tableRows.length - 2;
+            this.getRows(start, count, false);
         });
-        this.electron.ipcRenderer.on('file-renamed', (event: Electron.IpcRendererEvent, arg: any) => {
-            document.getElementById('title').innerText = 'Stingray - ' + arg;
+
+
+        this.electron.ipcRenderer.on('file-renamed', (event: Electron.IpcRendererEvent, newName: string) => {
+            document.getElementById('title').innerText = 'Stingray - ' + newName;
         });
+
+        document.getElementById('mainPanel').addEventListener('keydown', (e: KeyboardEvent) => {
+            // Command/Ctrl + ArrowDown
+            if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowDown') {
+                e.preventDefault();
+                this.scrollToLast = true;
+                this.getRows(this.maxRows - this.ROWSLOAD, this.ROWSLOAD, true);
+            }
+            // Command/Ctrl + ArrowUp
+            if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowUp') {
+                e.preventDefault();
+                this.scrollToFirst = true;
+                this.getRows(0, this.ROWSLOAD, true);
+            }
+        });
+
+        document.getElementById('mainPanel').addEventListener('scroll', (e) => {
+            this.checkScroll(e);
+        });
+
+        document.getElementById('mainPanel').addEventListener('scrollend', (e) => {
+            this.checkScrollend(e);
+        });
+
+        this.tbody = document.getElementById('tableBody') as HTMLTableSectionElement;
+
 
         document.addEventListener('paste', (event) => {
             let clipboardData = event.clipboardData;
@@ -287,30 +313,6 @@ class Main {
 
     createBottomToolbar(): void {
         this.bottomBar = document.getElementById('bottomBar') as HTMLDivElement;
-
-        document.getElementById('first').addEventListener('click', () => {
-            this.firstPage();
-        });
-
-        document.getElementById('previous').addEventListener('click', () => {
-            this.previousPage();
-        });
-
-        document.getElementById('page').addEventListener('keydown', (ev: KeyboardEvent) => {
-            this.pageKeyboardListener(ev);
-        });
-
-        document.getElementById('next').addEventListener('click', () => {
-            this.nextPage();
-        });
-
-        document.getElementById('last').addEventListener('click', () => {
-            this.lastPage();
-        });
-
-        document.getElementById('rows_page').addEventListener('keydown', (ev: KeyboardEvent) => {
-            this.rowsPageKeyboardListener(ev);
-        });
     }
 
     setStatus(text: string): void {
@@ -335,97 +337,125 @@ class Main {
         if (this.targetRows > this.maxRows) {
             this.maxRows = this.targetRows;
         }
-        this.maxPage = Math.ceil(this.maxRows / this.rowsPage);
-        document.getElementById('pages').innerText = '' + this.maxPage;
+
+        this.diffRows = this.sourceRows - this.targetRows;
+        if (this.targetRows > this.sourceRows) {
+            this.diffRows = this.targetRows - this.sourceRows;
+        }
+
+        document.getElementById('totalRows').innerText = '' + this.maxRows;
         document.getElementById('sourceRows').innerText = '' + this.sourceRows;
         document.getElementById('targetRows').innerText = '' + this.targetRows;
-        this.firstPage();
+        document.getElementById('diffRows').innerText = '' + this.diffRows;
+
+        if (this.diffRows > 0) {
+            document.getElementById('diffRows').classList.add('diffColor');
+        } else {
+            document.getElementById('diffRows').classList.remove('diffColor');
+        }
+
+        let count: number = this.ROWSLOAD > this.maxRows ? this.maxRows : this.ROWSLOAD;
+        let start: number = 0;
+        this.electron.ipcRenderer.send('get-rows', {
+            start: start,
+            count: count,
+            scroll: false
+        });
     }
 
     clearFile(): void {
         document.getElementById('title').innerText = 'Stingray';
         document.getElementById('sourceHeader').innerText = 'Source';
         document.getElementById('targetHeader').innerText = 'Target';
-        document.getElementById('tableBody').innerHTML = '';
-        (document.getElementById('page') as HTMLInputElement).value = '0';
-        document.getElementById('pages').innerText = '0';
+        this.tbody.innerHTML = '';
+        document.getElementById('totalRows').innerText = '';
         document.getElementById('sourceRows').innerText = '';
         document.getElementById('targetRows').innerText = '';
     }
 
-    getRows(): void {
+    getRows(start: number, count: number, scroll: boolean): void {
         this.electron.ipcRenderer.send('get-rows', {
-            start: this.currentPage * this.rowsPage,
-            count: this.rowsPage
+            start: start,
+            count: count,
+            scroll: scroll
         });
     }
 
-    firstPage(): void {
-        this.currentPage = 0;
-        (document.getElementById('page') as HTMLInputElement).value = '1';
-        this.getRows();
-    }
-
-    previousPage(): void {
-        if (this.currentPage > 0) {
-            this.currentPage--;
-            (document.getElementById('page') as HTMLInputElement).value = '' + (this.currentPage + 1);
-            this.getRows();
-        }
-    }
-
-    nextPage(): void {
-        if (this.currentPage < this.maxPage - 1) {
-            this.currentPage++;
-            (document.getElementById('page') as HTMLInputElement).value = '' + (this.currentPage + 1);
-            this.getRows();
-        }
-    }
-
-    lastPage(): void {
-        this.currentPage = this.maxPage - 1;
-        (document.getElementById('page') as HTMLInputElement).value = '' + this.maxPage;
-        this.getRows();
-    }
-
-    rowsPageKeyboardListener(ev: KeyboardEvent): void {
-        if (ev.key === 'Enter') {
-            this.rowsPage = Number.parseInt((document.getElementById('rows_page') as HTMLInputElement).value);
-            if (this.rowsPage < 1) {
-                this.rowsPage = 1;
-            }
-            if (this.rowsPage > this.maxRows) {
-                this.rowsPage = this.maxRows;
-            }
-            (document.getElementById('rows_page') as HTMLInputElement).value = '' + this.rowsPage;
-            this.maxPage = Math.ceil(this.maxRows / this.rowsPage);
-            document.getElementById('pages').innerText = '' + this.maxPage;
-            this.firstPage();
-        }
-    }
-
-    pageKeyboardListener(ev: KeyboardEvent): void {
-        if (ev.key === 'Enter') {
-            this.currentPage = Number.parseInt((document.getElementById('page') as HTMLInputElement).value) - 1;
-            if (this.currentPage < 0) {
-                this.currentPage = 0;
-            }
-            if (this.currentPage > this.maxPage - 1) {
-                this.currentPage = this.maxPage - 1;
-            }
-            (document.getElementById('page') as HTMLInputElement).value = '' + (this.currentPage + 1);
-            this.getRows();
-        }
-    }
-
     setRows(data: any): void {
-        let html = '';
-        let rows = data.rows;
+
+        if (this.fetchingTop) {
+            this.setTopRows(data);
+            return;
+        }
+        if (this.fetchingBottom) {
+            this.setBottomRows(data);
+            return;
+        }
+
+        let html: string = '';
+        let rows: string[] = data.rows;
         let length: number = rows.length;
         for (let i = 0; i < length; i++) {
             html = html + rows[i];
         }
-        document.getElementById('tableBody').innerHTML = html;
+        this.tbody.innerHTML = html;
+
+        let firstChild: HTMLTableRowElement = this.tbody.firstChild as HTMLTableRowElement;
+        let firstRow: number = parseInt(firstChild.id);
+        let lastChild: HTMLTableRowElement = this.tbody.lastChild as HTMLTableRowElement;
+        let lastRow: number = parseInt(lastChild.id);
+
+        let loadHeight: number = this.tbody.clientHeight;
+        this.AVERAGE = loadHeight / length;
+        let totalHeight: number = this.AVERAGE * this.maxRows;
+        let topHeight: number = firstRow * this.AVERAGE;
+        let bottomHeight: number = totalHeight - topHeight - loadHeight;
+
+        let fillerTop: HTMLTableRowElement = document.createElement('tr');
+        fillerTop.id = "fillerTop";
+        fillerTop.style.height = '0px';
+
+        let fillerBottom: HTMLTableRowElement = document.createElement('tr');
+        fillerBottom.id = "fillerBottom";
+        fillerBottom.style.height = '0px';
+
+        this.tbody.prepend(fillerTop);
+        this.tbody.appendChild(fillerBottom);
+
+        fillerTop.style.height = topHeight + 'px';
+        fillerBottom.style.height = bottomHeight + 'px';
+
+        if (firstRow === 0) {
+            fillerTop.style.height = '0px';
+        }
+
+        if (lastRow === this.maxRows - 1) {
+            fillerBottom.style.height = '0px';
+        }
+
+        this.sourceRows = data.srcRows;
+        this.targetRows = data.tgtRows;
+        this.maxRows = this.sourceRows;
+        if (this.targetRows > this.maxRows) {
+            this.maxRows = this.targetRows;
+        }
+
+        this.diffRows = this.sourceRows - this.targetRows;
+        if (this.targetRows > this.sourceRows) {
+            this.diffRows = this.targetRows - this.sourceRows;
+        }
+
+        document.getElementById('totalRows').innerText = '' + this.maxRows;
+        document.getElementById('sourceRows').innerText = '' + this.sourceRows;
+        document.getElementById('targetRows').innerText = '' + this.targetRows;
+        document.getElementById('diffRows').innerText = '' + this.diffRows;
+
+        if (this.diffRows > 0) {
+            document.getElementById('diffRows').classList.add('diffColor');
+        } else {
+            document.getElementById('diffRows').classList.remove('diffColor');
+        }
+
         let cells: HTMLCollectionOf<Element> = document.getElementsByClassName('cell');
         for (let cell of cells) {
             cell.addEventListener('click', (ev: MouseEvent) => {
@@ -438,16 +468,6 @@ class Main {
                 this.fixedListener(ev);
             });
         }
-        this.sourceRows = data.srcRows;
-        this.targetRows = data.tgtRows;
-        this.maxRows = this.sourceRows;
-        if (this.targetRows > this.maxRows) {
-            this.maxRows = this.targetRows;
-        }
-        this.maxPage = Math.ceil(this.maxRows / this.rowsPage);
-        document.getElementById('pages').innerText = '' + this.maxPage;
-        document.getElementById('sourceRows').innerText = '' + this.sourceRows;
-        document.getElementById('targetRows').innerText = '' + this.targetRows;
 
         if (this.autoSelect) {
             let row: HTMLTableRowElement = document.getElementById(this.autoSelect.id) as HTMLTableRowElement;
@@ -472,6 +492,392 @@ class Main {
             }
             this.autoSelect = null;
         }
+
+        let middleValue: number = Math.floor(firstRow + length / 2);
+
+        document.getElementById('mainPanel').focus();
+
+        setTimeout(() => {
+            if (firstRow === 0 && this.scrollToFirst && data.scroll) {
+                console.log('scroll first into view');
+                let rowOne: HTMLTableRowElement = document.getElementById('' + firstRow) as HTMLTableRowElement;
+                rowOne.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
+                document.getElementById('mainPanel').scrollTop = 0; // reset scroll position to the top
+                this.scrollToFirst = false; // reset scroll to first
+            }
+            if (lastRow === (this.maxRows - 1) && this.scrollToLast && data.scroll) {
+                console.log('scroll last into view');
+                let rowMax: HTMLTableRowElement = document.getElementById('' + lastRow) as HTMLTableRowElement;
+                rowMax.scrollIntoView({ behavior: "smooth", block: "end", inline: "start" });
+                document.getElementById('mainPanel').scrollTop = totalHeight; // set scroll position to the bottom
+                this.scrollToLast = false; // reset scroll to last
+            }
+            if (firstRow !== 0 && lastRow !== this.maxRows - 1 && data.scroll) {
+                console.log('scroll middle into view')
+                let middleRow: HTMLTableRowElement = document.getElementById('' + middleValue) as HTMLTableRowElement;
+                middleRow.scrollIntoView({ behavior: "smooth", block: "center", inline: "start" });
+            }
+
+            this.fetchingData = false;
+            document.body.style.cursor = 'default';
+            this.checkingScroll = false;
+        }, 500);
+
+    }
+
+    setTopRows(data: any): void {
+
+        let mainRows: HTMLTableSectionElement = document.getElementById('tableBody') as HTMLTableSectionElement;
+        let trs: HTMLCollectionOf<HTMLTableRowElement> = mainRows.getElementsByTagName('tr');
+        let array: HTMLTableRowElement[] = Array.from(trs);
+
+        let rows: string[] = data.rows;
+        let length: number = rows.length;
+
+        let removedHeight: number = 0;
+        for (let i = array.length - 2 - length; i < array.length - 1; i++) {
+            let row: HTMLTableRowElement = trs[i];
+            let height: number = row.clientHeight;
+            removedHeight = removedHeight + height + 4; // 4px for the border
+        }
+
+        let holder: HTMLTableSectionElement = document.createElement('tbody');
+        holder.style.width = mainRows.clientWidth + 'px';
+        let html: string = '';
+        for (let i = 0; i < length; i++) {
+            html = html + rows[i];
+        }
+        holder.innerHTML = html;
+        let addedRows: HTMLTableRowElement[] = Array.from(holder.getElementsByTagName('tr'));
+
+        array.splice(1, 0, ...addedRows); // add rows to the top
+        array.splice(array.length - 1 - addedRows.length, addedRows.length); // remove rows from the bottom
+
+        html = '';
+        length = array.length;
+        for (let i = 0; i < length; i++) {
+            html = html + array[i].outerHTML;
+        }
+        this.tbody.innerHTML = html;
+
+        let realHeight: number = 0;
+        let tableRows: HTMLCollectionOf<HTMLTableRowElement> = this.tbody.getElementsByTagName('tr');
+        for (let i = 1; i < array.length - 1; i++) {
+            let row: HTMLTableRowElement = tableRows[i] as HTMLTableRowElement;
+            let height: number = row.clientHeight;
+            realHeight += height + 4; // 4px for the border
+        }
+
+        let addedHeight: number = 0;
+        for (let i = 0; i < addedRows.length; i++) {
+            let row: HTMLTableRowElement = tableRows[i + 1] as HTMLTableRowElement;
+            let height: number = row.clientHeight;
+            addedHeight = addedHeight + height + 4; // 4px for the border
+        }
+
+        let firstRow: number = parseInt(array[1].id);
+        let lastRow: number = parseInt(array[array.length - 2].id);
+        this.AVERAGE = realHeight / (array.length - 2);
+
+        let fillerTop: HTMLTableRowElement = document.getElementById('fillerTop') as HTMLTableRowElement;
+        let fillerBottom: HTMLTableRowElement = document.getElementById('fillerBottom') as HTMLTableRowElement;
+        let currentTop: number = fillerTop.clientHeight;
+        let currentBottom: number = fillerBottom.clientHeight;
+        let topHeight: number = currentTop - addedHeight;
+        let bottomHeight: number = currentBottom + removedHeight;
+
+        fillerTop.style.height = topHeight + 'px';
+        fillerBottom.style.height = bottomHeight + 'px';
+
+        if (firstRow === 0) {
+            fillerTop.style.height = '0px';
+        }
+
+        if (lastRow === this.maxRows - 1) {
+            fillerBottom.style.height = '0px';
+        }
+
+        let cells: HTMLCollectionOf<Element> = document.getElementsByClassName('cell');
+        for (let cell of cells) {
+            cell.addEventListener('click', (ev: MouseEvent) => {
+                this.clickListener(ev);
+            });
+        }
+        let fixed: HTMLCollectionOf<Element> = document.getElementsByClassName('fixed');
+        for (let cell of fixed) {
+            cell.addEventListener('click', (ev: MouseEvent) => {
+                this.fixedListener(ev);
+            });
+        }
+
+        if (this.autoSelect) {
+            let row: HTMLTableRowElement = document.getElementById(this.autoSelect.id) as HTMLTableRowElement;
+            if (row) {
+                let tableCells: HTMLCollectionOf<HTMLTableCellElement> = row.getElementsByTagName('td');
+                for (let cell of tableCells) {
+                    if (cell.getAttribute('lang') === this.autoSelect.lang) {
+                        this.currentId = this.autoSelect.id;
+                        this.currentLang = this.autoSelect.lang;
+                        this.currentCell = cell;
+                        this.currentContent = this.currentCell.innerHTML;
+                        this.currentCell.contentEditable = 'true';
+                        this.currentCell.classList.add('editing');
+                        this.currentCell.addEventListener('keydown', () => { this.selectionChanged(); });
+                        this.currentCell.addEventListener('click', () => { this.selectionChanged(); });
+                        this.currentPos = 0;
+                        this.currentNode = null;
+                        this.currentCell.focus();
+                        break;
+                    }
+                }
+            }
+            this.autoSelect = null;
+        }
+
+        document.getElementById('mainPanel').focus();
+
+        this.fetchingTop = false;
+        document.body.style.cursor = 'default';
+        this.checkingScroll = false;
+    }
+
+    setBottomRows(data: any): void {
+
+        let mainRows: HTMLTableSectionElement = document.getElementById('tableBody') as HTMLTableSectionElement;
+        let trs: HTMLCollectionOf<HTMLTableRowElement> = mainRows.getElementsByTagName('tr');
+        let array: HTMLTableRowElement[] = Array.from(trs);
+
+        let rows: string[] = data.rows;
+        let length: number = rows.length;
+
+        let removedHeight: number = 0;
+        for (let i = 0; i < length; i++) {
+            let row: HTMLTableRowElement = trs[i + 1];
+            let height: number = row.clientHeight;
+            removedHeight = removedHeight + height + 4; // 4px for the border
+        }
+
+        let holder: HTMLTableSectionElement = document.createElement('tbody');
+        holder.style.width = mainRows.clientWidth + 'px';
+        let html: string = '';
+        for (let i = 0; i < length; i++) {
+            html = html + rows[i];
+        }
+        holder.innerHTML = html;
+        let addedRows: HTMLTableRowElement[] = Array.from(holder.getElementsByTagName('tr'));
+
+        array.splice(array.length - 1, 0, ...addedRows); // add rows to the bottom
+        array.splice(1, addedRows.length); // remove rows from the top      
+
+        html = '';
+        length = array.length;
+        for (let i = 0; i < length; i++) {
+            html = html + array[i].outerHTML;
+        }
+        this.tbody.innerHTML = html;
+
+        let realHeight: number = 0;
+        let tableRows: HTMLCollectionOf<HTMLTableRowElement> = this.tbody.getElementsByTagName('tr');
+        for (let i = 1; i < array.length - 1; i++) {
+            let row: HTMLTableRowElement = tableRows[i] as HTMLTableRowElement;
+            let height: number = row.clientHeight;
+            realHeight = realHeight + height + 4; // 4px for the border
+        }
+
+        let addedHeight: number = 0;
+        for (let i = array.length - 1 - addedRows.length; i < array.length - 1; i++) {
+            let row: HTMLTableRowElement = tableRows[i] as HTMLTableRowElement;
+            let height: number = row.clientHeight;
+            addedHeight = addedHeight + height + 4; // 4px for the border
+        }
+
+        let firstRow: number = parseInt(array[1].id);
+        let lastRow: number = parseInt(array[array.length - 2].id);
+
+        this.AVERAGE = realHeight / (array.length - 2);
+
+        let fillerTop: HTMLTableRowElement = document.getElementById('fillerTop') as HTMLTableRowElement;
+        let fillerBottom: HTMLTableRowElement = document.getElementById('fillerBottom') as HTMLTableRowElement;
+        let currentTop: number = fillerTop.clientHeight;
+        let currentBottom: number = fillerBottom.clientHeight;
+        let topHeight: number = currentTop + removedHeight;
+        let bottomHeight: number = currentBottom - addedHeight;
+
+        fillerTop.style.height = topHeight + 'px';
+        fillerBottom.style.height = bottomHeight + 'px';
+
+        if (firstRow === 0) {
+            fillerTop.style.height = '0px';
+        }
+
+        if (lastRow === this.maxRows - 1) {
+            fillerBottom.style.height = '0px';
+        }
+
+        let cells: HTMLCollectionOf<Element> = document.getElementsByClassName('cell');
+        for (let cell of cells) {
+            cell.addEventListener('click', (ev: MouseEvent) => {
+                this.clickListener(ev);
+            });
+        }
+        let fixed: HTMLCollectionOf<Element> = document.getElementsByClassName('fixed');
+        for (let cell of fixed) {
+            cell.addEventListener('click', (ev: MouseEvent) => {
+                this.fixedListener(ev);
+            });
+        }
+
+        if (this.autoSelect) {
+            let row: HTMLTableRowElement = document.getElementById(this.autoSelect.id) as HTMLTableRowElement;
+            if (row) {
+                let tableCells: HTMLCollectionOf<HTMLTableCellElement> = row.getElementsByTagName('td');
+                for (let cell of tableCells) {
+                    if (cell.getAttribute('lang') === this.autoSelect.lang) {
+                        this.currentId = this.autoSelect.id;
+                        this.currentLang = this.autoSelect.lang;
+                        this.currentCell = cell;
+                        this.currentContent = this.currentCell.innerHTML;
+                        this.currentCell.contentEditable = 'true';
+                        this.currentCell.classList.add('editing');
+                        this.currentCell.addEventListener('keydown', () => { this.selectionChanged(); });
+                        this.currentCell.addEventListener('click', () => { this.selectionChanged(); });
+                        this.currentPos = 0;
+                        this.currentNode = null;
+                        this.currentCell.focus();
+                        break;
+                    }
+                }
+            }
+            this.autoSelect = null;
+        }
+
+        document.getElementById('mainPanel').focus();
+
+        this.fetchingBottom = false;
+        document.body.style.cursor = 'default';
+        this.checkingScroll = false;
+    }
+
+    checkScroll(e: Event): void {
+        if (this.fetchingData || this.fetchingBottom || this.fetchingTop) {
+            e.preventDefault();
+            return;
+        }
+        if (this.checkingScroll) {
+            e.preventDefault();
+            return;
+        }
+    }
+
+    checkScrollend(e: Event): void {
+        if (this.fetchingData || this.fetchingBottom || this.fetchingTop) {
+            e.preventDefault();
+            return;
+        }
+
+        this.checkingScroll = true;
+        if (this.checkingScroll) {
+            e.preventDefault();
+        }
+
+        let tableRows: HTMLCollectionOf<HTMLTableRowElement> = this.tbody.getElementsByTagName('tr');
+        let firstRow: number = parseInt(tableRows[1].id);
+        let lastRow: number = parseInt(tableRows[tableRows.length - 2].id);
+
+        let fillerTop: HTMLTableRowElement = document.getElementById('fillerTop') as HTMLTableRowElement;
+        let fillerBottom: HTMLTableRowElement = document.getElementById('fillerBottom') as HTMLTableRowElement;
+        let topHeight: number = fillerTop.clientHeight;
+        let bottomHeight: number = fillerBottom.clientHeight;
+        let contentHeight: number = document.getElementById('tableBody').clientHeight - topHeight - bottomHeight;
+        let tableBottom: number = topHeight + contentHeight;
+        let fileHeight: number = document.getElementById('tableBody').clientHeight;
+
+        let safetyHeight: number = this.SAFETYROWS * this.AVERAGE;
+
+        let mainPanel: HTMLDivElement = document.getElementById('mainPanel') as HTMLDivElement;
+        let mainScroll: number = mainPanel.scrollTop;
+        let scrollRow: number = Math.floor(mainScroll / this.AVERAGE);
+
+        if (mainScroll <= this.AVERAGE * 15) {
+            this.scrollToFirst = true;
+        }
+
+        if (mainScroll >= fileHeight - this.AVERAGE * 15) {
+            this.scrollToLast = true;
+        }
+
+        if (scrollRow >= this.maxRows - 1) {
+            scrollRow = this.maxRows - 1;
+        }
+
+        if (mainScroll < topHeight || mainScroll > tableBottom) {
+            this.fetchingData = true;
+            document.body.style.cursor = 'wait';
+
+            let start: number = scrollRow - (this.ROWSLOAD / 2);
+            if (start < 0) {
+                start = 0;
+            }
+
+            let count: number = this.ROWSLOAD;
+            if (count + start >= this.maxRows) {
+                start = this.maxRows - this.ROWSLOAD;
+                count = this.maxRows - start;
+            }
+
+            this.getRows(start, count, true);
+
+            return;
+        }
+
+        if (mainScroll > topHeight && mainScroll < topHeight + safetyHeight && mainScroll > safetyHeight) {
+
+            if (firstRow === 0) {
+                return;
+            }
+
+            this.fetchingTop = true;
+            document.body.style.cursor = 'wait';
+
+            let start: number = firstRow - 1 - this.SAFETYROWS;
+            let count: number = this.SAFETYROWS;
+
+            if (start < this.SAFETYROWS) {
+                start = 0;
+                count = firstRow - 1;
+            }
+
+            this.getRows(start, count, true);
+
+            return;
+        }
+
+        if (mainScroll > tableBottom - safetyHeight && mainScroll < tableBottom) {
+            if (lastRow === this.maxRows - 1) {
+                return;
+            }
+
+            this.fetchingBottom = true;
+            document.body.style.cursor = 'wait';
+
+            let start: number = lastRow + 1;
+
+            let count: number = this.SAFETYROWS;
+
+            if (this.maxRows - (start + count) < this.SAFETYROWS) {
+                count = this.maxRows - start;
+            }
+
+            this.getRows(start, count, true);
+
+            return;
+        }
+
+        if (mainScroll > topHeight + safetyHeight && mainScroll < tableBottom - safetyHeight) {
+            this.checkingScroll = false;
+            return;
+        }
+
     }
 
     clickListener(event: MouseEvent) {
@@ -503,6 +909,10 @@ class Main {
         }
         if (id) {
             this.currentId = id;
+            console.log('currentId: ' + this.currentId);
+            let currentRow: HTMLTableRowElement = document.getElementById('' + this.currentId) as HTMLTableRowElement;
+            currentRow.scrollIntoView({ behavior: "smooth", block: "center", inline: "start" });
+
             if (this.currentCell != null) {
                 this.currentCell.innerHTML = this.currentContent;
                 this.currentCell = null;
@@ -593,7 +1003,7 @@ class Main {
                 text = text + node.textContent;
             }
         }
-        return text
+        return text;
     }
 
     cancelEdit(): void {
@@ -708,7 +1118,7 @@ class Main {
                 text = text + node.textContent;
             }
         }
-        return text
+        return text;
     }
 
     removeSegment(): void {

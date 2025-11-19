@@ -24,8 +24,8 @@ class PreferencesDialog {
         this.electron.ipcRenderer.on('set-appLanguage', (event: Electron.IpcRendererEvent, arg: any) => {
             (document.getElementById('appLangSelect') as HTMLSelectElement).value = arg;
         });
-        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
-            (document.getElementById('theme') as HTMLLinkElement).href = arg;
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, theme: string) => {
+            (document.getElementById('theme') as HTMLLinkElement).href = theme;
         });
         this.electron.ipcRenderer.on('set-preferences', (event: Electron.IpcRendererEvent, arg: Preferences) => {
             (document.getElementById('themeColor') as HTMLSelectElement).value = arg.theme;

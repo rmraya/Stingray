@@ -40,6 +40,7 @@
         "error": "Error"
     },
     "FileFormats": {
+        "supportedFiles": "Supported Files",
         "anyFile": "Any File",
         "icml": "Adobe InCopy ICML",
         "inx": "Adobe InDesign Interchange (INX)",
@@ -73,7 +74,7 @@
         "exportTMX": "Export as TMX 1.4 File",
         "exportExcel": "Export as Excel File",
         "exportCSV": "Export as TAB Delimited File",
-        "replaceText": "Replace Text...",
+        "replaceText": "Search and Replace",
         "confirmEdit": "Confirm Edit",
         "cancelEdit": "Cancel Edit",
         "moveDown": "Move Segment Down",

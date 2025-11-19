@@ -7,38 +7,38 @@
     <link rel="stylesheet" type="text/css" href="../../css/fonts.css">
 </head>
 
-<body class="dialogBody" onload="new SearchReplace();">
-    <table>
-        <tr>
-            <td class="middle noWrap"><label for="searchText">Texto a Buscar</label></td>
-            <td class="middle fill_width">
-                <input type="text" id="searchText" class="table_input">
-            </td>
-        </tr>
-        <tr>
-            <td class="middle noWrap"><label for="replaceText">Reemplazar con</label></td>
-            <td class="middle fill_width">
-                <input type="text" id="replaceText" class="table_input">
-            </td>
-        </tr>
-        <tr>
-            <td colspan="2" class="middle">
-                <input type="checkbox" id="regularExpression" class="middle">
-                <label for="regularExpression" class="middle">Expresi&oacute;n Regular</label>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="2" class="middle">
-                <span class="middle" >Buscar en: </span>
-                <input type="radio" name="language" id="source" class="middle" checked>
-                <label for="source"class="middle" >Texto Origen</label>
-                <input type="radio" name="language" id="target"class="middle" >
-                <label for="target"class="middle" >Texto Destino</label>
-            </td>
-        </tr>
-    </table>
-
-
+<body onload="new SearchReplace();">
+    <div class="dialogBody">
+        <table>
+            <tr>
+                <td class="middle noWrap"><label for="searchText">Texto a Buscar</label></td>
+                <td class="middle fill_width">
+                    <input type="text" id="searchText" class="table_input">
+                </td>
+            </tr>
+            <tr>
+                <td class="middle noWrap"><label for="replaceText">Reemplazar con</label></td>
+                <td class="middle fill_width">
+                    <input type="text" id="replaceText" class="table_input">
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" class="middle">
+                    <input type="checkbox" id="regularExpression" class="middle">
+                    <label for="regularExpression" class="middle">Expresi&oacute;n Regular</label>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" class="middle">
+                    <span class="middle">Buscar en: </span>
+                    <input type="radio" name="language" id="source" class="middle" checked>
+                    <label for="source" class="middle">Texto Origen</label>
+                    <input type="radio" name="language" id="target" class="middle">
+                    <label for="target" class="middle">Texto Destino</label>
+                </td>
+            </tr>
+        </table>
+    </div>
 
     <div class="buttonArea">
         <button id="replace">Reemplazar Texto</button>

@@ -1,6 +1,6 @@
 # Stingray Document Aligner
 
-![Stingray logo](icons/icon.png)
+<img src="images/Stingray.png" alt="Stingray logo" width="90" height="90">.
 
 Stingray is a document aligner designed to assist professional translators in the production of translation memories from existing translated material.
 
@@ -49,14 +49,14 @@ Technical Support |  Peer support at  [Groups.io](https://groups.io/g/maxprogram
 ## Requirements
 
 - JDK 21 or newer is required for compiling and building. Get it from [Adoptium](https://adoptium.net/).
-- Apache Ant 1.10.14 or newer. Get it from [https://ant.apache.org/](https://ant.apache.org/)
-- Node.js 22.13.0 LTS or newer. Get it from [https://nodejs.org/](https://nodejs.org/)
+- Gradle 9.2 or newer. Get it from [https://gradle.org/install/](https://gradle.org/install/)
+- Node.js 22.22.0 LTS or newer. Get it from [https://nodejs.org/](https://nodejs.org/)
 
 ## Building
 
 - Checkout this repository.
 - Point your `JAVA_HOME` environment variable to JDK 21
-- Run `ant` to compile the Java code
+- Run `gradle` to compile the Java code
 - Run `npm install` to download and install NodeJS dependencies
 - Run `npm start` to launch Stingray
 
@@ -65,7 +65,7 @@ Technical Support |  Peer support at  [Groups.io](https://groups.io/g/maxprogram
 ``` bash
   git clone https://github.com/rmraya/Stingray.git
   cd Stingray
-  ant
+  gradle
   npm install
   npm start
 ```

@@ -16,8 +16,8 @@ class SearchReplace {
 
     constructor() {
         this.electron.ipcRenderer.send('get-theme');
-        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, arg: any) => {
-            (document.getElementById('theme') as HTMLLinkElement).href = arg;
+        this.electron.ipcRenderer.on('set-theme', (event: Electron.IpcRendererEvent, theme: string) => {
+            (document.getElementById('theme') as HTMLLinkElement).href = theme;
         });
         document.addEventListener('keydown', (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
@@ -30,7 +30,8 @@ class SearchReplace {
         document.getElementById('replace').addEventListener('click', () => {
             this.replace();
         });
-        document.getElementById('searchText').focus(); setTimeout(() => {
+        document.getElementById('searchText').focus(); 
+        setTimeout(() => {
             this.electron.ipcRenderer.send('set-height', { window: 'replaceText', width: document.body.clientWidth, height: document.body.clientHeight });
         }, 200);
     }
@@ -41,10 +42,6 @@ class SearchReplace {
         let inSource: boolean = (document.getElementById('source') as HTMLInputElement).checked
         if (searchText.length === 0) {
             window.alert('Enter text to search');
-            return;
-        }
-        if (replaceText.length === 0) {
-            window.alert('Enter replacement text');
             return;
         }
         let regularExpression: boolean = (document.getElementById('regularExpression') as HTMLInputElement).checked;

@@ -1,5 +1,6 @@
 {
   "FileFormats": {
+    "supportedFiles": "Archivos Soportados",
     "svg": "SVG (Scalable Vector Graphics)",
     "ditamap": "Mapa DITA",
     "icml": "Adobe InCopy ICML",
@@ -72,7 +73,7 @@
     "userGuide": "Manual del Usuario de Stingray",
     "exportCSV": "Exportar Como Archivo Delimitado por TAB",
     "moveUp": "Mover Segmento Hacia Arriba",
-    "replaceText": "Reemplazar Texto...",
+    "replaceText": "Buscar y Reemplazar",
     "newAlignment": "Nuevo Alineación",
     "toggleDevTools": "Herramientas Para Desarrolladores",
     "changeLanguageCodes": "Cambiar Códigos de Idioma",
