@@ -501,4 +501,17 @@ public class AlignmentService {
 		}
 		return result;
 	}
+
+    public JSONObject insertCell(JSONObject json) {
+        JSONObject result = new JSONObject();
+		try {
+			alignment.insertCell(json);
+			result.put(Constants.STATUS, Constants.SUCCESS);
+		} catch (SAXException | IOException | ParserConfigurationException e) {
+			logger.log(Level.ERROR, e);
+			result.put(Constants.STATUS, Constants.ERROR);
+			result.put(Constants.REASON, e.getMessage());
+		}
+		return result;
+    }
 }

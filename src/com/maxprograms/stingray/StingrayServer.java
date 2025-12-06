@@ -48,7 +48,7 @@ public class StingrayServer implements HttpHandler {
 	public static void main(String[] args) {
 		String port = "8040";
 		for (int i = 0; i < args.length; i++) {
-			String arg = args[i];			
+			String arg = args[i];
 			if (arg.equals("-port") && (i + 1) < args.length) {
 				port = args[i + 1];
 			}
@@ -155,6 +155,9 @@ public class StingrayServer implements HttpHandler {
 					break;
 				case "/splitSegment":
 					response = splitSegment(new JSONObject(request));
+					break;
+				case "/insertCell":
+					response = insertCell(new JSONObject(request));
 					break;
 				case "/replaceText":
 					response = replaceText(new JSONObject(request));
@@ -326,6 +329,10 @@ public class StingrayServer implements HttpHandler {
 		return service.splitSegment(json).toString();
 	}
 
+	private String insertCell(JSONObject json) {
+		return service.insertCell(json).toString();
+	}
+
 	private String replaceText(JSONObject json) {
 		return service.replaceText(json).toString();
 	}
@@ -337,7 +344,8 @@ public class StingrayServer implements HttpHandler {
 		result.put("openxliff", mf.format(new String[] { com.maxprograms.converters.Constants.VERSION,
 				com.maxprograms.converters.Constants.BUILD }));
 		result.put("bcp47j",
-				mf.format(new String[] { com.maxprograms.languages.Constants.VERSION, com.maxprograms.languages.Constants.BUILD }));
+				mf.format(new String[] { com.maxprograms.languages.Constants.VERSION,
+						com.maxprograms.languages.Constants.BUILD }));
 		result.put("xmljava",
 				mf.format(new String[] { com.maxprograms.xml.Constants.VERSION, com.maxprograms.xml.Constants.BUILD }));
 		mf = new MessageFormat(Messages.getString("StingrayServer.6"));

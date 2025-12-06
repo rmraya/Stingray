@@ -44,6 +44,8 @@ class Main {
     mainPanel: HTMLDivElement;
     bottomBar: HTMLDivElement;
     tbody: HTMLTableSectionElement;
+    srcLang: string;
+    tgtLang: string;
 
 
     constructor() {
@@ -81,11 +83,27 @@ class Main {
         this.electron.ipcRenderer.on('move-down', () => {
             this.moveSegmentDown();
         });
+        this.electron.ipcRenderer.on('segment-above', () => {
+            this.selectSegmentAbove();
+        });
+        this.electron.ipcRenderer.on('segment-below', () => {
+            this.selectSegmentBelow();
+        });
+        this.electron.ipcRenderer.on('source-cell', () => {
+            this.selectSourceCell();
+        });
+        this.electron.ipcRenderer.on('target-cell', () => {
+            this.selectTargetCell();
+        });
+
         this.electron.ipcRenderer.on('move-up', () => {
             this.moveSegmentUp();
         });
         this.electron.ipcRenderer.on('split-segment', () => {
             this.split();
+        });
+        this.electron.ipcRenderer.on('insert-cell', () => {
+            this.insertCell();
         });
         this.electron.ipcRenderer.on('merge-segment', () => {
             this.mergeNext();
@@ -274,6 +292,9 @@ class Main {
             this.mergeNext();
         });
 
+        document.getElementById('addCellBelow').addEventListener('click', () => {
+            this.insertCell();
+        });
         document.getElementById('remove').addEventListener('click', () => {
             this.removeSegment();
         });
@@ -329,6 +350,8 @@ class Main {
         document.getElementById('title').innerText = 'Stingray - ' + data.file;
         this.sourceRows = data.srcRows;
         this.targetRows = data.tgtRows;
+        this.srcLang = data.srcLang.code;
+        this.tgtLang = data.tgtLang.code;
 
         document.getElementById('sourceHeader').innerText = data.srcLang.code + ' - ' + data.srcLang.description;
         document.getElementById('targetHeader').innerText = data.tgtLang.code + ' - ' + data.tgtLang.description;
@@ -382,7 +405,6 @@ class Main {
     }
 
     setRows(data: any): void {
-
         if (this.fetchingTop) {
             this.setTopRows(data);
             return;
@@ -461,6 +483,12 @@ class Main {
             cell.addEventListener('click', (ev: MouseEvent) => {
                 this.clickListener(ev);
             });
+            cell.addEventListener('focus', (ev: FocusEvent) => {
+                this.focusListener(ev);
+            });
+            cell.addEventListener('keydown', (ev: KeyboardEvent) => {
+                this.keyListener(ev);
+            });
         }
         let fixed: HTMLCollectionOf<Element> = document.getElementsByClassName('fixed');
         for (let cell of fixed) {
@@ -469,11 +497,14 @@ class Main {
             });
         }
 
+        document.getElementById('mainPanel').focus();
+
         if (this.autoSelect) {
             let row: HTMLTableRowElement = document.getElementById(this.autoSelect.id) as HTMLTableRowElement;
             if (row) {
-                let tableCells: HTMLCollectionOf<HTMLTableCellElement> = row.getElementsByTagName('td');
-                for (let cell of tableCells) {
+                row.scrollIntoView({ behavior: "smooth", block: "center", inline: "start" });
+                let rowCells: HTMLCollectionOf<HTMLTableCellElement> = row.getElementsByTagName('td');
+                for (let cell of rowCells) {
                     if (cell.getAttribute('lang') === this.autoSelect.lang) {
                         this.currentId = this.autoSelect.id;
                         this.currentLang = this.autoSelect.lang;
@@ -485,7 +516,7 @@ class Main {
                         this.currentCell.addEventListener('click', () => { this.selectionChanged(); });
                         this.currentPos = 0;
                         this.currentNode = null;
-                        this.currentCell.focus();
+                        cell.focus();
                         break;
                     }
                 }
@@ -495,29 +526,23 @@ class Main {
 
         let middleValue: number = Math.floor(firstRow + length / 2);
 
-        document.getElementById('mainPanel').focus();
-
         setTimeout(() => {
             if (firstRow === 0 && this.scrollToFirst && data.scroll) {
-                console.log('scroll first into view');
                 let rowOne: HTMLTableRowElement = document.getElementById('' + firstRow) as HTMLTableRowElement;
                 rowOne.scrollIntoView({ behavior: "smooth", block: "start", inline: "start" });
                 document.getElementById('mainPanel').scrollTop = 0; // reset scroll position to the top
                 this.scrollToFirst = false; // reset scroll to first
             }
             if (lastRow === (this.maxRows - 1) && this.scrollToLast && data.scroll) {
-                console.log('scroll last into view');
                 let rowMax: HTMLTableRowElement = document.getElementById('' + lastRow) as HTMLTableRowElement;
                 rowMax.scrollIntoView({ behavior: "smooth", block: "end", inline: "start" });
                 document.getElementById('mainPanel').scrollTop = totalHeight; // set scroll position to the bottom
                 this.scrollToLast = false; // reset scroll to last
             }
             if (firstRow !== 0 && lastRow !== this.maxRows - 1 && data.scroll) {
-                console.log('scroll middle into view')
                 let middleRow: HTMLTableRowElement = document.getElementById('' + middleValue) as HTMLTableRowElement;
                 middleRow.scrollIntoView({ behavior: "smooth", block: "center", inline: "start" });
             }
-
             this.fetchingData = false;
             document.body.style.cursor = 'default';
             this.checkingScroll = false;
@@ -526,7 +551,6 @@ class Main {
     }
 
     setTopRows(data: any): void {
-
         let mainRows: HTMLTableSectionElement = document.getElementById('tableBody') as HTMLTableSectionElement;
         let trs: HTMLCollectionOf<HTMLTableRowElement> = mainRows.getElementsByTagName('tr');
         let array: HTMLTableRowElement[] = Array.from(trs);
@@ -602,6 +626,12 @@ class Main {
             cell.addEventListener('click', (ev: MouseEvent) => {
                 this.clickListener(ev);
             });
+            cell.addEventListener('focus', (ev: FocusEvent) => {
+                this.focusListener(ev);
+            });
+            cell.addEventListener('keydown', (ev: KeyboardEvent) => {
+                this.keyListener(ev);
+            });
         }
         let fixed: HTMLCollectionOf<Element> = document.getElementsByClassName('fixed');
         for (let cell of fixed) {
@@ -610,11 +640,14 @@ class Main {
             });
         }
 
+        document.getElementById('mainPanel').focus();
+
         if (this.autoSelect) {
             let row: HTMLTableRowElement = document.getElementById(this.autoSelect.id) as HTMLTableRowElement;
             if (row) {
-                let tableCells: HTMLCollectionOf<HTMLTableCellElement> = row.getElementsByTagName('td');
-                for (let cell of tableCells) {
+                row.scrollIntoView({ behavior: "smooth", block: "center", inline: "start" });
+                let rowCells: HTMLCollectionOf<HTMLTableCellElement> = row.getElementsByTagName('td');
+                for (let cell of rowCells) {
                     if (cell.getAttribute('lang') === this.autoSelect.lang) {
                         this.currentId = this.autoSelect.id;
                         this.currentLang = this.autoSelect.lang;
@@ -626,7 +659,7 @@ class Main {
                         this.currentCell.addEventListener('click', () => { this.selectionChanged(); });
                         this.currentPos = 0;
                         this.currentNode = null;
-                        this.currentCell.focus();
+                        cell.focus();
                         break;
                     }
                 }
@@ -634,15 +667,12 @@ class Main {
             this.autoSelect = null;
         }
 
-        document.getElementById('mainPanel').focus();
-
         this.fetchingTop = false;
         document.body.style.cursor = 'default';
         this.checkingScroll = false;
     }
 
     setBottomRows(data: any): void {
-
         let mainRows: HTMLTableSectionElement = document.getElementById('tableBody') as HTMLTableSectionElement;
         let trs: HTMLCollectionOf<HTMLTableRowElement> = mainRows.getElementsByTagName('tr');
         let array: HTMLTableRowElement[] = Array.from(trs);
@@ -719,6 +749,12 @@ class Main {
             cell.addEventListener('click', (ev: MouseEvent) => {
                 this.clickListener(ev);
             });
+            cell.addEventListener('focus', (ev: FocusEvent) => {
+                this.focusListener(ev);
+            });
+            cell.addEventListener('keydown', (ev: KeyboardEvent) => {
+                this.keyListener(ev);
+            });
         }
         let fixed: HTMLCollectionOf<Element> = document.getElementsByClassName('fixed');
         for (let cell of fixed) {
@@ -727,11 +763,14 @@ class Main {
             });
         }
 
+        document.getElementById('mainPanel').focus();
+
         if (this.autoSelect) {
             let row: HTMLTableRowElement = document.getElementById(this.autoSelect.id) as HTMLTableRowElement;
             if (row) {
-                let tableCells: HTMLCollectionOf<HTMLTableCellElement> = row.getElementsByTagName('td');
-                for (let cell of tableCells) {
+                row.scrollIntoView({ behavior: "smooth", block: "center", inline: "start" });
+                let rowCells: HTMLCollectionOf<HTMLTableCellElement> = row.getElementsByTagName('td');
+                for (let cell of rowCells) {
                     if (cell.getAttribute('lang') === this.autoSelect.lang) {
                         this.currentId = this.autoSelect.id;
                         this.currentLang = this.autoSelect.lang;
@@ -743,15 +782,13 @@ class Main {
                         this.currentCell.addEventListener('click', () => { this.selectionChanged(); });
                         this.currentPos = 0;
                         this.currentNode = null;
-                        this.currentCell.focus();
+                        cell.focus();
                         break;
                     }
                 }
             }
             this.autoSelect = null;
         }
-
-        document.getElementById('mainPanel').focus();
 
         this.fetchingBottom = false;
         document.body.style.cursor = 'default';
@@ -880,7 +917,40 @@ class Main {
 
     }
 
+    focusListener(event: FocusEvent) {
+        let cell: HTMLTableCellElement = event.target as HTMLTableCellElement;
+        let row: HTMLTableRowElement = cell.parentElement as HTMLTableRowElement;
+        this.currentId = row.id;
+        this.currentLang = cell.getAttribute('lang');
+        row.scrollIntoView({ behavior: "smooth", block: "center", inline: "start" });
+    }
+
+    keyListener(event: KeyboardEvent) {
+        // capture pgUp and pgdown to select cells
+        if (event.key === 'PageUp') {
+            this.selectSegmentAbove();
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        if (event.key === 'PageDown') {
+            this.selectSegmentBelow();
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        if (event.altKey && event.key === 'ArrowLeft') {
+            this.selectSourceCell();
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        if (event.altKey && event.key === 'ArrowRight') {
+            this.selectTargetCell();
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
+
     clickListener(event: MouseEvent) {
+        console.log('clicked');
         let element: Element = (event.target as Element);
         if (element.parentElement.tagName === 'TH') {
             // clicked select all
@@ -909,7 +979,6 @@ class Main {
         }
         if (id) {
             this.currentId = id;
-            console.log('currentId: ' + this.currentId);
             let currentRow: HTMLTableRowElement = document.getElementById('' + this.currentId) as HTMLTableRowElement;
             currentRow.scrollIntoView({ behavior: "smooth", block: "center", inline: "start" });
 
@@ -1126,7 +1195,70 @@ class Main {
             let id = this.currentId;
             let lang = this.currentLang;
             this.cancelEdit();
+            let row: number = Number.parseInt(id);
+            this.autoSelect = { id: '' + row, lang: lang }
             this.electron.ipcRenderer.send('remove-data', { id: id, lang: lang });
+        }
+    }
+
+    selectSegmentAbove(): void {
+        if (this.currentCell) {
+            let id = this.currentId;
+            let row: number = Number.parseInt(id);
+            this.selectCell('' + (row - 1), this.currentLang);
+        }
+    }
+
+    selectSegmentBelow(): void {
+        if (this.currentCell) {
+            let id = this.currentId;
+            let row: number = Number.parseInt(id);
+            this.selectCell('' + (row + 1), this.currentLang);
+        }
+    }
+
+    selectCell(id: string, lang: string): void {
+        if (this.currentCell !== null && this.currentCell.isContentEditable && this.currentContent !== this.currentCell.innerHTML) {
+            this.autoSelect = { id: id, lang: lang };
+            this.saveEdit();
+            return;
+        }
+        let row: HTMLTableRowElement = document.getElementById(id) as HTMLTableRowElement;
+        if (row) {
+            row.scrollIntoView({ behavior: "smooth", block: "center", inline: "start" });
+            let rowCells: HTMLCollectionOf<HTMLTableCellElement> = row.getElementsByTagName('td');
+            for (let cell of rowCells) {
+                if (cell.getAttribute('lang') === lang) {
+                    cell.click();
+                }
+            }
+        }
+    }
+
+    selectSourceCell(): void {
+        if (this.currentCell) {
+            let id = this.currentId;
+            let row: number = Number.parseInt(id);
+            this.selectCell('' + row, this.srcLang);
+        }
+    }
+
+    selectTargetCell(): void {
+        if (this.currentCell) {
+            let id = this.currentId;
+            let row: number = Number.parseInt(id);
+            this.selectCell('' + row, this.tgtLang);
+        }
+    }
+
+    insertCell(): void {
+        if (this.currentCell) {
+            let lang = this.currentLang;
+            let id = this.currentId;
+            let row: number = Number.parseInt(id);
+            this.autoSelect = { id: '' + (row + 1), lang: lang };
+            this.electron.ipcRenderer.send('insert-cell', { id: id, lang: lang });
+            console.log('add cell below');
         }
     }
 }

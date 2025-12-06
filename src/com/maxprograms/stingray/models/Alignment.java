@@ -583,6 +583,20 @@ public class Alignment {
         }
     }
 
+    public void insertCell(JSONObject json) throws SAXException, IOException, ParserConfigurationException {
+        try {
+            int row = Integer.parseInt(json.getString("id"));
+            List<Element> list = sources;
+            if (json.getString("lang").equals(tgtLang.getCode())) {
+                list = targets;
+            }
+            Element newSource = new Element("source");
+            list.add(row + 1, newSource);
+        } catch (IndexOutOfBoundsException e) {
+            // ignore
+        }
+    }
+
     private Element rebuild(String e) throws SAXException, IOException, ParserConfigurationException {
         SAXBuilder builder = new SAXBuilder();
         String text = "<source>" + e + "</source>";

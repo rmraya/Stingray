@@ -303,6 +303,9 @@ class Stingray {
         ipcMain.on('split-data', (event: IpcMainEvent, arg: any) => {
             Stingray.split(arg);
         });
+        ipcMain.on('insert-cell', (event: IpcMainEvent, arg: any) => {
+            Stingray.insertCell(arg);
+        });
         ipcMain.on('segment-down', (event: IpcMainEvent, arg: any) => {
             Stingray.segmentDown(arg);
         });
@@ -411,7 +414,7 @@ class Stingray {
                 contextIsolation: false
             },
             show: false,
-            icon: Stingray.path.join(app.getAppPath(), 'images','Stingray.png')
+            icon: Stingray.path.join(app.getAppPath(), 'images', 'Stingray.png')
         });
         let fileMenu: Menu = Menu.buildFromTemplate([
             { label: Stingray.i18n.getString('menu', 'newAlignment'), accelerator: 'CmdOrCtrl+N', click: () => { Stingray.newFile(); } },
@@ -439,17 +442,24 @@ class Stingray {
             { label: Stingray.i18n.getString('menu', 'confirmEdit'), accelerator: 'Alt+Enter', click: () => { Stingray.saveEdit(); } },
             { label: Stingray.i18n.getString('menu', 'cancelEdit'), accelerator: 'Esc', click: () => { Stingray.cancelEdit(); } },
             new MenuItem({ type: 'separator' }),
+            { label: Stingray.i18n.getString('menu', 'selectSegmentAbove'), accelerator: 'PageUp', click: () => { Stingray.mainWindow.webContents.send('segment-above'); } },
+            { label: Stingray.i18n.getString('menu', 'selectSegmentBelow'), accelerator: 'PageDown', click: () => { Stingray.mainWindow.webContents.send('segment-below'); } },
+            {label: Stingray.i18n.getString('menu', 'selectTargetCell'), accelerator: 'Alt+Right', click: () => { Stingray.mainWindow.webContents.send('target-cell'); } },
+            {label: Stingray.i18n.getString('menu', 'selectSourceCell'), accelerator: 'Alt+Left', click: () => { Stingray.mainWindow.webContents.send('source-cell'); } },
+            new MenuItem({ type: 'separator' }),
             { label: Stingray.i18n.getString('menu', 'moveDown'), accelerator: 'Alt+CmdOrCtrl+Down', click: () => { Stingray.moveSegmentDown(); } },
             { label: Stingray.i18n.getString('menu', 'moveUp'), accelerator: 'Alt+CmdOrCtrl+Up', click: () => { Stingray.moveSegmentUp(); } },
             { label: Stingray.i18n.getString('menu', 'splitSegment'), accelerator: 'CmdOrCtrl+L', click: () => { Stingray.splitSegment(); } },
             { label: Stingray.i18n.getString('menu', 'mergeNext'), accelerator: 'CmdOrCtrl+M', click: () => { Stingray.mergeSegment(); } },
+            {label: Stingray.i18n.getString('menu', 'addCellBelow'), accelerator: 'Alt+CmdOrCtrl+I', click: () => { Stingray.addCellBelow(); } },
             { label: Stingray.i18n.getString('menu', 'removeSegment'), accelerator: 'CmdOrCtrl+D', click: () => { Stingray.removeSegment(); } },
             new MenuItem({ type: 'separator' }),
             { label: Stingray.i18n.getString('menu', 'undo'), accelerator: 'CmdOrCtrl+Z', click: () => { BrowserWindow.getFocusedWindow().webContents.undo(); } },
             { label: Stingray.i18n.getString('menu', 'cut'), accelerator: 'CmdOrCtrl+X', click: () => { BrowserWindow.getFocusedWindow().webContents.cut(); } },
             { label: Stingray.i18n.getString('menu', 'copy'), accelerator: 'CmdOrCtrl+C', click: () => { BrowserWindow.getFocusedWindow().webContents.copy(); } },
             { label: Stingray.i18n.getString('menu', 'paste'), accelerator: 'CmdOrCtrl+V', click: () => { BrowserWindow.getFocusedWindow().webContents.paste(); } },
-            { label: Stingray.i18n.getString('menu', 'selectAll'), accelerator: 'CmdOrCtrl+A', click: () => { BrowserWindow.getFocusedWindow().webContents.selectAll(); } }
+            { label: Stingray.i18n.getString('menu', 'selectAll'), accelerator: 'CmdOrCtrl+A', click: () => { BrowserWindow.getFocusedWindow().webContents.selectAll(); } },
+            
         ]);
         let viewMenu: Menu = Menu.buildFromTemplate([
             new MenuItem({ label: Stingray.i18n.getString('menu', 'toggleFullScreen'), role: 'togglefullscreen' })
@@ -659,7 +669,7 @@ class Stingray {
                                 maximizable: false,
                                 resizable: false,
                                 show: false,
-                                icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
+                                icon: this.path.join(app.getAppPath(), 'images', 'Stingray.png'),
                                 webPreferences: {
                                     nodeIntegration: true,
                                     contextIsolation: false
@@ -771,7 +781,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
+            icon: this.path.join(app.getAppPath(), 'images', 'Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -799,7 +809,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
+            icon: this.path.join(app.getAppPath(), 'images', 'Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -833,7 +843,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
+            icon: this.path.join(app.getAppPath(), 'images', 'Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -889,7 +899,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
+            icon: this.path.join(app.getAppPath(), 'images', 'Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -955,7 +965,7 @@ class Stingray {
             height: 400,
             show: false,
             title: title,
-            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
+            icon: this.path.join(app.getAppPath(), 'images', 'Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -1070,7 +1080,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
+            icon: this.path.join(app.getAppPath(), 'images', 'Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -1630,7 +1640,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
+            icon: this.path.join(app.getAppPath(), 'images', 'Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -1661,7 +1671,7 @@ class Stingray {
             maximizable: false,
             resizable: false,
             show: false,
-            icon: this.path.join(app.getAppPath(), 'images','Stingray.png'),
+            icon: this.path.join(app.getAppPath(), 'images', 'Stingray.png'),
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -1726,6 +1736,13 @@ class Stingray {
             return;
         }
         Stingray.mainWindow.webContents.send('split-segment');
+    }
+
+    static addCellBelow(): void {
+        if (this.currentFile === '') {
+            return;
+        }
+        Stingray.mainWindow.webContents.send('insert-cell');
     }
 
     static mergeSegment(): void {
@@ -1813,6 +1830,19 @@ class Stingray {
 
     static split(data: any): void {
         this.sendRequest('/splitSegment', data,
+            (data: any) => {
+                Stingray.saved = false;
+                Stingray.mainWindow.setDocumentEdited(true);
+                Stingray.mainWindow.webContents.send('refresh-page');
+            },
+            (reason: string) => {
+                dialog.showErrorBox(Stingray.i18n.getString('Stingray', 'error'), reason);
+            }
+        );
+    }
+
+    static insertCell(data: any): void {
+        this.sendRequest('/insertCell', data,
             (data: any) => {
                 Stingray.saved = false;
                 Stingray.mainWindow.setDocumentEdited(true);
