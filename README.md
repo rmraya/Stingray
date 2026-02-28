@@ -31,7 +31,7 @@ Ready to use installers and technical support for Stingray are available as year
 
 The version of Stingray included in the official installers from [Stingray's Home Page](https://www.maxprograms.com/products/stingray.html) can be used at no cost for 7 days requesting a free Evaluation Key.
 
-Subscription Keys cannot be shared or transferred to a different machine.
+Subscription Keys cannot be shared or transferred to different machines.
 
 Installers may occasionally be updated before the corresponding source code changes appear in this repository. Source code updates are published later, once they are ready for release. This timing difference is expected and does not affect the availability or completeness of the open source code.
 
